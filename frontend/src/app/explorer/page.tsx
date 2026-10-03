@@ -83,7 +83,7 @@ export default function Explorer() {
                   className="w-full px-3 py-2.5 rounded-lg border border-border focus:border-electric-blue outline-none text-sm bg-white"
                 >
                   <option value="">All Cities</option>
-                  {filters.cities.map(c => <option key={c} value={c}>{c}</option>)}
+                  {filters.cities.map((c: any) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
 
@@ -94,7 +94,7 @@ export default function Explorer() {
                   className="w-full px-3 py-2.5 rounded-lg border border-border focus:border-electric-blue outline-none text-sm bg-white"
                 >
                   <option value="">All Branches</option>
-                  {filters.branches.map(b => <option key={b} value={b}>{b}</option>)}
+                  {filters.branches.map((b: any) => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
             </div>
@@ -135,7 +135,7 @@ export default function Explorer() {
             </div>
           ) : colleges.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {colleges.map((c, i) => (
+              {colleges.map((c: any, i: number) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.05 }}
                   className="bg-white p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:border-electric-blue/40 transition-all flex flex-col group cursor-pointer"
                 >
