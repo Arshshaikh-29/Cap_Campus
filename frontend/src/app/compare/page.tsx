@@ -8,14 +8,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 export default function Compare() {
-  const [colleges, setColleges] = useState([]);
-  const [selectedCodes, setSelectedCodes] = useState([]);
+  const [colleges, setColleges] = useState<any[]>([]);
+  const [selectedCodes, setSelectedCodes] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
-  const [comparisonData, setComparisonData] = useState([]);
+  const [comparisonData, setComparisonData] = useState<any[]>([]);
 
   const [category, setCategory] = useState('GOPENS');
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
     axios.get(`${API_BASE}/filters`).then(res => setCategories(res.data.categories)).catch(console.error);
@@ -30,14 +30,14 @@ export default function Compare() {
     }
   }, [search]);
 
-  const addCollege = (c) => {
+  const addCollege = (c: any) => {
     if (selectedCodes.length < 4 && !selectedCodes.find(x => x.college_code === c.college_code)) {
       setSelectedCodes([...selectedCodes, c]);
     }
     setSearch('');
   };
 
-  const removeCollege = (code) => {
+  const removeCollege = (code: any) => {
     setSelectedCodes(selectedCodes.filter(c => c.college_code !== code));
   };
 

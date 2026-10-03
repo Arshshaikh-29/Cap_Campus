@@ -8,10 +8,10 @@ import { motion } from 'framer-motion';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 export default function Explorer() {
-  const [colleges, setColleges] = useState([]);
+  const [colleges, setColleges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ cities: [], branches: [] });
+  const [filters, setFilters] = useState<any>({ cities: [], branches: [] });
   const [cityFilter, setCityFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
 

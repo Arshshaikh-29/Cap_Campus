@@ -10,16 +10,16 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 export default function Analytics() {
   const [search, setSearch] = useState('');
-  const [colleges, setColleges] = useState([]);
+  const [colleges, setColleges] = useState<any[]>([]);
   const [selectedCollege, setSelectedCollege] = useState<any>(null);
   
   const [category, setCategory] = useState('GOPENS');
   const [branch, setBranch] = useState('');
   
   const [globalFilters, setGlobalFilters] = useState({ categories: [], branches: [] });
-  const [availableBranches, setAvailableBranches] = useState([]);
+  const [availableBranches, setAvailableBranches] = useState<any[]>([]);
   
-  const [analyticsData, setAnalyticsData] = useState([]);
+  const [analyticsData, setAnalyticsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
