@@ -14,9 +14,11 @@ import {
   Crown,
   GitCompare,
   ListOrdered,
+  Radar,
   Search,
   Sparkles,
   User,
+  Wallet,
   X,
 } from "lucide-react";
 
@@ -38,6 +40,22 @@ const STATIC_COMMANDS: QuickItem[] = [
     sublabel: "Multi-branch & multi-city category rank + percentile predictor",
     href: "/?start=1",
     icon: Compass,
+  },
+  {
+    id: "betterment",
+    label: "CAP Betterment & Spot-Round Radar",
+    sublabel: "Find colleges missed in R1 that drop into reach in R2/R3 + Spot/ACAP watchlist",
+    href: "/betterment",
+    badge: "PRO",
+    icon: Radar,
+  },
+  {
+    id: "roi-finder",
+    label: "Smart Scholarship, Budget & ROI Finder",
+    sublabel: "Calculate net B.Tech fees after Maharashtra Girls/OBC/TFWS waivers & NIRF ROI",
+    href: "/roi-finder",
+    badge: "NEW",
+    icon: Wallet,
   },
   {
     id: "what-if",

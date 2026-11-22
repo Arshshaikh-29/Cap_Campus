@@ -694,3 +694,98 @@ def test_verified_placements_fees_and_authentic_sources():
     assert niche["fees"] is None
     assert niche["official_sources"]["fra_portal_url"] == "https://mahafra.org"
     assert niche["official_sources"]["nirf_portal_url"] == "https://www.nirfindia.org"
+
+
+def test_betterment_radar_and_roi_finder_with_pro_gating():
+    import uuid
+    from backend.api.database import SessionLocal
+    from backend.api.models import PaymentOrder
+    from backend.api.security import issue_entitlement_token
+
+    # 1. Free call to Betterment Radar enforces server-side Top 5 preview cap
+    br_free = client.post(
+        "/api/betterment-radar",
+        json={"percentile": 95.5, "category": "GOPENS"},
+    )
+    assert br_free.status_code == 200
+    bf = br_free.json()
+    assert bf["is_pro"] is False
+    assert bf["summary"]["total_betterment_gems"] > 5
+    assert len(bf["betterment_gems"]) == 5
+    assert bf["summary"]["locked_betterment_count"] == bf["summary"]["total_betterment_gems"] - 5
+    # Verify real R1 > R3 drop semantics
+    for g in bf["betterment_gems"]:
+        assert g["r1_percentile"] > g["final_percentile"]
+        assert g["drop_percentile"] > 0
+
+    # 2. Free call to Scholarship & ROI Finder calculates Girls 100% Tuition Waiver (< ₹8L)
+    roi_free = client.post(
+        "/api/roi-finder",
+        json={
+            "percentile": 97.0,
+            "category": "GOBCS",
+            "gender": "female",
+            "income_below_8l": True,
+        },
+    )
+    assert roi_free.status_code == 200
+    rf = roi_free.json()
+    assert rf["is_pro"] is False
+    assert "Girls 100% Tuition Waiver" in rf["scheme_applied"]
+    assert rf["summary"]["total_matches"] > 5
+    assert len(rf["results"]) == 5
+    assert rf["summary"]["max_four_year_savings_inr"] >= 200000
+    assert rf["results"][0]["net_annual_fee_inr"] < rf["results"][0]["sticker_annual_fee_inr"]
+
+    # 3. Create an approved Pro order & verify server-signed X-Entitlement-Token unlocks FULL data
+    db = SessionLocal()
+    test_key = f"CAP-PRO-{uuid.uuid4().hex[:12].upper()}"
+    test_utr = f"PROTEST{uuid.uuid4().hex[:8].upper()}"
+    order = PaymentOrder(
+        access_key=test_key,
+        full_name="Paid Pro Student",
+        phone="9876543210",
+        plan="pro",
+        amount_inr=199,
+        utr_number=test_utr,
+        status="approved",
+    )
+    db.add(order)
+    db.commit()
+    order_id = order.id
+    db.close()
+
+    try:
+        pro_token = issue_entitlement_token(test_key, "pro")
+
+        br_pro = client.post(
+            "/api/betterment-radar",
+            json={"percentile": 95.5, "category": "GOPENS"},
+            headers={"X-Entitlement-Token": pro_token},
+        ).json()
+        assert br_pro["is_pro"] is True
+        assert br_pro["summary"]["locked_betterment_count"] == 0
+        assert len(br_pro["betterment_gems"]) > 5
+
+        roi_pro = client.post(
+            "/api/roi-finder",
+            json={
+                "percentile": 97.0,
+                "category": "GOBCS",
+                "gender": "female",
+                "income_below_8l": True,
+                "max_annual_budget_inr": 35000,
+            },
+            headers={"X-Entitlement-Token": pro_token},
+        ).json()
+        assert roi_pro["is_pro"] is True
+        assert roi_pro["summary"]["locked_count"] == 0
+        assert len(roi_pro["results"]) >= 5
+        assert all(r["net_annual_fee_inr"] <= 35000 for r in roi_pro["results"])
+    finally:
+        db = SessionLocal()
+        try:
+            db.query(PaymentOrder).filter(PaymentOrder.id == order_id).delete()
+            db.commit()
+        finally:
+            db.close()

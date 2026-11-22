@@ -48,10 +48,10 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     features: [
       "Unlimited College Predictions (All 300+ matched courses)",
       "Full Smart CAP Option Form Builder (up to 60 ordered DTE choices)",
-      "Option Form Safety Health Audit & Allotment Strategy Engine",
-      "Compare up to 4 Colleges Side-by-Side with Category Calibration",
+      "Full CAP Betterment & Spot-Round Drop Radar (All R1→R3 gems + ACAP watchlist)",
+      "Full Scholarship, Net-Fee Budget & ROI Finder (Custom Max-Budget + PDF/CSV)",
+      "Compare up to 4 Colleges Side-by-Side with NIRF Placements & FRA Fees",
       "Unlimited CET-Ready CSV & Printable PDF Preference Exports",
-      "3-Year Category Rank & Percentile Trajectory Charts + 2026 Outlook",
     ],
   },
   vip: {
@@ -62,11 +62,11 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     badge: "Personal Guidance",
     validity: "One-time • Full Season + Dedicated WhatsApp Support",
     features: [
-      "Everything included in CAP Pro Pass",
+      "Everything included in CAP Pro Pass (Option Form, Betterment Radar & ROI Finder)",
       "Personal 1-on-1 Option Form Audit by CAP Counselling Experts",
       "Direct WhatsApp & Call Priority Support (Rounds 1–3)",
       "Spot Round (ACAP) & Institute-Level Seat (ILS) Strategy Plan",
-      "Custom TFWS / EWS / Minority / Home-Univ Seat Optimization",
+      "Custom TFWS / Girls 100% Waiver / EWS / Minority Optimization",
     ],
   },
 };

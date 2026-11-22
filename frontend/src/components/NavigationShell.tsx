@@ -166,15 +166,21 @@ export default function NavigationShell({
       match: (p: string) => p.startsWith("/option-form"),
     },
     {
-      href: "/what-if",
-      label: "What-If",
-      badge: "NEW",
-      match: (p: string) => p.startsWith("/what-if"),
+      href: "/betterment",
+      label: "Betterment",
+      badge: "PRO",
+      match: (p: string) => p.startsWith("/betterment"),
     },
     {
-      href: "/cap-guide",
-      label: "CAP Guide",
-      match: (p: string) => p.startsWith("/cap-guide"),
+      href: "/roi-finder",
+      label: "ROI & Fees",
+      badge: "NEW",
+      match: (p: string) => p.startsWith("/roi-finder"),
+    },
+    {
+      href: "/what-if",
+      label: "What-If",
+      match: (p: string) => p.startsWith("/what-if"),
     },
     {
       href: "/explorer",
@@ -185,11 +191,6 @@ export default function NavigationShell({
       href: "/compare",
       label: "Compare",
       match: (p: string) => p.startsWith("/compare"),
-    },
-    {
-      href: "/analytics",
-      label: "Analytics",
-      match: (p: string) => p.startsWith("/analytics"),
     },
     {
       href: "/pricing",
@@ -382,6 +383,20 @@ export default function NavigationShell({
               );
             })}
             <Link
+              href="/cap-guide"
+              onClick={() => setMobileOpen(false)}
+              className="block w-full text-left py-2 text-sm font-medium text-primary"
+            >
+              CAP Guide &amp; Document Checklist
+            </Link>
+            <Link
+              href="/analytics"
+              onClick={() => setMobileOpen(false)}
+              className="block w-full text-left py-2 text-sm font-medium text-primary"
+            >
+              Cutoff Analytics
+            </Link>
+            <Link
               href="/rank-calculator"
               onClick={() => setMobileOpen(false)}
               className="block w-full text-left py-2 text-sm font-medium text-primary"
@@ -473,6 +488,22 @@ export default function NavigationShell({
                   className="hover:text-electric-blue transition-colors"
                 >
                   Smart CAP Option Form
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/betterment"
+                  className="hover:text-electric-blue transition-colors"
+                >
+                  Betterment &amp; Spot-Round Radar
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/roi-finder"
+                  className="hover:text-electric-blue transition-colors"
+                >
+                  Scholarship &amp; ROI Fee Finder
                 </Link>
               </li>
               <li>

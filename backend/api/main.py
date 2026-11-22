@@ -13,7 +13,14 @@ from .database import Base, engine, get_db
 from .models import CollegeRecord, PaymentOrder, CounsellingLead
 from .rank_scale import get_rank_scale
 from .college_websites import get_college_links
-from .college_insights import get_college_insights, get_college_insights_summary
+from .college_insights import (
+    FRA_PORTAL_URL,
+    MAHADBT_PORTAL_URL,
+    NIRF_PORTAL_URL,
+    VERIFIED_COLLEGE_INSIGHTS,
+    get_college_insights,
+    get_college_insights_summary,
+)
 from .security import (
     ALLOWED_ORIGINS,
     ALLOWED_ORIGIN_REGEX,
@@ -911,6 +918,424 @@ def what_if_simulator(req: WhatIfRequest, db: Session = Depends(get_db)):
         "rank_scale_year": latest_year,
         "total_courses": len(pool),
         "points": points,
+    }
+
+
+def _resolve_entitlement_tier(token: Optional[str], db: Session) -> str:
+    """Server-side verification of paid Pro/VIP entitlement token against live DB status."""
+    if not token:
+        return "free"
+    payload = verify_entitlement_token(token)
+    if not payload:
+        return "free"
+    order = (
+        db.query(PaymentOrder)
+        .filter(PaymentOrder.access_key == payload.get("key"))
+        .first()
+    )
+    if not order or order.status != "approved":
+        return "free"
+    return order.plan if order.plan in ("pro", "vip") else "free"
+
+
+class BettermentRadarRequest(BaseModel):
+    percentile: Optional[float] = Field(default=None, ge=0.0, le=100.0)
+    rank: Optional[float] = Field(default=None, ge=1.0, le=500000.0)
+    category: str = Field(min_length=1, max_length=24)
+    branches: Optional[List[str]] = Field(default=None, max_length=50)
+    cities: Optional[List[str]] = Field(default=None, max_length=50)
+
+
+@app.post("/api/betterment-radar")
+def betterment_radar(
+    req: BettermentRadarRequest,
+    x_entitlement_token: Optional[str] = Header(default=None, alias="X-Entitlement-Token"),
+    db: Session = Depends(get_db),
+):
+    """
+    CAP Round 1 -> Round 2 -> Round 3 Betterment & Spot-Round Drop Radar.
+    Finds colleges that closed ABOVE the student's score in Round 1 but historically
+    dropped INTO reach by Round 2/3, plus high-value Spot/ACAP watchlist targets.
+    Server-enforces Free preview (Top 5) vs Paid Pro/VIP full access.
+    """
+    if req.percentile is None and req.rank is None:
+        raise HTTPException(status_code=400, detail="Must provide either percentile or rank")
+
+    scale = get_rank_scale(db)
+    latest_year = scale.latest_year
+    use_pct = req.percentile is not None
+    student_pct = (
+        float(req.percentile) if use_pct else float(scale.rank_to_pct(latest_year, req.rank))
+    )
+    student_rank = (
+        float(scale.pct_to_rank(latest_year, req.percentile)) if use_pct else float(req.rank)
+    )
+    if not (0 < student_pct <= 100):
+        raise HTTPException(status_code=400, detail="Percentile must be between 0 and 100")
+
+    req_cat = (req.category or "GOPENS").upper().strip()
+    chain = build_category_chain(req_cat, include_open_fallback=False)
+    priority = {cat: i for i, group in enumerate(chain) for cat in group}
+    requested_family = set(chain[0]) if chain else set()
+    m_req = _CAT_RE.match(req_cat)
+    req_prefix = m_req.group(1) if m_req else ""
+    minority_colleges, _ = _get_college_sets(db)
+
+    query = db.query(
+        CollegeRecord.choice_code,
+        CollegeRecord.college_code,
+        CollegeRecord.college_name,
+        CollegeRecord.city,
+        CollegeRecord.branch_name,
+        CollegeRecord.category,
+        CollegeRecord.stage,
+        CollegeRecord.percentile,
+        CollegeRecord.year,
+        CollegeRecord.round_number,
+    ).filter(
+        CollegeRecord.category.in_(list(priority.keys())),
+        CollegeRecord.percentile.isnot(None),
+        CollegeRecord.round_number.in_([1, 2, 3]),
+    )
+
+    target_branches = [b.strip() for b in (req.branches or []) if b and b.strip()]
+    target_cities = [c.strip() for c in (req.cities or []) if c and c.strip()]
+    if target_branches:
+        query = query.filter(CollegeRecord.branch_name.in_(target_branches))
+    if target_cities:
+        query = query.filter(CollegeRecord.city.in_(target_cities))
+    if req_prefix == "G":
+        query = query.filter(~CollegeRecord.college_code.in_(list(WOMENS_ONLY_COLLEGES)))
+    if req_cat not in ("GOPENS", "GOPENH", "GOPENO", "LOPENS", "LOPENH", "LOPENO", "MI", "TFWS") and minority_colleges:
+        query = query.filter(~CollegeRecord.college_code.in_(list(minority_colleges)))
+
+    # Track closing percentile per (course_key, category, year, round_number) preferring Stage I/MH
+    cells = {}
+    meta = {}
+    for r in query.all():
+        key = r.choice_code or f"{r.college_code}|{r.branch_name}"
+        st_prio = 0 if r.stage in ("I", "MH") else 1
+        ckey = (key, r.category, r.year, r.round_number)
+        cur = cells.get(ckey)
+        if cur is None or (st_prio, r.percentile) < cur:
+            cells[ckey] = (st_prio, r.percentile)
+        if key not in meta:
+            meta[key] = {
+                "choice_code": r.choice_code,
+                "college_code": r.college_code,
+                "college_name": r.college_name,
+                "city": r.city,
+                "branch": r.branch_name,
+            }
+
+    # For each course, pick best (category_priority, -year) that has Round 1 AND at least Round 2 or Round 3
+    by_course = {}
+    for (key, cat, yr, rnd), (_, pct) in cells.items():
+        by_course.setdefault(key, {}).setdefault((priority[cat], -yr, cat, yr), {})[rnd] = pct
+
+    betterment_gems = []
+    spot_watchlist = []
+    biggest_drops = []
+
+    for key, variants in by_course.items():
+        chosen_variant = None
+        chosen_rounds = None
+        for vkey in sorted(variants.keys()):
+            rmap = variants[vkey]
+            if 1 in rmap and (3 in rmap or 2 in rmap):
+                chosen_variant = vkey
+                chosen_rounds = rmap
+                break
+        if not chosen_variant or not chosen_rounds:
+            continue
+
+        _, _, basis_cat, yr = chosen_variant
+        m = meta[key]
+        is_est = basis_cat not in requested_family
+        is_min = m["college_code"] in minority_colleges
+
+        def cal(p):
+            if p is None:
+                return None
+            if not is_est:
+                return round(float(p), 2)
+            cp, _ = _calibrate_cutoff_for_category(
+                req_cat, basis_cat, float(p), None, yr, is_minority_college=is_min
+            )
+            return round(float(cp if cp is not None else p), 2)
+
+        r1 = cal(chosen_rounds.get(1))
+        r2 = cal(chosen_rounds.get(2))
+        r3 = cal(chosen_rounds.get(3))
+        final_pct = r3 if r3 is not None else r2
+        if r1 is None or final_pct is None:
+            continue
+
+        drop_pct = round(r1 - final_pct, 2)
+        r1_rank = int(round(scale.pct_to_rank(latest_year, r1)))
+        final_rank = int(round(scale.pct_to_rank(latest_year, final_pct)))
+        rank_relaxation = max(0, final_rank - r1_rank)
+        gap_after_r3 = round(student_pct - final_pct, 2)
+
+        row_obj = {
+            **m,
+            **get_college_links(m["college_code"]),
+            **get_college_insights_summary(m["college_code"]),
+            "year": yr,
+            "basis_category": basis_cat,
+            "is_estimate": is_est,
+            "r1_percentile": r1,
+            "r2_percentile": r2,
+            "r3_percentile": r3,
+            "final_percentile": final_pct,
+            "r1_rank": r1_rank,
+            "final_rank": final_rank,
+            "drop_percentile": drop_pct,
+            "rank_relaxation": rank_relaxation,
+            "margin_after_r3": gap_after_r3,
+        }
+
+        # 1. Betterment Gems: missed R1 cutoff, but dropped into reach (or within 0.35%ile) by R2/R3!
+        if r1 > student_pct and final_pct <= student_pct + 0.35 and drop_pct >= 0.05:
+            verdict = (
+                "Historically Unlocked in R2/R3 — Do NOT Freeze R1!"
+                if final_pct <= student_pct
+                else "High-Probability Betterment Target (within 0.35%ile)"
+            )
+            betterment_gems.append({**row_obj, "verdict": verdict})
+        # 2. Spot / ACAP Round Watchlist: just 0.35 to 2.2 %ile above R3 closing
+        elif 0.35 < (final_pct - student_pct) <= 2.2:
+            spot_watchlist.append(
+                {
+                    **row_obj,
+                    "verdict": (
+                        f"Missed R3 by {round(final_pct - student_pct, 2)} %ile — Strong Spot / ACAP Round Target"
+                    ),
+                }
+            )
+
+        # 3. Biggest drops in the student's competitive window (within ±4 %ile)
+        if drop_pct >= 0.30 and abs(final_pct - student_pct) <= 4.0:
+            biggest_drops.append(
+                {
+                    **row_obj,
+                    "verdict": f"Dropped {drop_pct:.2f} %ile (+{rank_relaxation:,} ranks) from R1 to final round",
+                }
+            )
+
+    # Sort best colleges first (lowest final closing rank = highest prestige)
+    betterment_gems.sort(key=lambda x: (0 if x["margin_after_r3"] >= 0 else 1, x["final_rank"]))
+    spot_watchlist.sort(key=lambda x: (abs(x["margin_after_r3"]), x["final_rank"]))
+    biggest_drops.sort(key=lambda x: (-x["drop_percentile"], x["final_rank"]))
+
+    tier = _resolve_entitlement_tier(x_entitlement_token, db)
+    is_pro = tier in ("pro", "vip")
+    FREE_GEMS = 5
+    FREE_SPOT = 3
+    FREE_DROPS = 5
+
+    max_drop = max((x["drop_percentile"] for x in (betterment_gems + biggest_drops)), default=0.0)
+    avg_drop = (
+        round(sum(x["drop_percentile"] for x in betterment_gems) / len(betterment_gems), 2)
+        if betterment_gems
+        else 0.0
+    )
+
+    return {
+        "tier": tier,
+        "is_pro": is_pro,
+        "student": {
+            "percentile": round(student_pct, 4),
+            "rank": round(student_rank),
+            "category": req_cat,
+            "rank_scale_year": latest_year,
+        },
+        "summary": {
+            "total_betterment_gems": len(betterment_gems),
+            "total_spot_watchlist": len(spot_watchlist),
+            "total_biggest_drops": len(biggest_drops),
+            "avg_gem_drop_percentile": avg_drop,
+            "max_drop_percentile": max_drop,
+            "locked_betterment_count": 0 if is_pro else max(0, len(betterment_gems) - FREE_GEMS),
+            "locked_spot_count": 0 if is_pro else max(0, len(spot_watchlist) - FREE_SPOT),
+        },
+        "betterment_gems": betterment_gems[:80] if is_pro else betterment_gems[:FREE_GEMS],
+        "spot_watchlist": spot_watchlist[:40] if is_pro else spot_watchlist[:FREE_SPOT],
+        "biggest_drops": biggest_drops[:40] if is_pro else biggest_drops[:FREE_DROPS],
+    }
+
+
+class ROIFinderRequest(BaseModel):
+    percentile: Optional[float] = Field(default=None, ge=0.0, le=100.0)
+    rank: Optional[float] = Field(default=None, ge=1.0, le=500000.0)
+    category: str = Field(min_length=1, max_length=24)
+    gender: str = Field(default="male", max_length=12)
+    income_below_8l: bool = Field(default=True)
+    max_annual_budget_inr: Optional[int] = Field(default=None, ge=0, le=500000)
+    branches: Optional[List[str]] = Field(default=None, max_length=50)
+    cities: Optional[List[str]] = Field(default=None, max_length=50)
+
+
+def _compute_maharashtra_net_fee(
+    sticker_annual_inr: int,
+    category: str,
+    gender: str,
+    income_below_8l: bool,
+) -> tuple[int, str]:
+    """
+    Estimate net annual payable fee under official Maharashtra Govt / MahaDBT rules.
+    Standard FRA/DTE fee split is ~87% Tuition Fee + ~13% Development & Univ. Fee.
+    """
+    cat = (category or "GOPENS").upper().strip()
+    is_female = (gender or "male").strip().lower() == "female" or cat.startswith("L")
+    tuition = int(round(sticker_annual_inr * 0.87))
+    dev_and_univ = max(4500, sticker_annual_inr - tuition)
+
+    if "SC" in cat and "SEBC" not in cat:
+        return min(5000, dev_and_univ), "SC Full Scholarship (MahaDBT)"
+    if "ST" in cat and "STATE" not in cat:
+        return min(5000, dev_and_univ), "ST Full Scholarship (MahaDBT)"
+    if cat == "TFWS":
+        return dev_and_univ, "TFWS 100% Tuition Fee Waiver"
+    if any(k in cat for k in ("VJ", "NT1", "NT2", "NT3")) and income_below_8l:
+        return dev_and_univ, "VJ/NT 100% Tuition Fee Waiver (MahaDBT < ₹8L)"
+    if is_female and income_below_8l and (
+        any(k in cat for k in ("OPEN", "OBC", "SEBC", "EWS")) or cat == "MI"
+    ):
+        return dev_and_univ, "Maharashtra Girls 100% Tuition Waiver (< ₹8L GR)"
+    if income_below_8l and any(k in cat for k in ("OBC", "SEBC", "EWS", "OPEN")):
+        net = int(round(tuition * 0.50)) + dev_and_univ
+        scheme = (
+            "EBC Rajarshi Shahu 50% Tuition Waiver (< ₹8L)"
+            if "OPEN" in cat
+            else "OBC/SEBC/EWS 50% Tuition Waiver (MahaDBT < ₹8L)"
+        )
+        return net, scheme
+    return sticker_annual_inr, "Standard CAP Open / Full Fee (No Waiver Applied)"
+
+
+@app.post("/api/roi-finder")
+def roi_budget_finder(
+    req: ROIFinderRequest,
+    x_entitlement_token: Optional[str] = Header(default=None, alias="X-Entitlement-Token"),
+    db: Session = Depends(get_db),
+):
+    """
+    Smart Scholarship, Net-Fee Budget & ROI Finder.
+    Combines real CAP reachability + verified Maharashtra FRA/Govt Fees +
+    official MahaDBT/Girls/TFWS waivers + NIRF Median Salaries to rank reachable
+    colleges by true net ROI payback. Server-enforces Free preview vs Paid Pro/VIP.
+    """
+    if req.percentile is None and req.rank is None:
+        raise HTTPException(status_code=400, detail="Must provide either percentile or rank")
+
+    pred_res = predict_colleges(
+        PredictionRequest(
+            percentile=req.percentile,
+            rank=req.rank,
+            category=req.category,
+            branches=req.branches,
+            cities=req.cities,
+        ),
+        db,
+    )
+    preds = pred_res["predictions"] if not pred_res.get("fallback_used") else []
+    tier = _resolve_entitlement_tier(x_entitlement_token, db)
+    is_pro = tier in ("pro", "vip")
+
+    # Deduplicate to best reachable branch per college (or keep top matching college+branch combos)
+    items = []
+    seen = set()
+    for p in preds:
+        if p["prediction_category"] not in ("Historically Within Range", "Moderate"):
+            continue
+        code = p["college_code"]
+        raw = VERIFIED_COLLEGE_INSIGHTS.get(code)
+        if not raw:
+            continue
+        k = (code, p["branch"])
+        if k in seen:
+            continue
+        seen.add(k)
+
+        sticker_annual = raw["annual_open_inr"]
+        net_annual, scheme_label = _compute_maharashtra_net_fee(
+            sticker_annual, req.category, req.gender, req.income_below_8l
+        )
+        if is_pro and req.max_annual_budget_inr is not None and net_annual > req.max_annual_budget_inr:
+            continue
+
+        annual_savings = max(0, sticker_annual - net_annual)
+        four_yr_sticker = sticker_annual * 4
+        four_yr_net = net_annual * 4
+        four_yr_savings = annual_savings * 4
+        nirf_median_lpa = raw["nirf_median_lpa"]
+        payback_years = (
+            round(four_yr_net / (nirf_median_lpa * 100_000), 2)
+            if nirf_median_lpa > 0
+            else 99.0
+        )
+        roi_multiple = round((nirf_median_lpa * 100_000) / max(1, four_yr_net), 2)
+
+        items.append(
+            {
+                "college_code": code,
+                "college_name": p["college_name"],
+                "city": p["city"],
+                "branch": p["branch"],
+                "choice_code": p.get("choice_code"),
+                "prediction_category": p["prediction_category"],
+                "chance_level": p.get("chance_level"),
+                "cutoff_percentile": p["historical_percentile"],
+                "cutoff_rank": p["historical_rank"],
+                "official_website": p.get("official_website"),
+                "website_domain": p.get("website_domain"),
+                "cet_portal_url": p.get("cet_portal_url"),
+                "institute_type": raw["institute_type"],
+                "fee_source": (
+                    "Maharashtra FRA" if raw["fee_source_type"] == "FRA" else "Govt./Institute Circular"
+                ),
+                "sticker_annual_fee_inr": sticker_annual,
+                "net_annual_fee_inr": net_annual,
+                "annual_savings_inr": annual_savings,
+                "four_year_sticker_fee_inr": four_yr_sticker,
+                "four_year_net_fee_inr": four_yr_net,
+                "four_year_savings_inr": four_yr_savings,
+                "scheme_applied": scheme_label,
+                "nirf_median_lpa": nirf_median_lpa,
+                "average_lpa": raw["average_lpa"],
+                "highest_lpa": raw["highest_lpa"],
+                "net_roi_payback_years": payback_years,
+                "roi_multiple": roi_multiple,
+            }
+        )
+
+    # Rank by best true net ROI payback, then higher NIRF median salary
+    items.sort(key=lambda x: (x["net_roi_payback_years"], -x["nirf_median_lpa"]))
+
+    FREE_LIMIT = 5
+    _, sample_scheme = _compute_maharashtra_net_fee(
+        150000, req.category, req.gender, req.income_below_8l
+    )
+
+    return {
+        "tier": tier,
+        "is_pro": is_pro,
+        "student": pred_res["student"],
+        "scheme_applied": sample_scheme,
+        "sources": {
+            "fra_portal_url": FRA_PORTAL_URL,
+            "nirf_portal_url": NIRF_PORTAL_URL,
+            "mahadbt_portal_url": MAHADBT_PORTAL_URL,
+        },
+        "summary": {
+            "total_matches": len(items),
+            "best_payback_years": items[0]["net_roi_payback_years"] if items else None,
+            "highest_nirf_median_lpa": max((x["nirf_median_lpa"] for x in items), default=None),
+            "max_four_year_savings_inr": max((x["four_year_savings_inr"] for x in items), default=0),
+            "locked_count": 0 if is_pro else max(0, len(items) - FREE_LIMIT),
+        },
+        "results": items[:80] if is_pro else items[:FREE_LIMIT],
     }
 
 

@@ -41,6 +41,8 @@ import {
   Share2,
   Globe,
   ExternalLink,
+  Radar,
+  Wallet,
 } from "lucide-react";
 import axios from "axios";
 import {
@@ -857,6 +859,24 @@ export default function Home() {
                     href: "/option-form",
                   },
                   {
+                    icon: Radar,
+                    badge: "EXCLUSIVE • PRO",
+                    title: "Betterment & Spot-Round Drop Radar",
+                    desc: "Uncover hidden colleges you miss in Round 1 that historically drop into reach by Round 2/3 — plus Spot/ACAP Round targets so you never freeze too early.",
+                    cta: "Scan Betterment Gems",
+                    action: null,
+                    href: "/betterment",
+                  },
+                  {
+                    icon: Wallet,
+                    badge: "EXCLUSIVE • PRO",
+                    title: "Scholarship, Budget & ROI Finder",
+                    desc: "Applies Maharashtra Girls 100% Tuition Waiver (< ₹8L), OBC/EWS 50% MahaDBT & TFWS to compute real 4-Year Net Fees vs. verified NIRF Median Salary.",
+                    cta: "Calculate Net ROI",
+                    action: null,
+                    href: "/roi-finder",
+                  },
+                  {
                     icon: Activity,
                     badge: "NEW",
                     title: "What-If Score Impact Simulator",
@@ -867,30 +887,12 @@ export default function Home() {
                   },
                   {
                     icon: BookOpenCheck,
-                    badge: "NEW • Free",
+                    badge: "Free Toolkit",
                     title: "CAP Guide & Document Checklist",
                     desc: "Personalized Maharashtra CAP document checklist by category (OBC/SEBC/SC/ST/EWS/TFWS/Minority) with progress saving, print mode & Freeze vs Betterment guide.",
                     cta: "Open CAP Guide",
                     action: null,
                     href: "/cap-guide",
-                  },
-                  {
-                    icon: Calculator,
-                    badge: "<0.3% Rank Error",
-                    title: "Marks & Rank Calculator",
-                    desc: "Convert expected PCM Marks (/200) or Percentile into exact 2023, 2024 & 2025 State Merit Ranks across 3.19L candidates.",
-                    cta: "Open Calculator",
-                    action: null,
-                    href: "/rank-calculator",
-                  },
-                  {
-                    icon: BarChart3,
-                    badge: "3-Year Trends",
-                    title: "Multi-Year Cutoff Analytics",
-                    desc: "Visualize CAP Round 1–3 percentile drops, branch-by-branch competitiveness, and projected 2026 closing bands.",
-                    cta: "Inspect Trends",
-                    action: null,
-                    href: "/analytics",
                   },
                 ].map((card, i) => {
                   const Icon = card.icon;
@@ -2097,6 +2099,12 @@ export default function Home() {
                   className="px-3.5 py-2 text-xs font-bold text-white bg-electric-blue hover:bg-blue-600 rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
                 >
                   <ListOrdered size={14} /> Build Option Form
+                </Link>
+                <Link
+                  href={`/betterment?${buildCrossToolQuery()}`}
+                  className="px-3.5 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors flex items-center gap-1.5"
+                >
+                  <Radar size={14} /> Betterment Radar
                 </Link>
                 <Link
                   href={`/what-if?${buildCrossToolQuery()}`}

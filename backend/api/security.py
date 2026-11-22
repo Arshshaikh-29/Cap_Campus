@@ -257,6 +257,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         ("/api/payments/verify-token", {"POST"}, 30, 60),
         ("/api/payments/verify", {"GET"}, 20, 60),
         ("/api/what-if", {"POST"}, 30, 60),
+        ("/api/betterment-radar", {"POST"}, 30, 60),
+        ("/api/roi-finder", {"POST"}, 30, 60),
         ("/api/admin/", {"GET", "POST", "PUT", "DELETE"}, 60, 60),
         ("/api/", {"GET", "POST", "PUT", "DELETE"}, 180, 60),
     ]
