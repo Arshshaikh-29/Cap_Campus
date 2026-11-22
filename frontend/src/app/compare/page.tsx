@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getStoredBookmarks } from "@/components/NavigationShell";
-import { formatCategory } from "../page";
+import { formatCategory } from "@/lib/categories";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";

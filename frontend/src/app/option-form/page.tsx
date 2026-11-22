@@ -24,7 +24,7 @@ import {
   Globe,
   ExternalLink,
 } from "lucide-react";
-import { formatCategory } from "../page";
+import { formatCategory } from "@/lib/categories";
 import {
   GPAY_NUMBER,
   PlanSession,

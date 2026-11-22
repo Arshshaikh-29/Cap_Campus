@@ -26,7 +26,7 @@ import {
   getStoredBookmarks,
   saveStoredBookmarks,
 } from "@/components/NavigationShell";
-import { CATEGORY_LABELS, formatCategory } from "../../page";
+import { CATEGORY_LABELS, formatCategory } from "@/lib/categories";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
