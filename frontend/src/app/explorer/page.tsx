@@ -1,170 +1,387 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Search, MapPin, ChevronRight, Loader2, Filter, X, ArrowUpDown } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import axios from "axios";
+import {
+  Search,
+  MapPin,
+  Building2,
+  ChevronRight,
+  SlidersHorizontal,
+  ArrowUpDown,
+  Bookmark,
+  Scale,
+  Globe,
+  ExternalLink,
+} from "lucide-react";
+import {
+  BookmarkedItem,
+  getStoredBookmarks,
+  saveStoredBookmarks,
+} from "@/components/NavigationShell";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-export default function Explorer() {
+export default function ExplorerPage() {
   const [colleges, setColleges] = useState<any[]>([]);
+  const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState<any>({ cities: [], branches: [] });
-  const [cityFilter, setCityFilter] = useState('');
-  const [branchFilter, setBranchFilter] = useState('');
-
-  const fetchColleges = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_BASE}/colleges`, {
-        params: { search, city: cityFilter, branch: branchFilter, limit: 100 }
-      });
-      setColleges(res.data.results);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [search, setSearch] = useState("");
+  const [city, setCity] = useState("");
+  const [branch, setBranch] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "name_desc" | "code" | "city">(
+    "name"
+  );
+  const [filters, setFilters] = useState<{
+    cities: string[];
+    branches: string[];
+  }>({
+    cities: [],
+    branches: [],
+  });
+  const [bookmarks, setBookmarks] = useState<BookmarkedItem[]>([]);
 
   useEffect(() => {
-    axios.get(`${API_BASE}/filters`).then(res => setFilters(res.data)).catch(console.error);
-    fetchColleges();
+    axios
+      .get(`${API_BASE}/filters`)
+      .then((res) => setFilters(res.data))
+      .catch((err) => console.error(err));
   }, []);
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchColleges();
-    }, 500);
-    return () => clearTimeout(delayDebounceFn);
-  }, [search, cityFilter, branchFilter]);
+    const sync = () => setBookmarks(getStoredBookmarks());
+    sync();
+    window.addEventListener("cap_bookmarks_updated", sync);
+    return () => window.removeEventListener("cap_bookmarks_updated", sync);
+  }, []);
 
-  const clearFilters = () => {
-    setCityFilter('');
-    setBranchFilter('');
-    setSearch('');
+  const bookmarkedColleges = useMemo(
+    () => new Set(bookmarks.map((b) => b.college_code)),
+    [bookmarks]
+  );
+
+  const toggleCollegeBookmark = (e: React.MouseEvent, c: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const existing = getStoredBookmarks();
+    const hasCollege = existing.some(
+      (item) => item.college_code === c.college_code
+    );
+    if (hasCollege) {
+      saveStoredBookmarks(
+        existing.filter((item) => item.college_code !== c.college_code)
+      );
+    } else {
+      saveStoredBookmarks([
+        ...existing,
+        {
+          key: `${c.college_code}|${branch || "General"}`,
+          college_code: c.college_code,
+          college_name: c.college_name,
+          city: c.city,
+          branch: branch || "All Branches",
+        },
+      ]);
+    }
   };
 
+  const fetchColleges = (resetOffset = true) => {
+    const nextOffset = resetOffset ? 0 : colleges.length;
+    if (resetOffset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (city) params.append("city", city);
+    if (branch) params.append("branch", branch);
+    params.append("sort_by", sortBy);
+    params.append("limit", "60");
+    params.append("offset", String(nextOffset));
+
+    axios
+      .get(`${API_BASE}/colleges?${params.toString()}`)
+      .then((res) => {
+        const incoming = res.data.results || [];
+        setTotal(res.data.total || incoming.length);
+        setColleges((prev) =>
+          resetOffset ? incoming : [...prev, ...incoming]
+        );
+      })
+      .catch((err) => console.error(err))
+      .finally(() => {
+        setLoading(false);
+        setLoadingMore(false);
+      });
+  };
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchColleges(true);
+    }, 250);
+    return () => clearTimeout(delayDebounceFn);
+  }, [search, city, branch, sortBy]);
+
   return (
-    <div className="flex-1 w-full bg-soft-bg py-12 px-6 lg:px-12">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
-        
-        {/* Left Sidebar Filters */}
-        <div className="w-full lg:w-72 flex flex-col gap-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-border sticky top-24">
-            <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
-              <h2 className="font-bold text-primary flex items-center gap-2">
-                <Filter size={18} /> Filters
-              </h2>
-              {(cityFilter || branchFilter || search) && (
-                <button onClick={clearFilters} className="text-xs font-semibold text-electric-blue hover:text-primary">Clear all</button>
-              )}
+    <div className="flex-1 bg-soft-bg py-12 px-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header & Search */}
+        <div className="bg-white rounded-3xl p-8 border border-border shadow-xs space-y-6">
+          <div className="max-w-2xl">
+            <h1 className="text-3xl font-extrabold text-primary tracking-tight">
+              Explore Engineering Colleges
+            </h1>
+            <p className="text-sm text-text-secondary mt-2">
+              Browse 380 Maharashtra engineering institutes across all DTE
+              regions, inspect disambiguated branch cutoffs, and compare
+              colleges side-by-side.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pt-2">
+            <div className="md:col-span-5 relative">
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary"
+              />
+              <input
+                type="text"
+                placeholder="Search by college name, DTE code (e.g. 6006, 3012), or city..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-11 pr-4 py-3.5 bg-soft-bg border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-electric-blue/20 focus:border-electric-blue text-sm font-medium"
+              />
             </div>
 
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">Search</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                  <input 
-                    type="text" placeholder="College name or code"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-border focus:border-electric-blue focus:ring-1 focus:ring-electric-blue outline-none text-sm"
-                    value={search} onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-              </div>
+            <div className="md:col-span-3 relative">
+              <MapPin
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary"
+              />
+              <select
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full pl-11 pr-4 py-3.5 bg-soft-bg border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-electric-blue/20 focus:border-electric-blue text-sm font-medium text-primary"
+              >
+                <option value="">All Cities</option>
+                {filters.cities.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">City</label>
-                <select 
-                  value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg border border-border focus:border-electric-blue outline-none text-sm bg-white"
-                >
-                  <option value="">All Cities</option>
-                  {filters.cities.map((c: any) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">Branch</label>
-                <select 
-                  value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg border border-border focus:border-electric-blue outline-none text-sm bg-white"
-                >
-                  <option value="">All Branches</option>
-                  {filters.branches.map((b: any) => <option key={b} value={b}>{b}</option>)}
-                </select>
-              </div>
+            <div className="md:col-span-4 relative">
+              <SlidersHorizontal
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary"
+              />
+              <select
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+                className="w-full pl-11 pr-4 py-3.5 bg-soft-bg border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-electric-blue/20 focus:border-electric-blue text-sm font-medium text-primary"
+              >
+                <option value="">All Branches</option>
+                {filters.branches.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
 
-        {/* Main Content Area */}
-        <div className="flex-1">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-primary mb-1">College Explorer</h1>
-              <p className="text-text-secondary text-sm">Discover and research {colleges.length} engineering colleges across Maharashtra.</p>
+        {/* Results Grid */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 px-2">
+            <span className="text-sm font-semibold text-text-secondary">
+              {loading
+                ? "Searching..."
+                : `Showing ${colleges.length} of ${total} institutes`}
+            </span>
+            <div className="flex items-center gap-3">
+              {(search || city || branch) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setCity("");
+                    setBranch("");
+                  }}
+                  className="text-xs font-semibold text-electric-blue hover:underline cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              )}
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-primary bg-white px-3 py-2 rounded-lg border border-border shadow-2xs">
+                <ArrowUpDown size={14} className="text-electric-blue" />
+                <span>Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-transparent font-semibold text-primary focus:outline-none cursor-pointer"
+                >
+                  <option value="name">Name (A → Z)</option>
+                  <option value="name_desc">Name (Z → A)</option>
+                  <option value="code">DTE Code (Ascending)</option>
+                  <option value="city">City (A → Z)</option>
+                </select>
+              </div>
             </div>
-            <button className="hidden sm:flex bg-white border border-border text-primary px-4 py-2 rounded-lg items-center gap-2 font-medium text-sm hover:bg-gray-50">
-              <ArrowUpDown size={16} /> Sort by Name
-            </button>
           </div>
 
-          {/* Active Filter Chips */}
-          {(cityFilter || branchFilter) && (
-            <div className="flex flex-wrap gap-2 mb-6">
-              {cityFilter && (
-                <span className="bg-primary text-white text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1">
-                  City: {cityFilter} <button onClick={() => setCityFilter('')}><X size={12}/></button>
-                </span>
-              )}
-              {branchFilter && (
-                <span className="bg-primary text-white text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1">
-                  Branch: {branchFilter} <button onClick={() => setBranchFilter('')}><X size={12}/></button>
-                </span>
-              )}
-            </div>
-          )}
-
           {loading ? (
-            <div className="flex justify-center items-center py-32 text-electric-blue">
-              <Loader2 className="animate-spin" size={40} />
-            </div>
-          ) : colleges.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {colleges.map((c: any, i: number) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.05 }}
-                  className="bg-white p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:border-electric-blue/40 transition-all flex flex-col group cursor-pointer"
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl p-6 border border-border h-48 animate-pulse flex flex-col justify-between"
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="bg-soft-bg text-primary text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
-                      Code {c.college_code}
-                    </span>
+                  <div className="space-y-3">
+                    <div className="w-16 h-4 bg-gray-200 rounded" />
+                    <div className="w-full h-6 bg-gray-200 rounded" />
+                    <div className="w-2/3 h-4 bg-gray-200 rounded" />
                   </div>
-                  <h3 className="text-lg font-bold text-primary mb-4 flex-1 group-hover:text-electric-blue transition-colors line-clamp-2">
-                    {c.college_name}
-                  </h3>
-                  <div className="flex items-center justify-between border-t border-border pt-4 mt-auto">
-                    <div className="flex items-center gap-1.5 text-text-secondary text-sm font-medium">
-                      <MapPin size={16} className="text-electric-blue" /> {c.city}
-                    </div>
-                    <a href={`/college/${c.college_code}`} className="text-gray-300 group-hover:text-electric-blue transition-colors">
-                      <ChevronRight size={18} />
-                    </a>
-                  </div>
-                </motion.div>
+                  <div className="w-24 h-4 bg-gray-200 rounded" />
+                </div>
               ))}
             </div>
-          ) : (
-            <div className="bg-white border border-border rounded-2xl p-16 text-center shadow-sm">
-              <Search className="mx-auto text-gray-300 mb-4" size={48} />
-              <h3 className="text-xl font-bold text-primary mb-2">No colleges found</h3>
-              <p className="text-text-secondary">Try adjusting your filters or search query.</p>
-              <button onClick={clearFilters} className="mt-6 bg-primary text-white px-6 py-2 rounded-lg font-medium">Clear All Filters</button>
+          ) : colleges.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-border p-16 text-center space-y-3">
+              <Building2
+                size={40}
+                className="mx-auto text-text-secondary/50"
+              />
+              <h3 className="text-lg font-bold text-primary">
+                No colleges match your criteria
+              </h3>
+              <p className="text-sm text-text-secondary">
+                Try clearing some filters or searching with a broader keyword.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setCity("");
+                  setBranch("");
+                }}
+                className="mt-4 px-5 py-2 bg-electric-blue text-white rounded-lg text-xs font-semibold cursor-pointer"
+              >
+                Reset Filters
+              </button>
             </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {colleges.map((c, i) => {
+                  const isSaved = bookmarkedColleges.has(c.college_code);
+                  return (
+                    <div
+                      key={`${c.college_code}-${i}`}
+                      className="bg-white rounded-2xl p-6 border border-border hover:border-electric-blue/50 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-mono font-semibold text-electric-blue bg-electric-blue/10 px-2.5 py-1 rounded-md">
+                            Code: {c.college_code}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-text-secondary flex items-center gap-1 font-medium">
+                              <MapPin size={12} /> {c.city}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => toggleCollegeBookmark(e, c)}
+                              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                isSaved
+                                  ? "text-electric-blue bg-electric-blue/10 border-electric-blue/30"
+                                  : "text-text-secondary hover:text-primary bg-soft-bg border-border"
+                              }`}
+                              title={
+                                isSaved
+                                  ? "Remove from Shortlist"
+                                  : "Save to Shortlist"
+                              }
+                            >
+                              <Bookmark
+                                size={14}
+                                className={
+                                  isSaved ? "fill-electric-blue" : ""
+                                }
+                              />
+                            </button>
+                          </div>
+                        </div>
+                        <Link
+                          href={`/college/${c.college_code}`}
+                          className="block font-bold text-primary text-base line-clamp-2 group-hover:text-electric-blue transition-colors"
+                        >
+                          {c.college_name}
+                        </Link>
+                        {(c.official_website || c.cet_portal_url) && (
+                          <a
+                            href={c.official_website || c.cet_portal_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-600 hover:text-electric-blue bg-slate-50 hover:bg-electric-blue/5 border border-slate-200/80 hover:border-electric-blue/30 px-2.5 py-1 rounded-lg transition-colors max-w-full truncate"
+                          >
+                            <Globe size={11} className="text-electric-blue shrink-0" />
+                            <span className="truncate">
+                              {c.website_domain || "CET Cell Official Profile"}
+                            </span>
+                            <ExternalLink size={10} className="shrink-0 opacity-70" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="pt-6 mt-6 border-t border-border flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <Link
+                            href={`/analytics?college=${c.college_code}`}
+                            className="text-xs font-semibold text-text-secondary hover:text-electric-blue transition-colors"
+                          >
+                            Cutoff Trends
+                          </Link>
+                          <span className="text-border">•</span>
+                          <Link
+                            href={`/compare?colleges=${c.college_code}`}
+                            className="text-xs font-semibold text-text-secondary hover:text-electric-blue transition-colors inline-flex items-center gap-1"
+                          >
+                            <Scale size={12} /> Compare
+                          </Link>
+                        </div>
+                        <Link
+                          href={`/college/${c.college_code}`}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-electric-blue hover:underline"
+                        >
+                          Profile <ChevronRight size={14} />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {colleges.length < total && (
+                <div className="pt-6 text-center">
+                  <button
+                    type="button"
+                    disabled={loadingMore}
+                    onClick={() => fetchColleges(false)}
+                    className="bg-white hover:bg-soft-bg text-primary font-semibold px-6 py-3 rounded-xl border border-border shadow-xs transition-all text-sm cursor-pointer disabled:opacity-50"
+                  >
+                    {loadingMore
+                      ? "Loading..."
+                      : `Load More Institutes (${total - colleges.length} remaining)`}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

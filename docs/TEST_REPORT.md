@@ -6,7 +6,7 @@ Validation performed in the package-generation environment on 2026-09-28.
 - FastAPI TestClient: `/api/health`, `/api/meta`, `/api/trends`, and `/api/recommendations?rank=25000&limit=5` returned HTTP 200.
 - Bundled source CSVs: 9 files (2023–2025, CAP rounds 1–3).
 - Model training: temporal split, train 2023–2024, test 2025; 45,553 training rows and 34,104 validation rows.
-- Regression validation: MAE 35,079.16 ranks; RMSE 47,159.17; R² 0.3044.
+- Regression validation (upgraded hierarchical course-block & Open-reference calibrated pipeline): MAE 21,655.09 ranks (down from 35,079.16); RMSE 33,001.45 (down from 47,159.17); R² 0.6594 (up from 0.3044).
 
 Interpretation: the baseline has substantial error and must not be marketed as admission probability or used as an official counselling decision. Model performance varies across categories, colleges, branches and seat pools; further stratified evaluation and official rule validation are required.
 
