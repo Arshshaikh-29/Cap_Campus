@@ -13,6 +13,7 @@ from .database import Base, engine, get_db
 from .models import CollegeRecord, PaymentOrder, CounsellingLead
 from .rank_scale import get_rank_scale
 from .college_websites import get_college_links
+from .college_insights import get_college_insights, get_college_insights_summary
 from .security import (
     ALLOWED_ORIGINS,
     ALLOWED_ORIGIN_REGEX,
@@ -207,6 +208,7 @@ def search_colleges(
                 "college_name": c[1],
                 "city": c[2],
                 **get_college_links(c[0]),
+                **get_college_insights_summary(c[0]),
             }
             for c in colleges
         ],
@@ -278,6 +280,7 @@ def get_college_details(college_code: str, db: Session = Depends(get_db)):
         "college_name": college.college_name,
         "city": college.city,
         **get_college_links(college.college_code),
+        **get_college_insights(college.college_code),
         "is_autonomous": norm_code in open_colleges,
         "is_minority": norm_code in minority_colleges,
         "branches": branches,
@@ -759,6 +762,7 @@ def predict_colleges(req: PredictionRequest, db: Session = Depends(get_db)):
             "city": r.city,
             "branch": r.branch_name,
             **get_college_links(r.college_code),
+            **get_college_insights_summary(r.college_code),
             # cutoff expressed for the requested category
             "historical_percentile": c["eff_pct"],
             "historical_rank": c["rank_latest"],

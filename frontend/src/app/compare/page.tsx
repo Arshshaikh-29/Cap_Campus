@@ -283,6 +283,20 @@ export default function Compare() {
                             <ExternalLink size={10} />
                           </a>
                         )}
+                        {(c.nirf_median_lpa != null || c.annual_fee_inr != null) && (
+                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            {c.nirf_median_lpa != null && (
+                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                NIRF: ₹{Number(c.nirf_median_lpa).toFixed(1)} LPA
+                              </span>
+                            )}
+                            {c.annual_fee_inr != null && (
+                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                Fee: ₹{(c.annual_fee_inr / 100000).toFixed(2)}L/yr
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <button
                         type="button"

@@ -660,3 +660,37 @@ def test_official_college_websites_and_cet_links():
     vjti_pred = next(p for p in pred if p["college_code"] == "3012")
     assert vjti_pred["official_website"] == "https://vjti.ac.in"
     assert vjti_pred["cet_portal_url"] and "03012" in vjti_pred["cet_portal_url"]
+
+
+def test_verified_placements_fees_and_authentic_sources():
+    # Premier college (VJTI 3012 & SPIT 3215) returns verified NIRF placements, FRA/Govt fees, ROI & authentic source URLs
+    vjti = client.get("/api/colleges/3012").json()
+    assert vjti["has_verified_insights"] is True
+    assert vjti["placements"]["nirf_median_lpa"] >= 10.0
+    assert vjti["placements"]["nirf_portal_url"] == "https://www.nirfindia.org"
+    assert vjti["fees"]["annual_open_inr"] >= 80000
+    assert vjti["fees"]["fra_portal_url"] == "https://mahafra.org"
+    assert vjti["fees"]["mahadbt_portal_url"] == "https://mahadbt.maharashtra.gov.in"
+    assert vjti["roi"]["payback_years"] < 1.0
+
+    spit = client.get("/api/colleges/3215").json()
+    assert spit["has_verified_insights"] is True
+    assert "FRA" in spit["fees"]["source_label"]
+    assert spit["placements"]["nirf_median_lpa"] >= 12.0
+
+    # Predictor & Explorer also surface compact placement/fee summary
+    pred = client.post(
+        "/api/predict",
+        json={"category": "GOPENS", "percentile": 99.8, "branch": "Computer Engineering"},
+    ).json()["predictions"]
+    coep_pred = next(p for p in pred if p["college_code"] == "6006")
+    assert coep_pred["nirf_median_lpa"] >= 10.0
+    assert coep_pred["annual_fee_inr"] >= 140000
+
+    # Non-listed niche college never fabricates numbers — returns official verification portal links only
+    niche = client.get("/api/colleges/2138").json()
+    assert niche["has_verified_insights"] is False
+    assert niche["placements"] is None
+    assert niche["fees"] is None
+    assert niche["official_sources"]["fra_portal_url"] == "https://mahafra.org"
+    assert niche["official_sources"]["nirf_portal_url"] == "https://www.nirfindia.org"

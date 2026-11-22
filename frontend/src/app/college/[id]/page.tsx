@@ -15,6 +15,11 @@ import {
   Bookmark,
   Scale,
   Globe,
+  Briefcase,
+  IndianRupee,
+  Building2,
+  CheckCircle2,
+  Info,
 } from "lucide-react";
 import {
   BookmarkedItem,
@@ -307,6 +312,285 @@ export default function CollegeDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Verified Placements, ROI & Official Fee Structure */}
+        {college.has_verified_insights && college.placements && college.fees ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Placement Report Card */}
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-5">
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                      <Briefcase size={12} /> Official Placement Report
+                    </div>
+                    <h2 className="text-lg font-extrabold text-slate-900 mt-1.5">
+                      Placements &amp; Career Outcomes
+                    </h2>
+                  </div>
+                  {college.roi?.roi_tier && (
+                    <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg bg-[#0B1120] text-emerald-300">
+                      {college.roi.roi_tier} ({college.roi.payback_years} yr payback)
+                    </span>
+                  )}
+                </div>
+
+                {/* 3 KPI Boxes */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                      NIRF Median
+                    </div>
+                    <div className="text-xl font-extrabold font-mono tabular-nums text-emerald-800 mt-1">
+                      ₹{Number(college.placements.nirf_median_lpa).toFixed(2)}
+                      <span className="text-xs font-semibold"> LPA</span>
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Avg. Package
+                    </div>
+                    <div className="text-xl font-extrabold font-mono tabular-nums text-slate-900 mt-1">
+                      {college.placements.average_lpa
+                        ? `₹${Number(college.placements.average_lpa).toFixed(1)}`
+                        : "N/A"}
+                      {college.placements.average_lpa && (
+                        <span className="text-xs font-semibold text-slate-500"> LPA</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-electric-blue">
+                      Highest CTC
+                    </div>
+                    <div className="text-xl font-extrabold font-mono tabular-nums text-electric-blue mt-1">
+                      ₹{Number(college.placements.highest_lpa).toFixed(1)}
+                      <span className="text-xs font-semibold"> LPA</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                  <span className="inline-flex items-center gap-1 font-semibold bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                    <CheckCircle2 size={13} className="text-emerald-600" />
+                    Placement Rate:{" "}
+                    <strong className="text-slate-900">
+                      {college.placements.placement_rate}
+                    </strong>
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-500">
+                    {college.placements.report_cycle}
+                  </span>
+                </div>
+
+                {college.placements.top_recruiters?.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Notable Campus Recruiters
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {college.placements.top_recruiters.map((rec: string) => (
+                        <span
+                          key={rec}
+                          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/90 text-slate-700"
+                        >
+                          {rec}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {college.placements.note && (
+                  <p className="text-xs text-slate-500 leading-relaxed flex items-start gap-1.5">
+                    <Info size={13} className="text-electric-blue shrink-0 mt-0.5" />
+                    <span>{college.placements.note}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Authentic Source Bar */}
+              <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                <span className="text-slate-500 font-medium">
+                  Source:{" "}
+                  <strong className="text-slate-800">
+                    {college.placements.source_label}
+                  </strong>
+                </span>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={college.placements.nirf_portal_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-electric-blue hover:underline"
+                  >
+                    NIRF Portal <ExternalLink size={10} />
+                  </a>
+                  {directWebsiteUrl && (
+                    <>
+                      <span className="text-slate-300">•</span>
+                      <a
+                        href={directWebsiteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-semibold text-electric-blue hover:underline"
+                      >
+                        Institute T&amp;P Site <ExternalLink size={10} />
+                      </a>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Official Fee Structure Card */}
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-5">
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">
+                      <IndianRupee size={12} /> Authentic Fee Structure
+                    </div>
+                    <h2 className="text-lg font-extrabold text-slate-900 mt-1.5">
+                      Annual B.E./B.Tech Fees &amp; Waivers
+                    </h2>
+                  </div>
+                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                    {college.fees.institute_type}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                      Annual Open / CAP Fee
+                    </div>
+                    <div className="text-lg font-extrabold font-mono tabular-nums text-slate-900 mt-1">
+                      {college.fees.fee_range_label}
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      {college.fees.academic_cycle}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Est. 4-Year Total (Open)
+                    </div>
+                    <div className="text-lg font-extrabold font-mono tabular-nums text-slate-900 mt-1">
+                      ₹{(college.fees.four_year_estimate_inr / 100000).toFixed(2)} Lakh
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Excl. hostel &amp; university exam fees
+                    </div>
+                  </div>
+                </div>
+
+                {/* Maharashtra Category Concessions */}
+                {Array.isArray(college.concessions) && (
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Maharashtra State Scholarships &amp; Fee Waivers
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {college.concessions.map((c: any) => (
+                        <div
+                          key={c.category}
+                          className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-[11px]"
+                        >
+                          <div className="font-bold text-slate-900">{c.category}</div>
+                          <div className="text-slate-600 mt-0.5 leading-snug">
+                            {c.benefit}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Authentic Source Bar */}
+              <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                <span className="text-slate-500 font-medium">
+                  Source:{" "}
+                  <strong className="text-slate-800">
+                    {college.fees.source_label}
+                  </strong>
+                </span>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={college.fees.fra_portal_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-electric-blue hover:underline"
+                  >
+                    Maharashtra FRA <ExternalLink size={10} />
+                  </a>
+                  <span className="text-slate-300">•</span>
+                  <a
+                    href={college.fees.mahadbt_portal_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-electric-blue hover:underline"
+                  >
+                    MahaDBT <ExternalLink size={10} />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
+            <div className="space-y-1.5 max-w-2xl">
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-electric-blue bg-electric-blue/10 border border-electric-blue/20 px-2.5 py-0.5 rounded-full">
+                <Building2 size={12} /> Official Placements &amp; Fee Sources
+              </div>
+              <h2 className="text-lg font-extrabold text-slate-900">
+                Verify Approved Fees &amp; Placement Reports Directly
+              </h2>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                CAP Compass only publishes figures backed by verified NIRF / FRA
+                filings. Check this institute&apos;s latest approved fee circular
+                on Maharashtra FRA, NIRF submissions, and official college portal:
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2.5 shrink-0">
+              {directWebsiteUrl && (
+                <a
+                  href={directWebsiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold inline-flex items-center gap-1.5"
+                >
+                  <Globe size={13} /> Institute Website <ExternalLink size={11} />
+                </a>
+              )}
+              <a
+                href={college.official_sources?.fra_portal_url || "https://mahafra.org"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold inline-flex items-center gap-1.5"
+              >
+                <IndianRupee size={13} /> Maharashtra FRA Fees <ExternalLink size={11} />
+              </a>
+              <a
+                href={college.official_sources?.nirf_portal_url || "https://www.nirfindia.org"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold inline-flex items-center gap-1.5"
+              >
+                <Briefcase size={13} /> NIRF Reports <ExternalLink size={11} />
+              </a>
+              <a
+                href={college.official_sources?.mahadbt_portal_url || "https://mahadbt.maharashtra.gov.in"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-bold inline-flex items-center gap-1.5"
+              >
+                MahaDBT Scholarships <ExternalLink size={11} />
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Two Column Content */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

@@ -672,6 +672,8 @@ export default function Home() {
       "Year",
       "CAP_Round",
       "Official_Website",
+      "NIRF_Median_LPA",
+      "Annual_Open_Fee_INR",
     ];
     const rows = filteredPredictions.map((p, idx) =>
       [
@@ -696,6 +698,8 @@ export default function Home() {
         p.year,
         p.round,
         p.official_website || p.cet_portal_url || "",
+        p.nirf_median_lpa != null ? p.nirf_median_lpa : "",
+        p.annual_fee_inr != null ? p.annual_fee_inr : "",
       ]
         .map(escapeCSVCell)
         .join(",")
@@ -2802,6 +2806,28 @@ export default function Home() {
                               {p.website_domain || "CET Official Profile"}
                               <ExternalLink size={10} className="opacity-70" />
                             </a>
+                          )}
+                          {p.nirf_median_lpa != null && (
+                            <Link
+                              href={`/college/${p.college_code}`}
+                              title="Verified NIRF UG Median Salary & Official T&P Placement Report"
+                              className="inline-flex items-center gap-1 text-[11px] font-mono tabular-nums font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md hover:bg-emerald-100 transition-colors"
+                            >
+                              NIRF Median: ₹{Number(p.nirf_median_lpa).toFixed(1)}L
+                            </Link>
+                          )}
+                          {p.annual_fee_inr != null && (
+                            <Link
+                              href={`/college/${p.college_code}`}
+                              title={
+                                p.fee_source_type === "FRA"
+                                  ? "Approved Annual Open Fee (Maharashtra FRA)"
+                                  : "Official Annual Open Fee (Govt./Institute Circular)"
+                              }
+                              className="inline-flex items-center gap-1 text-[11px] font-mono tabular-nums font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-md hover:bg-indigo-100 transition-colors"
+                            >
+                              Fee: ₹{(p.annual_fee_inr / 100000).toFixed(2)}L/yr
+                            </Link>
                           )}
                         </div>
 

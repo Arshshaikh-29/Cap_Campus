@@ -337,6 +337,30 @@ export default function ExplorerPage() {
                             <ExternalLink size={10} className="shrink-0 opacity-70" />
                           </a>
                         )}
+                        {(c.nirf_median_lpa != null || c.annual_fee_inr != null) && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            {c.nirf_median_lpa != null && (
+                              <span
+                                title="NIRF Engineering UG Median Package"
+                                className="text-[10px] font-mono tabular-nums font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              >
+                                NIRF: ₹{Number(c.nirf_median_lpa).toFixed(1)} LPA
+                              </span>
+                            )}
+                            {c.annual_fee_inr != null && (
+                              <span
+                                title={
+                                  c.fee_source_type === "FRA"
+                                    ? "Maharashtra FRA Approved Annual Fee"
+                                    : "Official Govt./Institute Annual Fee"
+                                }
+                                className="text-[10px] font-mono tabular-nums font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200"
+                              >
+                                Fee: ₹{(c.annual_fee_inr / 100000).toFixed(2)}L/yr
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="pt-6 mt-6 border-t border-border flex justify-between items-center">
