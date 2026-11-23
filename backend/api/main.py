@@ -1,8 +1,12 @@
+import json
 import os
 import re
 import secrets
+import time
+import urllib.parse
+import urllib.request
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, List, Optional
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -10,7 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.orm import Session
 from .database import Base, engine, get_db
-from .models import CollegeRecord, PaymentOrder, CounsellingLead
+from .models import CollegeRecord, PaymentOrder, CounsellingLead, UserAccount
 from .rank_scale import get_rank_scale
 from .college_websites import get_college_links
 from .college_insights import (
@@ -28,14 +32,17 @@ from .security import (
     SecurityMiddleware,
     admin_guard,
     get_client_ip,
+    get_google_client_id,
     issue_admin_token,
     issue_entitlement_token,
+    issue_user_token,
     mask_utr,
     sanitize_email,
     sanitize_text,
     verify_admin_secret,
     verify_admin_token,
     verify_entitlement_token,
+    verify_user_token,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -118,8 +125,8 @@ class PredictionRequest(BaseModel):
 class ComparisonRequest(BaseModel):
     college_codes: List[str] = Field(min_length=1, max_length=10)
     category: str = Field(min_length=1, max_length=24)
-    round_number: Optional[int] = Field(default=3, ge=1, le=4)
-    year: Optional[int] = Field(default=2025, ge=2020, le=2030)
+    round_number: Optional[int] = Field(default=4, ge=1, le=4)
+    year: Optional[int] = Field(default=2026, ge=2020, le=2030)
 
 
 @app.get("/api/health")
@@ -629,7 +636,7 @@ def _build_prediction_pool(req: "PredictionRequest", db: Session, scale):
         query = query.filter(CollegeRecord.branch_name.in_(target_branches))
     if target_cities:
         query = query.filter(CollegeRecord.city.in_(target_cities))
-    if req.round_number in (1, 2, 3):
+    if req.round_number in (1, 2, 3, 4):
         query = query.filter(CollegeRecord.round_number == req.round_number)
 
     # Exclude women-only colleges when searching General (G...) categories
@@ -995,7 +1002,7 @@ def betterment_radar(
     ).filter(
         CollegeRecord.category.in_(list(priority.keys())),
         CollegeRecord.percentile.isnot(None),
-        CollegeRecord.round_number.in_([1, 2, 3]),
+        CollegeRecord.round_number.in_([1, 2, 3, 4]),
     )
 
     target_branches = [b.strip() for b in (req.branches or []) if b and b.strip()]
@@ -1042,7 +1049,7 @@ def betterment_radar(
         chosen_rounds = None
         for vkey in sorted(variants.keys()):
             rmap = variants[vkey]
-            if 1 in rmap and (3 in rmap or 2 in rmap):
+            if 1 in rmap and (4 in rmap or 3 in rmap or 2 in rmap):
                 chosen_variant = vkey
                 chosen_rounds = rmap
                 break
@@ -1067,7 +1074,9 @@ def betterment_radar(
         r1 = cal(chosen_rounds.get(1))
         r2 = cal(chosen_rounds.get(2))
         r3 = cal(chosen_rounds.get(3))
-        final_pct = r3 if r3 is not None else r2
+        r4 = cal(chosen_rounds.get(4))
+        final_pct = r4 if r4 is not None else (r3 if r3 is not None else r2)
+        final_round_num = 4 if r4 is not None else (3 if r3 is not None else 2)
         if r1 is None or final_pct is None:
             continue
 
@@ -1087,6 +1096,8 @@ def betterment_radar(
             "r1_percentile": r1,
             "r2_percentile": r2,
             "r3_percentile": r3,
+            "r4_percentile": r4,
+            "final_round": final_round_num,
             "final_percentile": final_pct,
             "r1_rank": r1_rank,
             "final_rank": final_rank,
@@ -1095,21 +1106,21 @@ def betterment_radar(
             "margin_after_r3": gap_after_r3,
         }
 
-        # 1. Betterment Gems: missed R1 cutoff, but dropped into reach (or within 0.35%ile) by R2/R3!
+        # 1. Betterment Gems: missed R1 cutoff, but dropped into reach (or within 0.35%ile) by R2/R3/R4!
         if r1 > student_pct and final_pct <= student_pct + 0.35 and drop_pct >= 0.05:
             verdict = (
-                "Historically Unlocked in R2/R3 — Do NOT Freeze R1!"
+                f"Historically Unlocked by Round {final_round_num} — Do NOT Freeze R1!"
                 if final_pct <= student_pct
                 else "High-Probability Betterment Target (within 0.35%ile)"
             )
             betterment_gems.append({**row_obj, "verdict": verdict})
-        # 2. Spot / ACAP Round Watchlist: just 0.35 to 2.2 %ile above R3 closing
+        # 2. Spot / ACAP Round Watchlist: just 0.35 to 2.2 %ile above final CAP round closing
         elif 0.35 < (final_pct - student_pct) <= 2.2:
             spot_watchlist.append(
                 {
                     **row_obj,
                     "verdict": (
-                        f"Missed R3 by {round(final_pct - student_pct, 2)} %ile — Strong Spot / ACAP Round Target"
+                        f"Missed Round {final_round_num} by {round(final_pct - student_pct, 2)} %ile — Strong Spot / ACAP Target"
                     ),
                 }
             )
@@ -1350,8 +1361,8 @@ def compare_colleges(req: ComparisonRequest, db: Session = Depends(get_db)):
 
     scale = get_rank_scale(db)
     norm_codes = [_norm_college_code(c) for c in req.college_codes]
-    target_year = req.year or 2025
-    target_round = req.round_number or 3
+    target_year = req.year or scale.latest_year
+    target_round = req.round_number or 4
     req_cat = (req.category or "GOPENS").upper().strip()
 
     chain = build_category_chain(req_cat, include_open_fallback=True)
@@ -1553,11 +1564,13 @@ def get_cutoff_analytics(
         best_score = (999, 999)
 
         for c in cats_in_yr:
-            score = (999, 0)
+            score = None
             for i, group in enumerate(chain):
                 if c in group:
                     score = (i, 0 if c == requested else 1)
                     break
+            if score is None:
+                continue
 
             if score < best_score:
                 best_score = score
@@ -1571,7 +1584,9 @@ def get_cutoff_analytics(
                     best_cat = c
 
         if best_cat is None:
-            best_cat = max(cats_in_yr.keys(), key=lambda c: available.get(c, 0))
+            # No seat opened for this category or any Open/TFWS/EWS fallback in this round
+            # (e.g. only an unrelated reserved/PWD/Orphan seat remained vacant in CAP Round 3/4).
+            continue
 
         raw_cell = cats_in_yr[best_cat]
         is_est_cell = best_cat not in requested_family
@@ -2475,3 +2490,221 @@ def admin_update_lead_status(
     lead.status = new_status
     db.commit()
     return {"id": lead.id, "status": lead.status}
+
+
+# =============================================================================
+# GOOGLE SIGN-IN PORTAL & CLOUD PROFILE SYNC
+# =============================================================================
+
+class GoogleAuthRequest(BaseModel):
+    credential: str = Field(min_length=40, max_length=4096)
+
+
+class ProfileSyncRequest(BaseModel):
+    saved_input_type: Optional[str] = Field(default="percentile", max_length=16)
+    saved_score: Optional[float] = Field(default=None, ge=0.0, le=500000.0)
+    saved_category: Optional[str] = Field(default="GOPENS", max_length=24)
+    bookmarks: Optional[List[dict]] = Field(default=None, max_length=60)
+
+
+def _verify_google_id_token(id_token: str, expected_client_id: str) -> dict:
+    """Verify a Google Identity Services ID token via Google's official tokeninfo endpoint."""
+    qs = urllib.parse.urlencode({"id_token": id_token})
+    url = f"https://oauth2.googleapis.com/tokeninfo?{qs}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "CAP-Compass-Auth/1.0"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            info = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired Google Sign-In credential. Please try again.",
+        )
+
+    if info.get("aud") != expected_client_id:
+        raise HTTPException(
+            status_code=401, detail="Google token audience does not match this portal."
+        )
+    if str(info.get("email_verified", "")).lower() != "true":
+        raise HTTPException(
+            status_code=401, detail="Google account email must be verified."
+        )
+    if info.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+        raise HTTPException(status_code=401, detail="Untrusted token issuer.")
+    try:
+        if int(info.get("exp", 0)) < int(time.time()):
+            raise HTTPException(status_code=401, detail="Google sign-in token expired.")
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Malformed Google token expiry.")
+    return info
+
+
+def _serialize_user(u: UserAccount) -> dict:
+    try:
+        bms = json.loads(u.bookmarks_json) if u.bookmarks_json else []
+        if not isinstance(bms, list):
+            bms = []
+    except Exception:
+        bms = []
+    return {
+        "id": u.id,
+        "email": u.email,
+        "full_name": u.full_name,
+        "avatar_url": u.avatar_url,
+        "saved_input_type": u.saved_input_type or "percentile",
+        "saved_score": u.saved_score,
+        "saved_category": u.saved_category or "GOPENS",
+        "bookmarks": bms[:60],
+        "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
+    }
+
+
+def _lookup_email_entitlement(email: str, db: Session) -> Optional[dict]:
+    """Auto-restore an approved Pro/VIP pass if the student bought using this Google email."""
+    if not email:
+        return None
+    order = (
+        db.query(PaymentOrder)
+        .filter(
+            func.lower(PaymentOrder.email) == email.lower(),
+            PaymentOrder.status == "approved",
+        )
+        .order_by(desc(PaymentOrder.approved_at), desc(PaymentOrder.created_at))
+        .first()
+    )
+    if not order:
+        return None
+    return {
+        "plan": order.plan,
+        "access_key": order.access_key,
+        "entitlement_token": issue_entitlement_token(order.access_key, order.plan),
+        "status": "approved",
+        "full_name": (order.full_name or "").split()[0] if order.full_name else "Student",
+        "utr_number": mask_utr(order.utr_number),
+    }
+
+
+def _require_user(
+    authorization: Optional[str] = Header(default=None, alias="Authorization"),
+    db: Session = Depends(get_db),
+) -> UserAccount:
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Sign in with Google required.")
+    payload = verify_user_token(authorization[7:].strip())
+    if not payload:
+        raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+    user = db.query(UserAccount).filter(UserAccount.id == payload.get("uid")).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Account not found.")
+    return user
+
+
+@app.get("/api/auth/config")
+def get_auth_config():
+    cid = get_google_client_id()
+    return {
+        "google_enabled": bool(cid),
+        "google_client_id": cid or None,
+    }
+
+
+@app.post("/api/auth/google")
+def login_with_google(req: GoogleAuthRequest, db: Session = Depends(get_db)):
+    cid = get_google_client_id()
+    if not cid:
+        raise HTTPException(
+            status_code=503,
+            detail="Google Sign-In is not configured on the server yet. Set GOOGLE_CLIENT_ID in Render/.env.",
+        )
+
+    info = _verify_google_id_token(req.credential.strip(), cid)
+    sub = sanitize_text(info.get("sub"), max_len=128)
+    email = sanitize_email(info.get("email"))
+    if not sub or not email:
+        raise HTTPException(status_code=401, detail="Incomplete Google account profile.")
+
+    name = sanitize_text(info.get("name"), max_len=100) or email.split("@")[0]
+    pic = str(info.get("picture") or "").strip()
+    if pic and not pic.startswith("https://"):
+        pic = None
+
+    user = (
+        db.query(UserAccount)
+        .filter(or_(UserAccount.google_sub == sub, UserAccount.email == email))
+        .first()
+    )
+    now = datetime.now(timezone.utc)
+    if user:
+        user.google_sub = sub
+        user.email = email
+        user.full_name = name
+        if pic:
+            user.avatar_url = pic
+        user.last_login_at = now
+    else:
+        user = UserAccount(
+            google_sub=sub,
+            email=email,
+            full_name=name,
+            avatar_url=pic,
+            last_login_at=now,
+        )
+        db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    token = issue_user_token(user.id, user.email)
+    entitlement = _lookup_email_entitlement(user.email, db)
+    return {
+        "token": token,
+        "token_type": "bearer",
+        "user": _serialize_user(user),
+        "entitlement": entitlement,
+    }
+
+
+@app.get("/api/auth/me")
+def get_current_user_profile(
+    user: UserAccount = Depends(_require_user),
+    db: Session = Depends(get_db),
+):
+    return {
+        "user": _serialize_user(user),
+        "entitlement": _lookup_email_entitlement(user.email, db),
+    }
+
+
+@app.post("/api/auth/sync")
+def sync_user_profile(
+    req: ProfileSyncRequest,
+    user: UserAccount = Depends(_require_user),
+    db: Session = Depends(get_db),
+):
+    if req.saved_input_type in ("percentile", "rank"):
+        user.saved_input_type = req.saved_input_type
+    if req.saved_score is not None:
+        user.saved_score = float(req.saved_score)
+    if req.saved_category:
+        user.saved_category = sanitize_text(req.saved_category.upper(), max_len=24) or "GOPENS"
+    if req.bookmarks is not None:
+        cleaned_bms = []
+        for item in req.bookmarks[:60]:
+            if not isinstance(item, dict):
+                continue
+            cleaned_bms.append(
+                {
+                    "key": sanitize_text(item.get("key"), max_len=140) or "",
+                    "college_code": sanitize_text(item.get("college_code"), max_len=16) or "",
+                    "college_name": sanitize_text(item.get("college_name"), max_len=180) or "",
+                    "city": sanitize_text(item.get("city"), max_len=60) or "",
+                    "branch": sanitize_text(item.get("branch"), max_len=120) or "",
+                    "historical_percentile": item.get("historical_percentile"),
+                    "historical_rank": item.get("historical_rank"),
+                    "prediction_category": sanitize_text(item.get("prediction_category"), max_len=40),
+                }
+            )
+        user.bookmarks_json = json.dumps(cleaned_bms)
+
+    db.commit()
+    db.refresh(user)
+    return {"synced": True, "user": _serialize_user(user)}

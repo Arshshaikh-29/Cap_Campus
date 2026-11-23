@@ -80,6 +80,10 @@ ALLOWED_ORIGINS: List[str] = [
 ]
 ALLOWED_ORIGIN_REGEX = r"^https://cap-campus(?:-[a-z0-9-]+)?\.vercel\.app$"
 
+
+def get_google_client_id() -> str:
+    return os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+
 # Admin credential (owner sets CAP_ADMIN_PIN in .env; never exposed in frontend code)
 def get_admin_secret() -> str:
     return os.environ.get("CAP_ADMIN_PIN", "992062").strip()
@@ -156,6 +160,16 @@ def issue_entitlement_token(access_key: str, plan: str, ttl_seconds: int = 86400
 
 def verify_entitlement_token(token: str) -> Optional[dict]:
     return verify_signed_token(token, "entitlement")
+
+
+def issue_user_token(user_id: int, email: str, ttl_seconds: int = 86400 * 30) -> str:
+    return sign_token(
+        {"scope": "user", "uid": int(user_id), "email": email.lower()}, ttl_seconds
+    )
+
+
+def verify_user_token(token: str) -> Optional[dict]:
+    return verify_signed_token(token, "user")
 
 
 # Input sanitization helpers (defeats Stored XSS, HTML injection, control char attacks)
@@ -252,6 +266,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
     # (path_prefix, methods, max_requests, window_seconds)
     RATE_RULES = [
         ("/api/admin/login", {"POST"}, 8, 300),
+        ("/api/auth/google", {"POST"}, 15, 300),
+        ("/api/auth/sync", {"POST"}, 40, 60),
         ("/api/payments/submit", {"POST"}, 8, 600),
         ("/api/leads", {"POST"}, 8, 600),
         ("/api/payments/verify-token", {"POST"}, 30, 60),
@@ -306,7 +322,11 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["Content-Security-Policy"] = (
             "default-src 'none'; frame-ancestors 'none'"
         )
-        if path.startswith("/api/admin") or path.startswith("/api/payments"):
+        if (
+            path.startswith("/api/admin")
+            or path.startswith("/api/payments")
+            or path.startswith("/api/auth")
+        ):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
             response.headers["Pragma"] = "no-cache"
 

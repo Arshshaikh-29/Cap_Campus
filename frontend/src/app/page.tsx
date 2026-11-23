@@ -301,7 +301,7 @@ export default function Home() {
           category: (catParam || "GOPENS").toUpperCase(),
           branches: parsedBranches,
           cities: parsedCities,
-          round: rdParam && ["1", "2", "3"].includes(rdParam) ? rdParam : "All",
+          round: rdParam && ["1", "2", "3", "4"].includes(rdParam) ? rdParam : "All",
         };
         setForm(restored);
         handlePredict(restored);
@@ -567,7 +567,7 @@ export default function Home() {
       "Admission_Band",
       "Chance_Level",
       "Category_Percentile_Cutoff",
-      "Category_Rank_Cutoff_2025_Scale",
+      "Category_Rank_Cutoff_2026_Scale",
       "Category_Rank_In_Source_Year",
       "Margin_Percentile",
       "Margin_Rank",
@@ -648,7 +648,7 @@ export default function Home() {
             <div className="lg:col-span-7 space-y-8">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-semibold tracking-wide uppercase">
-                  <Sparkles size={14} /> MHT-CET Engineering Admissions 2023–2025
+                  <Sparkles size={14} /> MHT-CET Engineering Admissions 2023–2026
                 </div>
                 <Link
                   href="/about"
@@ -667,12 +667,12 @@ export default function Home() {
               </h1>
 
               <p className="text-lg text-slate-600 max-w-2xl leading-relaxed">
-                Explore 380 Maharashtra engineering colleges with{" "}
+                Explore 400 Maharashtra engineering colleges with{" "}
                 <strong className="text-slate-900 font-semibold">
                   category-wise rank & percentile cutoffs
                 </strong>{" "}
-                across CAP Rounds 1–3, live Percentile &harr; Merit Rank
-                conversion, and calibrated seat-pool insights.
+                across 2023–2026 CAP Rounds 1–4, live Percentile &harr; Merit
+                Rank conversion, and calibrated seat-pool insights.
               </p>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
@@ -697,7 +697,7 @@ export default function Home() {
               <div className="grid grid-cols-3 gap-6 pt-8 border-t border-slate-200/80">
                 <div>
                   <div className="text-2xl font-bold font-mono tabular-nums text-slate-900">
-                    79,600+
+                    198,300+
                   </div>
                   <div className="text-xs text-slate-500 mt-1">
                     Verified Cutoff Records
@@ -705,7 +705,7 @@ export default function Home() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold font-mono tabular-nums text-slate-900">
-                    380
+                    400
                   </div>
                   <div className="text-xs text-slate-500 mt-1">
                     Engineering Institutes
@@ -713,10 +713,10 @@ export default function Home() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold font-mono tabular-nums text-slate-900">
-                    95 Quotas
+                    Rounds 1–4
                   </div>
                   <div className="text-xs text-slate-500 mt-1">
-                    Rank & Percentile Calibrated
+                    Official 2023–2026 CAP Data
                   </div>
                 </div>
               </div>
@@ -727,7 +727,7 @@ export default function Home() {
                 <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                   <div>
                     <div className="text-[11px] font-bold text-electric-blue uppercase tracking-wider">
-                      Live 2025 CAP Benchmark (GOPENS)
+                      Live 2026 CAP Benchmark (GOPENS)
                     </div>
                     <div className="text-base font-bold text-slate-900 mt-0.5">
                       Top Autonomous Cutoffs (Rank & %ile)
@@ -744,8 +744,8 @@ export default function Home() {
                       name: "VJTI Mumbai",
                       code: "3012",
                       branch: "Computer Engineering",
-                      cutoff: "99.95 %ile",
-                      rank: "Rank #109",
+                      cutoff: "99.99 %ile",
+                      rank: "Rank #71",
                       status: "Top Tier",
                       color:
                         "text-electric-blue bg-electric-blue/10 border-electric-blue/20",
@@ -753,9 +753,9 @@ export default function Home() {
                     {
                       name: "COEP Tech University, Pune",
                       code: "6006",
-                      branch: "Computer Engineering",
-                      cutoff: "99.90 %ile",
-                      rank: "Rank #272",
+                      branch: "Computer Science & Engg",
+                      cutoff: "99.98 %ile",
+                      rank: "Rank #150",
                       status: "Top Tier",
                       color:
                         "text-electric-blue bg-electric-blue/10 border-electric-blue/20",
@@ -763,9 +763,9 @@ export default function Home() {
                     {
                       name: "SPIT Andheri, Mumbai",
                       code: "3215",
-                      branch: "Computer Engineering",
-                      cutoff: "99.80 %ile",
-                      rank: "Rank #615",
+                      branch: "Computer Science & Engg",
+                      cutoff: "99.88 %ile",
+                      rank: "Rank #537",
                       status: "High Demand",
                       color:
                         "text-emerald-700 bg-emerald-500/10 border-emerald-500/20",
@@ -774,8 +774,8 @@ export default function Home() {
                       name: "PICT Pune",
                       code: "6271",
                       branch: "Computer Engineering",
-                      cutoff: "99.71 %ile",
-                      rank: "Rank #890",
+                      cutoff: "99.79 %ile",
+                      rank: "Rank #929",
                       status: "High Demand",
                       color:
                         "text-emerald-700 bg-emerald-500/10 border-emerald-500/20",
@@ -1029,7 +1029,7 @@ export default function Home() {
                 {[
                   {
                     q: "How accurate are the Category Rankwise and Percentile cutoffs?",
-                    a: "CAP Compass uses 79,600+ official State CET Cell CAP Round 1–3 records from 2023, 2024, and 2025. Our data-driven RankScale maps Percentile ↔ State Merit Rank per year with <0.3% median error, and directly reports official closing ranks for exact category seats.",
+                    a: "CAP Compass uses 198,300+ official State CET Cell CAP Round 1–4 records across 2023, 2024, 2025, and 2026. Our data-driven RankScale maps Percentile ↔ State Merit Rank per year with <0.3% median error, and directly reports official closing ranks for exact category seats.",
                   },
                   {
                     q: "Why does Option Form ordering (Dream → Target → Safe) matter in DTE CAP?",
@@ -1379,7 +1379,7 @@ export default function Home() {
                                     className="text-electric-blue shrink-0"
                                   />
                                   <span>
-                                    2025 State Merit Rank:{" "}
+                                    {conversionPreview.latest_year || 2026} State Merit Rank:{" "}
                                     <strong className="font-mono tabular-nums text-electric-blue font-bold">
                                       #
                                       {Number(
@@ -1387,13 +1387,13 @@ export default function Home() {
                                       ).toLocaleString()}
                                     </strong>{" "}
                                     <span className="text-slate-500 font-mono tabular-nums text-[11px]">
-                                      (2024: #
+                                      (2025: #
+                                      {Number(
+                                        conversionPreview.by_year?.["2025"] || 0
+                                      ).toLocaleString()}{" "}
+                                      • 2024: #
                                       {Number(
                                         conversionPreview.by_year?.["2024"] || 0
-                                      ).toLocaleString()}{" "}
-                                      • 2023: #
-                                      {Number(
-                                        conversionPreview.by_year?.["2023"] || 0
                                       ).toLocaleString()}
                                       )
                                     </span>
@@ -1482,7 +1482,7 @@ export default function Home() {
                                     className="text-electric-blue shrink-0"
                                   />
                                   <span>
-                                    2025 Equivalent Percentile:{" "}
+                                    {conversionPreview.latest_year || 2026} Equivalent Percentile:{" "}
                                     <strong className="font-mono tabular-nums text-electric-blue font-bold">
                                       {Number(
                                         conversionPreview.estimated_percentile
@@ -1490,13 +1490,13 @@ export default function Home() {
                                       %ile
                                     </strong>{" "}
                                     <span className="text-slate-500 font-mono tabular-nums text-[11px]">
-                                      (2024:{" "}
+                                      (2025:{" "}
+                                      {Number(
+                                        conversionPreview.by_year?.["2025"] || 0
+                                      ).toFixed(2)}
+                                      % • 2024:{" "}
                                       {Number(
                                         conversionPreview.by_year?.["2024"] || 0
-                                      ).toFixed(2)}
-                                      % • 2023:{" "}
-                                      {Number(
-                                        conversionPreview.by_year?.["2023"] || 0
                                       ).toFixed(2)}
                                       %)
                                     </span>
@@ -1975,6 +1975,7 @@ export default function Home() {
                               <option value="1">CAP Round 1 Only</option>
                               <option value="2">CAP Round 2 Only</option>
                               <option value="3">CAP Round 3 Only</option>
+                              <option value="4">CAP Round 4 Only</option>
                             </select>
                           </div>
                         </div>
@@ -2048,7 +2049,7 @@ export default function Home() {
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-bold text-electric-blue uppercase tracking-wider bg-electric-blue/10 px-2.5 py-1 rounded-md">
-                    Your 2025 CAP Equivalent Profile
+                    Your {studentInfo?.rank_scale_year || 2026} CAP Equivalent Profile
                   </span>
                   {studentInfo && (
                     <div className="flex items-center gap-2 text-xs font-mono tabular-nums font-bold text-slate-900 bg-slate-50 px-3 py-1 rounded-md border border-slate-200">
@@ -2331,6 +2332,7 @@ export default function Home() {
                 <option value="1">CAP Round 1</option>
                 <option value="2">CAP Round 2</option>
                 <option value="3">CAP Round 3</option>
+                <option value="4">CAP Round 4</option>
               </select>
             </div>
 
@@ -2931,12 +2933,12 @@ export default function Home() {
                 Important Disclaimer:
               </span>{" "}
               This classification is strictly based on historical MHT-CET CAP
-              cutoff data (2023–2025) and is not a guaranteed admission
-              probability. Both Category Percentile and State Merit Rank cutoffs
-              are normalized to the 2025 CAP merit pool scale (~3.19 lakh
-              candidates). Entries marked <strong>Calibrated</strong> use
-              empirical category offsets where the exact category had no direct
-              row in that round.
+              cutoff data (2023–2026, Rounds 1–4) and is not a guaranteed
+              admission probability. Both Category Percentile and State Merit
+              Rank cutoffs are normalized to the{" "}
+              {studentInfo?.rank_scale_year || 2026} CAP merit pool scale.
+              Entries marked <strong>Calibrated</strong> use empirical category
+              offsets where the exact category had no direct row in that round.
             </div>
           </div>
         </section>

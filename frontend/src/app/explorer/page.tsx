@@ -135,9 +135,9 @@ export default function ExplorerPage() {
               Explore Engineering Colleges
             </h1>
             <p className="text-sm text-text-secondary mt-2">
-              Browse 380 Maharashtra engineering institutes across all DTE
-              regions, inspect disambiguated branch cutoffs, and compare
-              colleges side-by-side.
+              Browse 400 Maharashtra engineering institutes across all DTE
+              regions (2023–2026 CAP Rounds 1–4), inspect disambiguated branch
+              cutoffs, and compare colleges side-by-side.
             </p>
           </div>
 

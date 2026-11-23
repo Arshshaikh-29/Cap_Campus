@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/compare", priority: 0.8 },
     { path: "/analytics", priority: 0.8 },
     { path: "/pricing", priority: 0.8 },
+    { path: "/login", priority: 0.8 },
     { path: "/about", priority: 0.7 },
   ];
 

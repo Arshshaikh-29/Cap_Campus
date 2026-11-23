@@ -9,7 +9,7 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
   {
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
@@ -23,12 +23,13 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       isProd
-        ? "script-src 'self' 'unsafe-inline'"
-        : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "style-src 'self' 'unsafe-inline'",
+        ? "script-src 'self' 'unsafe-inline' https://accounts.google.com"
+        : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com",
+      "style-src 'self' 'unsafe-inline' https://accounts.google.com",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
-      `connect-src 'self' https://cap-campus.onrender.com ${apiOrigin}${
+      "frame-src 'self' https://accounts.google.com",
+      `connect-src 'self' https://cap-campus.onrender.com https://accounts.google.com https://oauth2.googleapis.com ${apiOrigin}${
         isProd
           ? ""
           : " http://localhost:8000 http://127.0.0.1:8000 ws://localhost:3000 ws://127.0.0.1:3000"

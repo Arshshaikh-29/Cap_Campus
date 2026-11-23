@@ -165,7 +165,7 @@ export default function OptionFormBuilderPage() {
     } catch (err: any) {
       alert(
         err?.response?.data?.detail ||
-          "Could not generate Option Form. Please check your score input."
+        "Could not generate Option Form. Please check your score input."
       );
     } finally {
       setLoading(false);
@@ -328,22 +328,20 @@ export default function OptionFormBuilderPage() {
                   <button
                     type="button"
                     onClick={() => setInputType("percentile")}
-                    className={`px-2 py-0.5 rounded-md cursor-pointer ${
-                      inputType === "percentile"
-                        ? "bg-white text-slate-900 shadow-2xs"
-                        : "text-slate-500"
-                    }`}
+                    className={`px-2 py-0.5 rounded-md cursor-pointer ${inputType === "percentile"
+                      ? "bg-white text-slate-900 shadow-2xs"
+                      : "text-slate-500"
+                      }`}
                   >
                     %ile
                   </button>
                   <button
                     type="button"
                     onClick={() => setInputType("rank")}
-                    className={`px-2 py-0.5 rounded-md cursor-pointer ${
-                      inputType === "rank"
-                        ? "bg-white text-slate-900 shadow-2xs"
-                        : "text-slate-500"
-                    }`}
+                    className={`px-2 py-0.5 rounded-md cursor-pointer ${inputType === "rank"
+                      ? "bg-white text-slate-900 shadow-2xs"
+                      : "text-slate-500"
+                      }`}
                   >
                     Rank
                   </button>
@@ -430,11 +428,10 @@ export default function OptionFormBuilderPage() {
                     onClick={() =>
                       toggleItem(selectedBranches, setSelectedBranches, b)
                     }
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-                      active
-                        ? "bg-electric-blue text-white border-electric-blue shadow-2xs"
-                        : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-                    }`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${active
+                      ? "bg-electric-blue text-white border-electric-blue shadow-2xs"
+                      : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                      }`}
                   >
                     {b}
                   </button>
@@ -470,11 +467,10 @@ export default function OptionFormBuilderPage() {
                     onClick={() =>
                       toggleItem(selectedCities, setSelectedCities, c)
                     }
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-                      active
-                        ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                        : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-                    }`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${active
+                      ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
+                      : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                      }`}
                   >
                     {c}
                   </button>
@@ -507,11 +503,10 @@ export default function OptionFormBuilderPage() {
                   key={s.id}
                   type="button"
                   onClick={() => setStrategy(s.id as any)}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                    strategy === s.id
-                      ? "bg-electric-blue/[0.06] border-electric-blue ring-2 ring-electric-blue/15"
-                      : "bg-slate-50/70 border-slate-200 hover:border-slate-300"
-                  }`}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${strategy === s.id
+                    ? "bg-electric-blue/[0.06] border-electric-blue ring-2 ring-electric-blue/15"
+                    : "bg-slate-50/70 border-slate-200 hover:border-slate-300"
+                    }`}
                 >
                   <div className="text-xs font-bold text-slate-900">
                     {s.title}
@@ -611,11 +606,10 @@ export default function OptionFormBuilderPage() {
                     return (
                       <div
                         key={i}
-                        className={`text-xs px-3 py-2 rounded-lg flex items-center gap-2 ${
-                          isWarn
-                            ? "bg-amber-50 text-amber-900 border border-amber-200"
-                            : "bg-emerald-50 text-emerald-900 border border-emerald-200"
-                        }`}
+                        className={`text-xs px-3 py-2 rounded-lg flex items-center gap-2 ${isWarn
+                          ? "bg-amber-50 text-amber-900 border border-amber-200"
+                          : "bg-emerald-50 text-emerald-900 border border-emerald-200"
+                          }`}
                       >
                         {isWarn ? (
                           <AlertTriangle size={14} className="shrink-0" />
@@ -701,8 +695,8 @@ export default function OptionFormBuilderPage() {
                         c.tier === "Safe"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                           : c.tier === "Target"
-                          ? "bg-amber-50 text-amber-700 border-amber-200"
-                          : "bg-rose-50 text-rose-700 border-rose-200";
+                            ? "bg-amber-50 text-amber-700 border-amber-200"
+                            : "bg-rose-50 text-rose-700 border-rose-200";
                       return (
                         <tr
                           key={`${c.college_code}-${c.branch}-${idx}`}

@@ -19,6 +19,7 @@ import {
   Smartphone,
   Search,
   Code2,
+  LogIn,
 } from "lucide-react";
 import UpgradeModal from "@/components/UpgradeModal";
 import CommandPalette from "@/components/CommandPalette";
@@ -28,7 +29,14 @@ import {
   clearStoredPlan,
   getStoredPlan,
   isProActive,
+  saveStoredPlan,
 } from "@/lib/plan";
+import {
+  AuthSession,
+  clearStoredAuth,
+  getStoredAuth,
+  saveStoredAuth,
+} from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -76,6 +84,7 @@ export default function NavigationShell({
   >(null);
   const [bookmarks, setBookmarks] = useState<BookmarkedItem[]>([]);
   const [planSession, setPlanSession] = useState<PlanSession>({ plan: "free" });
+  const [authSession, setAuthSession] = useState<AuthSession | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [upgradePlan, setUpgradePlan] = useState<"pro" | "vip">("pro");
@@ -86,6 +95,7 @@ export default function NavigationShell({
   useEffect(() => {
     const sync = () => setBookmarks(getStoredBookmarks());
     const syncPlan = () => setPlanSession(getStoredPlan());
+    const syncAuth = () => setAuthSession(getStoredAuth());
     const onOpenUpgrade = (e: Event) => {
       const custom = e as CustomEvent<{ plan?: "pro" | "vip"; reason?: string }>;
       setUpgradePlan(custom.detail?.plan || "pro");
@@ -94,6 +104,37 @@ export default function NavigationShell({
     };
     sync();
     syncPlan();
+    syncAuth();
+
+    // Verify stored Google login session & auto-restore linked Pro/VIP pass
+    const verifyStoredGoogleSession = async () => {
+      const curAuth = getStoredAuth();
+      if (!curAuth?.token) return;
+      try {
+        const res = await axios.get(`${API_BASE}/auth/me`, {
+          headers: { Authorization: `Bearer ${curAuth.token}` },
+        });
+        if (res.data?.user) {
+          saveStoredAuth({ token: curAuth.token, user: res.data.user });
+        }
+        if (res.data?.entitlement?.entitlement_token) {
+          const ent = res.data.entitlement;
+          saveStoredPlan({
+            plan: ent.plan,
+            accessKey: ent.access_key,
+            entitlementToken: ent.entitlement_token,
+            fullName: ent.full_name,
+            status: "approved",
+            utrNumber: ent.utr_number,
+          });
+        }
+      } catch (err: any) {
+        if (err?.response?.status === 401) {
+          clearStoredAuth();
+        }
+      }
+    };
+    verifyStoredGoogleSession();
 
     // Server-verify any stored Pro/VIP entitlement token (prevents localStorage paywall tampering)
     const verifyStoredEntitlement = async () => {
@@ -126,16 +167,20 @@ export default function NavigationShell({
 
     window.addEventListener("cap_bookmarks_updated", sync);
     window.addEventListener("cap_plan_updated", syncPlan);
+    window.addEventListener("cap_auth_updated", syncAuth);
     window.addEventListener("cap_open_upgrade_modal", onOpenUpgrade);
     window.addEventListener("storage", sync);
     window.addEventListener("storage", syncPlan);
+    window.addEventListener("storage", syncAuth);
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("cap_bookmarks_updated", sync);
       window.removeEventListener("cap_plan_updated", syncPlan);
+      window.removeEventListener("cap_auth_updated", syncAuth);
       window.removeEventListener("cap_open_upgrade_modal", onOpenUpgrade);
       window.removeEventListener("storage", sync);
       window.removeEventListener("storage", syncPlan);
+      window.removeEventListener("storage", syncAuth);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, []);
@@ -288,6 +333,39 @@ export default function NavigationShell({
               </span>
             </button>
 
+            {authSession ? (
+              <Link
+                href="/login"
+                title={`Signed in as ${authSession.user.email}`}
+                className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 shadow-2xs transition-all"
+              >
+                {authSession.user.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={authSession.user.avatar_url}
+                    alt={authSession.user.full_name}
+                    referrerPolicy="no-referrer"
+                    className="w-6 h-6 rounded-lg object-cover"
+                  />
+                ) : (
+                  <span className="w-6 h-6 rounded-lg bg-electric-blue text-white text-[11px] font-bold flex items-center justify-center">
+                    {authSession.user.full_name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="font-semibold text-xs text-slate-800 max-w-[76px] truncate">
+                  {authSession.user.full_name.split(" ")[0]}
+                </span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-1.5 text-slate-700 hover:text-electric-blue px-3 py-2 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 shadow-2xs transition-all text-xs font-semibold"
+              >
+                <LogIn size={14} className="text-electric-blue" />
+                Sign In
+              </Link>
+            )}
+
             {proActive ? (
               <button
                 type="button"
@@ -323,6 +401,20 @@ export default function NavigationShell({
             >
               <Search size={18} />
             </button>
+            <Link
+              href="/login"
+              className="px-2 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 border border-slate-200 bg-white text-slate-800"
+              aria-label="Google Sign-In Portal"
+            >
+              {authSession ? (
+                <span className="w-4 h-4 rounded-full bg-electric-blue text-white text-[9px] flex items-center justify-center">
+                  {authSession.user.full_name.charAt(0).toUpperCase()}
+                </span>
+              ) : (
+                <LogIn size={12} className="text-electric-blue" />
+              )}
+              <span>{authSession ? authSession.user.full_name.split(" ")[0] : "Login"}</span>
+            </Link>
             <button
               type="button"
               onClick={() => setUpgradeOpen(true)}
@@ -404,6 +496,15 @@ export default function NavigationShell({
               Rank Calculator
             </Link>
             <Link
+              href="/login"
+              onClick={() => setMobileOpen(false)}
+              className="block w-full text-left py-2 text-sm font-semibold text-electric-blue"
+            >
+              {authSession
+                ? `Account Portal (${authSession.user.full_name})`
+                : "Google Sign-In Portal"}
+            </Link>
+            <Link
               href="/about"
               onClick={() => setMobileOpen(false)}
               className="block w-full text-left py-2 text-sm font-medium text-text-secondary"
@@ -452,7 +553,7 @@ export default function NavigationShell({
             <p className="max-w-sm leading-relaxed text-xs sm:text-sm">
               Navigate Maharashtra engineering admissions with dual rank &amp;
               percentile predictors, smart DTE option form generation, and
-              historical cutoff analytics across 2023–2025 CAP Rounds 1–3.
+              historical cutoff analytics across 2023–2026 CAP Rounds 1–4.
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200/90 text-xs">
@@ -561,6 +662,14 @@ export default function NavigationShell({
               Plans &amp; Legal
             </h4>
             <ul className="space-y-2 text-xs sm:text-sm">
+              <li>
+                <Link
+                  href="/login"
+                  className="hover:text-electric-blue transition-colors font-semibold text-slate-800"
+                >
+                  Student Google Login Portal
+                </Link>
+              </li>
               <li>
                 <Link
                   href="/pricing"
@@ -686,10 +795,10 @@ export default function NavigationShell({
                   <strong className="text-primary">CAP Compass 2.0</strong> is an
                   engineering admission decision-support platform built on{" "}
                   <strong className="text-primary">
-                    79,600+ official MHT-CET CAP cutoff records
+                    198,300+ official MHT-CET CAP cutoff records
                   </strong>{" "}
-                  spanning academic years 2023, 2024, and 2025 across CAP Rounds
-                  1, 2, and 3.
+                  spanning academic years 2023, 2024, 2025, and 2026 across CAP
+                  Rounds 1, 2, 3, and 4.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-soft-bg border border-border">
@@ -849,9 +958,9 @@ export default function NavigationShell({
                 <p>
                   By using this platform, you acknowledge that all historical
                   cutoffs, calibrated category estimates, and trend projections
-                  are derived from past CAP rounds (2023–2025) and do not
-                  guarantee future seat allotment in official State CET Cell
-                  counselling.
+                  are derived from past CAP rounds (2023–2026, Rounds 1–4) and
+                  do not guarantee future seat allotment in official State CET
+                  Cell counselling.
                 </p>
               </div>
             )}

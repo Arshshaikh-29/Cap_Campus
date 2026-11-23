@@ -55,3 +55,19 @@ class CounsellingLead(Base):
     message = Column(Text, nullable=True)
     status = Column(String, default="new", index=True)  # new | contacted | resolved
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class UserAccount(Base):
+    __tablename__ = "user_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    google_sub = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    full_name = Column(String, nullable=False)
+    avatar_url = Column(String, nullable=True)
+    saved_input_type = Column(String, default="percentile")
+    saved_score = Column(Float, nullable=True)
+    saved_category = Column(String, default="GOPENS")
+    bookmarks_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_login_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

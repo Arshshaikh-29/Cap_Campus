@@ -305,7 +305,7 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                 Historical Data
               </div>
               <div className="text-xl font-bold text-success mt-1">
-                2023 – 2025
+                2023 – 2026
               </div>
             </div>
           </div>
@@ -748,7 +748,7 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                   onChange={(e) => setSelectedYear(e.target.value)}
                   className="px-3 py-2 bg-soft-bg border border-border rounded-lg text-xs font-medium text-primary focus:outline-none"
                 >
-                  <option value="">All Years (2023–2025)</option>
+                  <option value="">All Years (2023–2026)</option>
                   {availableYears.map((y) => (
                     <option key={y} value={y}>
                       CAP {y}
@@ -761,10 +761,11 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                   onChange={(e) => setSelectedRound(e.target.value)}
                   className="px-3 py-2 bg-soft-bg border border-border rounded-lg text-xs font-medium text-primary focus:outline-none"
                 >
-                  <option value="">All Rounds (R1–R3)</option>
+                  <option value="">All Rounds (R1–R4)</option>
                   <option value="1">Round 1</option>
                   <option value="2">Round 2</option>
                   <option value="3">Round 3</option>
+                  <option value="4">Round 4</option>
                 </select>
               </div>
 

@@ -32,7 +32,7 @@ export default function Compare() {
   const [hasCompared, setHasCompared] = useState(false);
 
   const [category, setCategory] = useState("GOPENS");
-  const [year, setYear] = useState<number>(2025);
+  const [year, setYear] = useState<number>(2026);
   const [roundNumber, setRoundNumber] = useState<number>(1);
   const [categories, setCategories] = useState<string[]>([]);
 
@@ -362,6 +362,7 @@ export default function Compare() {
                       onChange={(e) => setYear(Number(e.target.value))}
                       className="w-full px-3 py-2 rounded-lg border border-border focus:border-electric-blue outline-none text-sm bg-white font-medium text-primary"
                     >
+                      <option value={2026}>2026</option>
                       <option value={2025}>2025</option>
                       <option value={2024}>2024</option>
                       <option value={2023}>2023</option>
@@ -380,6 +381,7 @@ export default function Compare() {
                       <option value={1}>Round 1</option>
                       <option value={2}>Round 2</option>
                       <option value={3}>Round 3</option>
+                      <option value={4}>Round 4</option>
                     </select>
                   </div>
                 </div>

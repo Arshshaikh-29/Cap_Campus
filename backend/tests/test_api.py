@@ -221,8 +221,11 @@ def test_rank_scale_and_rank_percentile_consistency():
     assert 23000 < by_year[2023] < 26500
     assert 28000 < by_year[2024] < 31500
     assert 32000 < by_year[2025] < 36000
+    assert 38000 < by_year[2026] < 48000
 
-    back = client.get(f"/api/convert?rank={by_year[2025]}").json()
+    latest_yr = max(by_year)
+    assert latest_yr == 2026
+    back = client.get(f"/api/convert?rank={by_year[latest_yr]}").json()
     assert abs(back["latest"]["percentile"] - 90) < 0.05
 
     # Predicting with a percentile or its equivalent rank must give the same answer
@@ -785,6 +788,169 @@ def test_betterment_radar_and_roi_finder_with_pro_gating():
     finally:
         db = SessionLocal()
         try:
+            db.query(PaymentOrder).filter(PaymentOrder.id == order_id).delete()
+            db.commit()
+        finally:
+            db.close()
+
+
+def test_2026_and_round4_cutoffs():
+    # 1. Verify official 2025 Round 4 and 2026 Rounds 1-4 are loaded in SQLite
+    from backend.api.database import SessionLocal
+    from backend.api.models import CollegeRecord
+    from sqlalchemy import func
+
+    db = SessionLocal()
+    try:
+        counts = dict(
+            ((yr, rn), cnt)
+            for yr, rn, cnt in db.query(
+                CollegeRecord.year, CollegeRecord.round_number, func.count(CollegeRecord.id)
+            )
+            .group_by(CollegeRecord.year, CollegeRecord.round_number)
+            .all()
+        )
+    finally:
+        db.close()
+
+    assert counts.get((2025, 4), 0) > 10000
+    for rn in (1, 2, 3, 4):
+        assert counts.get((2026, rn), 0) > 10000, f"Missing 2026 CAP Round {rn}"
+
+    # 2. Predictor supports CAP Round 4 directly and returns 2026 records
+    pred_r4 = client.post(
+        "/api/predict",
+        json={"category": "GOPENS", "percentile": 95.0, "round_number": 4},
+    )
+    assert pred_r4.status_code == 200
+    pr = pred_r4.json()
+    assert pr["count"] > 50
+    assert pr["student"]["rank_scale_year"] == 2026
+    assert all(p["round"] == 4 for p in pr["predictions"])
+    assert any(p["year"] == 2026 for p in pr["predictions"])
+
+    # 3. Compare endpoint supports 2026 CAP Round 4
+    cmp_res = client.post(
+        "/api/compare",
+        json={
+            "college_codes": ["3012", "6006", "6271"],
+            "category": "GOPENS",
+            "year": 2026,
+            "round_number": 4,
+        },
+    )
+    assert cmp_res.status_code == 200
+    assert len(cmp_res.json()["comparison"]) > 10
+
+    # 4. Betterment Radar exposes Round 4 progression fields
+    br = client.post(
+        "/api/betterment-radar",
+        json={"percentile": 96.0, "category": "GOPENS"},
+    )
+    assert br.status_code == 200
+    gems = br.json()["betterment_gems"]
+    assert len(gems) >= 5
+    assert "r4_percentile" in gems[0] and "final_round" in gems[0]
+
+
+def test_google_login_portal_and_cloud_sync():
+    import uuid
+    from backend.api.database import SessionLocal
+    from backend.api.models import UserAccount, PaymentOrder
+    from backend.api.security import issue_user_token
+
+    # 1. Config endpoint is public & returns boolean google_enabled
+    cfg = client.get("/api/auth/config")
+    assert cfg.status_code == 200
+    assert "google_enabled" in cfg.json()
+
+    # 2. Forged/bogus Google credential is rejected (401 when configured, 503 when unconfigured)
+    bad_g = client.post("/api/auth/google", json={"credential": "x" * 60})
+    assert bad_g.status_code in (401, 503)
+
+    # 3. Unauthenticated /api/auth/me and /api/auth/sync fail with 401
+    assert client.get("/api/auth/me").status_code == 401
+    assert client.post("/api/auth/sync", json={"saved_category": "GOPENS"}).status_code == 401
+
+    # 4. Create test Google user + approved Pro order with matching email -> verify token, auto-restore & cloud sync
+    db = SessionLocal()
+    test_email = f"student_{uuid.uuid4().hex[:8]}@gmail.com"
+    test_sub = f"sub_{uuid.uuid4().hex[:12]}"
+    test_key = f"CAP-PRO-{uuid.uuid4().hex[:12].upper()}"
+    test_utr = f"GAUTH{uuid.uuid4().hex[:8].upper()}"
+
+    user = UserAccount(
+        google_sub=test_sub,
+        email=test_email,
+        full_name="Aarav Deshmukh",
+        avatar_url="https://lh3.googleusercontent.com/a/default-user",
+    )
+    order = PaymentOrder(
+        access_key=test_key,
+        full_name="Aarav Deshmukh",
+        phone="9876543210",
+        email=test_email,
+        plan="pro",
+        amount_inr=199,
+        utr_number=test_utr,
+        status="approved",
+    )
+    db.add(user)
+    db.add(order)
+    db.commit()
+    db.refresh(user)
+    user_id = user.id
+    order_id = order.id
+    db.close()
+
+    try:
+        tok = issue_user_token(user_id, test_email)
+        assert tok.startswith("v1.")
+
+        # /api/auth/me returns profile + automatically restores linked Pro entitlement!
+        me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {tok}"})
+        assert me.status_code == 200
+        assert "no-store" in me.headers.get("cache-control", "")
+        md = me.json()
+        assert md["user"]["email"] == test_email
+        assert md["entitlement"] is not None
+        assert md["entitlement"]["plan"] == "pro"
+        assert md["entitlement"]["entitlement_token"].startswith("v1.")
+
+        # Tampered user token is rejected
+        bad_me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {tok[:-4]}ZZZZ"})
+        assert bad_me.status_code == 401
+
+        # /api/auth/sync persists score, category & sanitized bookmarks
+        sync = client.post(
+            "/api/auth/sync",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={
+                "saved_input_type": "percentile",
+                "saved_score": 98.45,
+                "saved_category": "GOBCS",
+                "bookmarks": [
+                    {
+                        "key": "3012|Computer Engineering",
+                        "college_code": "3012",
+                        "college_name": "<b>VJTI</b> Mumbai",
+                        "city": "Mumbai",
+                        "branch": "Computer Engineering",
+                        "historical_percentile": 99.99,
+                    }
+                ],
+            },
+        )
+        assert sync.status_code == 200
+        su = sync.json()["user"]
+        assert su["saved_score"] == 98.45
+        assert su["saved_category"] == "GOBCS"
+        assert len(su["bookmarks"]) == 1
+        assert "<b>" not in su["bookmarks"][0]["college_name"]
+    finally:
+        db = SessionLocal()
+        try:
+            db.query(UserAccount).filter(UserAccount.id == user_id).delete()
             db.query(PaymentOrder).filter(PaymentOrder.id == order_id).delete()
             db.commit()
         finally:

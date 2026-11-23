@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "CAP Compass | MHT-CET Engineering Admission Predictor by Arsh Shaikh",
   description:
-    "Explore 380 Maharashtra engineering colleges, analyze category-wise rank & percentile cutoffs across CAP Rounds 1–3, and build your optimal preference list. Designed & developed by Arsh Shaikh.",
+    "Explore 400 Maharashtra engineering colleges, analyze category-wise rank & percentile cutoffs across 2023–2026 CAP Rounds 1–4, and build your optimal preference list. Designed & developed by Arsh Shaikh.",
   authors: [{ name: "Arsh Shaikh" }],
   creator: "Arsh Shaikh",
   publisher: "Arsh Shaikh",

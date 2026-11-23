@@ -252,6 +252,8 @@ export default function BettermentRadarPage() {
       "Round1_Percentile",
       "Round2_Percentile",
       "Round3_Percentile",
+      "Round4_Percentile",
+      "Final_Round",
       "R1_to_Final_Drop_Pct",
       "Rank_Relaxation",
       "Verdict",
@@ -269,6 +271,8 @@ export default function BettermentRadarPage() {
         r.r1_percentile,
         r.r2_percentile ?? "",
         r.r3_percentile ?? "",
+        r.r4_percentile ?? "",
+        r.final_round ?? "",
         r.drop_percentile,
         r.rank_relaxation,
         r.verdict,
@@ -302,15 +306,15 @@ export default function BettermentRadarPage() {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
           <div className="space-y-2 max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold uppercase tracking-wider">
-              <Radar size={13} /> Exclusive • CAP Round 1 → 2 → 3 Intelligence
+              <Radar size={13} /> Exclusive • CAP Round 1 → 2 → 3 → 4 Intelligence
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
               CAP Betterment &amp; Spot-Round Drop Radar
             </h1>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-              Stop freezing too early after Round 1! Scan real 2023–2025 CAP
-              Round 1 → 2 → 3 cutoff drops to uncover{" "}
-              <strong>colleges you miss in Round 1 but unlock in Round 2/3</strong>{" "}
+              Stop freezing too early after Round 1! Scan real 2023–2026 CAP
+              Round 1 → 2 → 3 → 4 cutoff drops to uncover{" "}
+              <strong>colleges you miss in Round 1 but unlock in Rounds 2–4</strong>{" "}
               — plus high-probability <strong>Spot / ACAP Round targets</strong>.
             </p>
           </div>
@@ -508,7 +512,7 @@ export default function BettermentRadarPage() {
                   {data.summary.total_betterment_gems}
                 </div>
                 <div className="text-xs text-slate-500 mt-0.5">
-                  Missed R1 but dropped into reach by R2/R3
+                  Missed R1 but dropped into reach by R2–R4
                 </div>
               </div>
 
@@ -520,13 +524,13 @@ export default function BettermentRadarPage() {
                   {data.summary.total_spot_watchlist}
                 </div>
                 <div className="text-xs text-slate-500 mt-0.5">
-                  Just 0.35–2.2 %ile above R3 closing
+                  Just 0.35–2.2 %ile above final CAP round
                 </div>
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-200/90 p-5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
-                  <TrendingDown size={13} /> Avg R1 → R3 Drop
+                  <TrendingDown size={13} /> Avg R1 → R4 Drop
                 </div>
                 <div className="text-3xl font-extrabold font-mono tabular-nums text-indigo-600 mt-1.5">
                   −{Number(data.summary.avg_gem_drop_percentile || 0).toFixed(2)}%
@@ -568,7 +572,7 @@ export default function BettermentRadarPage() {
                     },
                     {
                       id: "drops" as const,
-                      label: `Biggest R1→R3 Drops (${data.summary.total_biggest_drops})`,
+                      label: `Biggest R1→R4 Drops (${data.summary.total_biggest_drops})`,
                     },
                   ].map((t) => (
                     <button
@@ -671,7 +675,7 @@ export default function BettermentRadarPage() {
                           </div>
                         </div>
 
-                        {/* R1 -> R2 -> R3 Progression Box */}
+                        {/* R1 -> R2 -> R3 -> R4 Progression Box */}
                         <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
                           <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-mono tabular-nums text-xs">
                             <div className="text-center">
@@ -683,7 +687,7 @@ export default function BettermentRadarPage() {
                               </div>
                             </div>
                             <span className="text-slate-300 font-bold">→</span>
-                            {r.r2_percentile != null && (
+                            {r.r2_percentile != null && r.final_round !== 2 && (
                               <>
                                 <div className="text-center">
                                   <div className="text-[9px] font-bold uppercase text-slate-400">
@@ -696,9 +700,28 @@ export default function BettermentRadarPage() {
                                 <span className="text-slate-300 font-bold">→</span>
                               </>
                             )}
+                            {r.r3_percentile != null && r.final_round === 4 && (
+                              <>
+                                <div className="text-center">
+                                  <div className="text-[9px] font-bold uppercase text-slate-400">
+                                    Round 3
+                                  </div>
+                                  <div className="font-bold text-blue-600">
+                                    {Number(r.r3_percentile).toFixed(2)}%
+                                  </div>
+                                </div>
+                                <span className="text-slate-300 font-bold">→</span>
+                              </>
+                            )}
                             <div className="text-center">
                               <div className="text-[9px] font-bold uppercase text-slate-400">
-                                {r.r3_percentile != null ? "Round 3" : "Final"}
+                                {r.final_round
+                                  ? `Round ${r.final_round}`
+                                  : r.r4_percentile != null
+                                  ? "Round 4"
+                                  : r.r3_percentile != null
+                                  ? "Round 3"
+                                  : "Final"}
                               </div>
                               <div className="font-extrabold text-emerald-700">
                                 {Number(r.final_percentile).toFixed(2)}%
@@ -760,9 +783,10 @@ export default function BettermentRadarPage() {
               <Info size={15} className="text-electric-blue shrink-0 mt-0.5" />
               <span>
                 Betterment drops are calculated directly from official State CET
-                Cell CAP Round 1, Round 2 &amp; Round 3 cutoff lists (2023–2025).
-                Always keep Dream betterment choices placed <strong>above</strong>{" "}
-                your Round 1 allotted seat and choose <strong>Not Freeze / Betterment</strong>.
+                Cell CAP Round 1, Round 2, Round 3 &amp; Round 4 cutoff lists
+                (2023–2026). Always keep Dream betterment choices placed{" "}
+                <strong>above</strong> your Round 1 allotted seat and choose{" "}
+                <strong>Not Freeze / Betterment</strong>.
               </span>
             </div>
           </>
