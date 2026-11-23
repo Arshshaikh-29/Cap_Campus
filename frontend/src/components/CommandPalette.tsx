@@ -15,6 +15,7 @@ import {
   GitCompare,
   ListOrdered,
   LogIn,
+  MapPin,
   Radar,
   Search,
   Sparkles,
@@ -96,6 +97,14 @@ const STATIC_COMMANDS: QuickItem[] = [
     sublabel: "Convert MHT-CET marks/percentile into 2023–2026 State Merit Rank",
     href: "/rank-calculator",
     icon: Calculator,
+  },
+  {
+    id: "map",
+    label: "Interactive Maharashtra College Map",
+    sublabel: "Explore 400 campuses on a live map, distance from home & Score Match pins",
+    href: "/map",
+    badge: "NEW",
+    icon: MapPin,
   },
   {
     id: "explorer",

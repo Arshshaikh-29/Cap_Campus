@@ -2113,6 +2113,12 @@ export default function Home() {
                 >
                   <Activity size={14} /> What-If
                 </Link>
+                <Link
+                  href={`/map?${buildCrossToolQuery()}`}
+                  className="px-3.5 py-2 text-xs font-semibold text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-xl transition-colors flex items-center gap-1.5"
+                >
+                  <MapPin size={14} /> View on Map
+                </Link>
                 <button
                   type="button"
                   onClick={handleCopyShareLink}

@@ -17,6 +17,7 @@ from .database import Base, engine, get_db
 from .models import CollegeRecord, PaymentOrder, CounsellingLead, UserAccount
 from .rank_scale import get_rank_scale
 from .college_websites import get_college_links
+from .college_locations import get_college_location
 from .college_insights import (
     FRA_PORTAL_URL,
     MAHADBT_PORTAL_URL,
@@ -293,6 +294,9 @@ def get_college_details(college_code: str, db: Session = Depends(get_db)):
         "college_code": college.college_code,
         "college_name": college.college_name,
         "city": college.city,
+        "location": get_college_location(
+            college.college_code, college.college_name, college.city
+        ),
         **get_college_links(college.college_code),
         **get_college_insights(college.college_code),
         "is_autonomous": norm_code in open_colleges,
@@ -2708,3 +2712,193 @@ def sync_user_profile(
     db.commit()
     db.refresh(user)
     return {"synced": True, "user": _serialize_user(user)}
+
+
+# =============================================================================
+# INTERACTIVE MAHARASHTRA ENGINEERING COLLEGE MAP API
+# =============================================================================
+
+_MAP_CATALOG_CACHE: Optional[List[dict]] = None
+
+
+def _get_map_base_catalog(db: Session) -> List[dict]:
+    global _MAP_CATALOG_CACHE
+    if _MAP_CATALOG_CACHE is not None:
+        return _MAP_CATALOG_CACHE
+
+    minority_colleges, open_colleges = _get_college_sets(db)
+    scale = get_rank_scale(db)
+
+    # Aggregate colleges, branch counts, and highest recent GOPENS/Open benchmark cutoff
+    rows = (
+        db.query(
+            CollegeRecord.college_code,
+            CollegeRecord.college_name,
+            CollegeRecord.city,
+            CollegeRecord.branch_name,
+            CollegeRecord.category,
+            CollegeRecord.year,
+            CollegeRecord.percentile,
+            CollegeRecord.merit_rank,
+        )
+        .filter(CollegeRecord.percentile.isnot(None))
+        .all()
+    )
+
+    by_code: dict[str, dict] = {}
+    for code, name, city, br, cat, yr, pct, rnk in rows:
+        if not code:
+            continue
+        entry = by_code.get(code)
+        if entry is None:
+            entry = {
+                "college_code": code,
+                "college_name": name,
+                "city": city or "Maharashtra",
+                "branches": set(),
+                "best_open": None,  # (prio, -yr, -pct, branch, pct, rnk)
+            }
+            by_code[code] = entry
+        if br:
+            entry["branches"].add(br)
+
+        # Prefer latest year GOPENS/GOPENH/LOPENS highest-demand branch as map headline benchmark
+        cat_prio = 0 if cat == "GOPENS" else (1 if cat in ("GOPENH", "LOPENS", "TFWS") else 2)
+        cand = (cat_prio, -(yr or 0), -(pct or 0.0), br, pct, rnk, yr)
+        if entry["best_open"] is None or cand[:3] < entry["best_open"][:3]:
+            entry["best_open"] = cand
+
+    catalog: List[dict] = []
+    for code, entry in sorted(by_code.items(), key=lambda kv: kv[1]["college_name"]):
+        loc = get_college_location(code, entry["college_name"], entry["city"])
+        links = get_college_links(code)
+        ins = get_college_insights_summary(code)
+        bo = entry["best_open"]
+        top_pct = round(float(bo[4]), 2) if bo and bo[4] is not None else None
+        top_rnk = (
+            round(float(bo[5]))
+            if bo and bo[5] is not None and bo[4] is not None and scale.is_consistent(bo[6], bo[4], bo[5])
+            else (round(scale.pct_to_rank(scale.latest_year, top_pct)) if top_pct is not None else None)
+        )
+        catalog.append(
+            {
+                "college_code": code,
+                "college_name": entry["college_name"],
+                "city": entry["city"],
+                "lat": loc["lat"],
+                "lng": loc["lng"],
+                "is_exact_campus": loc["is_exact_campus"],
+                "google_maps_url": loc["google_maps_url"],
+                "branches_count": len(entry["branches"]),
+                "branches": sorted(entry["branches"]),
+                "top_branch": bo[3] if bo else None,
+                "top_cutoff_percentile": top_pct,
+                "top_cutoff_rank": top_rnk,
+                "top_cutoff_year": bo[6] if bo else None,
+                "is_autonomous": code in open_colleges,
+                "is_minority": code in minority_colleges,
+                **links,
+                **ins,
+            }
+        )
+
+    _MAP_CATALOG_CACHE = catalog
+    return catalog
+
+
+@app.get("/api/map/colleges")
+def get_map_colleges(
+    city: Optional[str] = None,
+    branch: Optional[str] = None,
+    search: Optional[str] = None,
+    percentile: Optional[float] = None,
+    rank: Optional[float] = None,
+    category: str = "GOPENS",
+    insights_only: bool = False,
+    db: Session = Depends(get_db),
+):
+    """
+    Returns geographic pins for all 400 Maharashtra engineering colleges.
+    When percentile or rank is supplied, switches into Score Match Map mode and
+    tags every matching college with its live prediction band (Within Range / Moderate / Ambitious).
+    """
+    catalog = _get_map_base_catalog(db)
+    score_mode = percentile is not None or rank is not None
+
+    match_by_code: dict[str, dict] = {}
+    student_info = None
+    if score_mode:
+        pred_res = predict_colleges(
+            PredictionRequest(
+                percentile=percentile,
+                rank=rank,
+                category=(category or "GOPENS").upper().strip(),
+                branch=branch or None,
+                city=city or None,
+            ),
+            db,
+        )
+        student_info = pred_res.get("student")
+        band_prio = {"Historically Within Range": 0, "Moderate": 1, "Ambitious": 2}
+        for p in pred_res.get("predictions", []):
+            code = p["college_code"]
+            cur = match_by_code.get(code)
+            p_key = (
+                band_prio.get(p["prediction_category"], 9),
+                p.get("historical_rank") or 999999,
+            )
+            if cur is None or p_key < cur["_key"]:
+                match_by_code[code] = {
+                    "_key": p_key,
+                    "prediction_category": p["prediction_category"],
+                    "chance_level": p.get("chance_level"),
+                    "matched_branch": p["branch"],
+                    "matched_percentile": p.get("historical_percentile"),
+                    "matched_rank": p.get("historical_rank"),
+                    "margin_percentile": p.get("margin_percentile"),
+                    "matched_year": p.get("year"),
+                    "matched_round": p.get("round"),
+                    "matched_courses_count": (cur["matched_courses_count"] + 1) if cur else 1,
+                }
+            else:
+                cur["matched_courses_count"] += 1
+
+    q = (search or "").strip().lower()
+    out = []
+    for item in catalog:
+        if city and item["city"].lower() != city.strip().lower():
+            continue
+        if branch and branch not in item["branches"]:
+            continue
+        if insights_only and item.get("nirf_median_lpa") is None and item.get("annual_fee_inr") is None:
+            continue
+        if q:
+            if (
+                q not in item["college_name"].lower()
+                and q not in item["college_code"].lower()
+                and q not in item["city"].lower()
+            ):
+                continue
+
+        # Exclude full branches list from bulk map payload to keep response super light (~95KB)
+        row = {k: v for k, v in item.items() if k != "branches"}
+        if score_mode:
+            m = match_by_code.get(item["college_code"])
+            if not m:
+                continue
+            row.update({k: v for k, v in m.items() if k != "_key"})
+        out.append(row)
+
+    summary = {
+        "total": len(out),
+        "exact_campus_count": sum(1 for r in out if r["is_exact_campus"]),
+        "within_range": sum(1 for r in out if r.get("prediction_category") == "Historically Within Range"),
+        "moderate": sum(1 for r in out if r.get("prediction_category") == "Moderate"),
+        "ambitious": sum(1 for r in out if r.get("prediction_category") == "Ambitious"),
+    }
+    return {
+        "score_mode": score_mode,
+        "student": student_info,
+        "summary": summary,
+        "colleges": out,
+    }

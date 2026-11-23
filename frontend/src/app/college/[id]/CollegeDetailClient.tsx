@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import axios from "axios";
 import {
   MapPin,
+  Navigation,
+  Map as MapIcon,
   BookOpen,
   Award,
   TrendingUp,
@@ -28,6 +31,13 @@ import {
 import { CATEGORY_LABELS, formatCategory } from "@/lib/categories";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
+const CollegeMiniMap = dynamic(() => import("@/components/CollegeMiniMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[250px] rounded-2xl bg-slate-100 animate-pulse border border-slate-200/90" />
+  ),
+});
 
 const QUICK_CATEGORIES = [
   "GOPENS",
@@ -635,7 +645,7 @@ export default function CollegeDetailClient({ id }: { id: string }) {
               </h4>
               <p className="text-xs text-white/70 leading-relaxed">
                 Analyze round-by-round percentile drops, category merit rank
-                trends, and 2026 projected ranges for {college.college_name}.
+                trends, and 2027 projected ranges for {college.college_name}.
               </p>
               <Link
                 href={`/analytics?college=${college.college_code}${
@@ -652,6 +662,55 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                 Run Cutoff Analytics
               </Link>
             </div>
+
+            {/* Interactive Campus Location Map Card */}
+            {college.location?.lat && college.location?.lng && (
+              <div className="bg-white rounded-2xl p-5 border border-border shadow-xs space-y-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-primary flex items-center gap-1.5">
+                    <MapIcon size={16} className="text-electric-blue" /> Campus
+                    Location Map
+                  </h3>
+                  <span
+                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
+                      college.location.is_exact_campus
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {college.location.is_exact_campus
+                      ? "Verified Campus"
+                      : `${college.city} Area`}
+                  </span>
+                </div>
+
+                <CollegeMiniMap
+                  lat={college.location.lat}
+                  lng={college.location.lng}
+                  collegeName={college.college_name}
+                  city={college.city}
+                  collegeCode={college.college_code}
+                />
+
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={college.location.google_maps_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 px-3 py-2.5 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5"
+                  >
+                    <Navigation size={13} /> Google Maps Directions
+                    <ExternalLink size={11} />
+                  </a>
+                  <Link
+                    href={`/map?college=${college.college_code}`}
+                    className="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold inline-flex items-center justify-center gap-1"
+                  >
+                    Full Map &rarr;
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right: Recent Cutoffs Table */}

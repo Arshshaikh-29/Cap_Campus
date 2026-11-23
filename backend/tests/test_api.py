@@ -955,3 +955,38 @@ def test_google_login_portal_and_cloud_sync():
             db.commit()
         finally:
             db.close()
+
+
+def test_interactive_college_map_api():
+    # 1. All 400 Maharashtra colleges returned with valid lat/lng bounds & Google Maps directions URL
+    res = client.get("/api/map/colleges")
+    assert res.status_code == 200
+    d = res.json()
+    assert d["score_mode"] is False
+    assert d["summary"]["total"] >= 390
+    assert d["summary"]["exact_campus_count"] >= 70
+    vjti = next(c for c in d["colleges"] if c["college_code"] == "3012")
+    assert vjti["is_exact_campus"] is True
+    assert 18.9 < vjti["lat"] < 19.2 and 72.7 < vjti["lng"] < 73.0
+    assert "google.com/maps" in vjti["google_maps_url"]
+    # All pins stay strictly inside Maharashtra geographic bounding box
+    for c in d["colleges"]:
+        assert 15.5 <= c["lat"] <= 22.5, f"Out-of-bounds lat for {c['college_code']}"
+        assert 72.4 <= c["lng"] <= 81.0, f"Out-of-bounds lng for {c['college_code']}"
+
+    # 2. Score Match Map mode returns live prediction bands per college
+    sm = client.get("/api/map/colleges?percentile=97.0&category=GOPENS&city=Pune")
+    assert sm.status_code == 200
+    sd = sm.json()
+    assert sd["score_mode"] is True
+    assert sd["summary"]["total"] >= 15
+    assert all(c["city"] == "Pune" for c in sd["colleges"])
+    assert all(
+        c["prediction_category"] in ("Historically Within Range", "Moderate", "Ambitious")
+        for c in sd["colleges"]
+    )
+
+    # 3. Single college detail endpoint also includes verified campus location payload
+    coep = client.get("/api/colleges/6006").json()
+    assert coep["location"]["is_exact_campus"] is True
+    assert 18.4 < coep["location"]["lat"] < 18.7

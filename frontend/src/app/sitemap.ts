@@ -13,6 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/cap-guide", priority: 0.85 },
     { path: "/rank-calculator", priority: 0.85 },
     { path: "/explorer", priority: 0.85 },
+    { path: "/map", priority: 0.9 },
     { path: "/compare", priority: 0.8 },
     { path: "/analytics", priority: 0.8 },
     { path: "/pricing", priority: 0.8 },

@@ -233,6 +233,12 @@ export default function NavigationShell({
       match: (p: string) => p.startsWith("/explorer") || p.startsWith("/college"),
     },
     {
+      href: "/map",
+      label: "Map",
+      badge: "NEW",
+      match: (p: string) => p.startsWith("/map"),
+    },
+    {
       href: "/compare",
       label: "Compare",
       match: (p: string) => p.startsWith("/compare"),
@@ -637,6 +643,14 @@ export default function NavigationShell({
                   className="hover:text-electric-blue transition-colors"
                 >
                   College Explorer
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/map"
+                  className="hover:text-electric-blue transition-colors font-semibold text-slate-800"
+                >
+                  Interactive College Map
                 </Link>
               </li>
               <li>
