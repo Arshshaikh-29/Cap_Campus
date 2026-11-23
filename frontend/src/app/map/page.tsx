@@ -21,7 +21,7 @@ import {
   ArrowRight,
   SlidersHorizontal,
 } from "lucide-react";
-import type { MapCollegeItem } from "@/components/MaharashtraCollegeMap";
+import type { MapCollegeItem, MapTileStyle } from "@/components/MaharashtraCollegeMap";
 import {
   BookmarkedItem,
   getStoredBookmarks,
@@ -95,6 +95,8 @@ export default function CollegeMapPage() {
   const [search, setSearch] = useState("");
   const [insightsOnly, setInsightsOnly] = useState(false);
   const [bandFilter, setBandFilter] = useState<string>("All");
+  const [tileStyle, setTileStyle] = useState<MapTileStyle>("osm");
+  const [fetchError, setFetchError] = useState("");
 
   // Selection, GPS & camera
   const [selected, setSelected] = useState<MapCollegeItem | null>(null);
@@ -123,6 +125,7 @@ export default function CollegeMapPage() {
       initialFocusCode?: string | null;
     }) => {
       setLoading(true);
+      setFetchError("");
       try {
         const params: Record<string, string | number | boolean> = {};
         if (opts.cityFilter) params.city = opts.cityFilter;
@@ -139,7 +142,19 @@ export default function CollegeMapPage() {
             params.category = opts.cat || "GOPENS";
           }
         }
-        const res = await axios.get(`${API_BASE}/map/colleges`, { params });
+        let res;
+        try {
+          res = await axios.get(`${API_BASE}/map/colleges`, {
+            params,
+            timeout: 25000,
+          });
+        } catch {
+          // One automatic retry in case Render free instance is waking from cold start
+          res = await axios.get(`${API_BASE}/map/colleges`, {
+            params,
+            timeout: 30000,
+          });
+        }
         const list: MapCollegeItem[] = res.data?.colleges || [];
         setColleges(list);
         setSummary(res.data?.summary || null);
@@ -160,6 +175,9 @@ export default function CollegeMapPage() {
         }
       } catch (err) {
         console.error("Failed to fetch map colleges", err);
+        setFetchError(
+          "Backend is waking up or unreachable. Click Retry to load all 400 college pins."
+        );
       } finally {
         setLoading(false);
       }
@@ -640,6 +658,29 @@ export default function CollegeMapPage() {
             </div>
           )}
 
+          {fetchError && (
+            <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2">
+              <span>{fetchError}</span>
+              <button
+                type="button"
+                onClick={() =>
+                  fetchMapData({
+                    useScore: scoreMode,
+                    mode: inputType,
+                    score: scoreVal,
+                    cat: category,
+                    cityFilter: city,
+                    branchFilter: branch,
+                    insights: insightsOnly,
+                  })
+                }
+                className="px-3 py-1 rounded-lg bg-rose-600 text-white font-bold text-[11px] cursor-pointer shrink-0"
+              >
+                Retry Now
+              </button>
+            </div>
+          )}
+
           {locError && (
             <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
               {locError}
@@ -742,9 +783,34 @@ export default function CollegeMapPage() {
             selectedCode={selected?.college_code || null}
             onSelect={handleSelectCollege}
             scoreMode={scoreMode}
+            tileStyle={tileStyle}
             userLocation={userLocation}
             focusTarget={focusTarget}
           />
+
+          {/* Floating Map Style Switcher (Top Left) */}
+          <div className="absolute top-3 left-3 z-[400] bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl p-1 shadow-md inline-flex items-center gap-0.5 text-[11px] font-bold">
+            {(
+              [
+                { id: "osm", label: "Street" },
+                { id: "esri", label: "Clean" },
+                { id: "satellite", label: "Satellite" },
+              ] as const
+            ).map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setTileStyle(s.id)}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  tileStyle === s.id
+                    ? "bg-[#0B1120] text-white shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
 
           {/* Floating Legend (Top Right) */}
           <div className="absolute top-3 right-3 z-[400] bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl px-3.5 py-2.5 shadow-md text-[11px] space-y-1">

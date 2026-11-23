@@ -36,11 +36,36 @@ export interface MapCollegeItem {
   distance_km?: number | null;
 }
 
+export type MapTileStyle = "osm" | "esri" | "satellite";
+
+const TILE_LAYERS: Record<
+  MapTileStyle,
+  { url: string; attribution: string; maxZoom: number }
+> = {
+  osm: {
+    url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  },
+  esri: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri &mdash; Source: Esri, HERE, Garmin, OSM",
+    maxZoom: 18,
+  },
+  satellite: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Imagery &copy; Esri, Maxar, Earthstar Geographics",
+    maxZoom: 18,
+  },
+};
+
 interface Props {
   colleges: MapCollegeItem[];
   selectedCode: string | null;
   onSelect: (college: MapCollegeItem) => void;
   scoreMode: boolean;
+  tileStyle: MapTileStyle;
   userLocation: { lat: number; lng: number } | null;
   focusTarget: { lat: number; lng: number; zoom: number; nonce: number } | null;
 }
@@ -69,11 +94,13 @@ export default function MaharashtraCollegeMap({
   selectedCode,
   onSelect,
   scoreMode,
+  tileStyle,
   userLocation,
   focusTarget,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
 
@@ -91,16 +118,11 @@ export default function MaharashtraCollegeMap({
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    // Clean, fast CartoDB Voyager tile layer (no API key required)
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-      {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: "abcd",
-        maxZoom: 19,
-      }
-    ).addTo(map);
+    const cfg = TILE_LAYERS.osm;
+    tileLayerRef.current = L.tileLayer(cfg.url, {
+      attribution: cfg.attribution,
+      maxZoom: cfg.maxZoom,
+    }).addTo(map);
 
     markersLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
@@ -108,10 +130,26 @@ export default function MaharashtraCollegeMap({
     return () => {
       map.remove();
       mapRef.current = null;
+      tileLayerRef.current = null;
       markersLayerRef.current = null;
       userMarkerRef.current = null;
     };
   }, []);
+
+  // Switch tile layer (OSM / Esri Street / Satellite) dynamically with zero API key
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (tileLayerRef.current) {
+      tileLayerRef.current.remove();
+    }
+    const cfg = TILE_LAYERS[tileStyle] || TILE_LAYERS.osm;
+    tileLayerRef.current = L.tileLayer(cfg.url, {
+      attribution: cfg.attribution,
+      maxZoom: cfg.maxZoom,
+    }).addTo(map);
+    tileLayerRef.current.bringToBack();
+  }, [tileStyle]);
 
   // Fly to city/college focus target
   useEffect(() => {

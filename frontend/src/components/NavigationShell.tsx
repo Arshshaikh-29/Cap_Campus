@@ -255,38 +255,38 @@ export default function NavigationShell({
   return (
     <div className="flex flex-col min-h-screen">
       <header className="fixed top-0 inset-x-0 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)] z-50 print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-5 h-16 flex items-center justify-between gap-2">
           {/* Left: Logo */}
           <Link
             href="/"
-            className="flex items-center gap-2.5 group cursor-pointer shrink-0"
+            className="flex items-center gap-2 group cursor-pointer shrink-0"
           >
             <div className="w-8 h-8 rounded-lg bg-electric-blue/10 border border-electric-blue/20 flex items-center justify-center text-electric-blue transition-transform group-hover:rotate-45 duration-500">
-              <Compass size={20} strokeWidth={2.4} />
+              <Compass size={19} strokeWidth={2.4} />
             </div>
-            <span className="font-extrabold tracking-tight text-base text-slate-900">
+            <span className="font-extrabold tracking-tight text-sm xl:text-base text-slate-900 whitespace-nowrap">
               CAP COMPASS
             </span>
           </Link>
 
           {/* Center: Navigation */}
-          <nav className="hidden lg:flex items-center gap-1 font-medium text-[13px] text-slate-600 h-full">
+          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 font-medium text-[12px] xl:text-[13px] text-slate-600 h-full min-w-0">
             {navItems.map((item) => {
               const active = item.match(pathname || "/");
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  className={`relative px-2 xl:px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 whitespace-nowrap shrink-0 ${
                     active
-                      ? "bg-electric-blue/10 text-electric-blue font-semibold after:content-[''] after:absolute after:-bottom-[13px] after:left-2.5 after:right-2.5 after:h-[2px] after:bg-electric-blue after:rounded-full"
+                      ? "bg-electric-blue/10 text-electric-blue font-semibold after:content-[''] after:absolute after:-bottom-[13px] after:left-2 after:right-2 after:h-[2px] after:bg-electric-blue after:rounded-full"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
                   }`}
                 >
                   <span>{item.label}</span>
                   {"badge" in item && item.badge && (
                     <span
-                      className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                      className={`hidden 2xl:inline-flex text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
                         item.badge === "NEW"
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-electric-blue/15 text-electric-blue"
@@ -301,15 +301,15 @@ export default function NavigationShell({
           </nav>
 
           {/* Right: Actions */}
-          <div className="hidden lg:flex items-center gap-2 text-sm font-medium shrink-0">
+          <div className="hidden lg:flex items-center gap-1.5 text-sm font-medium shrink-0">
             <button
               type="button"
               onClick={() => setCmdOpen(true)}
               title="Quick Search Colleges & Tools (Ctrl+K)"
-              className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 px-2.5 py-2 rounded-xl border border-slate-200/90 bg-slate-50/80 hover:bg-white shadow-2xs transition-all cursor-pointer"
+              className="flex items-center gap-1 text-slate-500 hover:text-slate-900 px-2 py-2 rounded-xl border border-slate-200/90 bg-slate-50/80 hover:bg-white shadow-2xs transition-all cursor-pointer"
             >
               <Search size={14} className="text-slate-500" />
-              <kbd className="hidden xl:inline-flex items-center text-[10px] font-mono font-bold text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+              <kbd className="hidden 2xl:inline-flex items-center text-[10px] font-mono font-bold text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">
                 Ctrl K
               </kbd>
             </button>
@@ -317,17 +317,18 @@ export default function NavigationShell({
             <button
               type="button"
               onClick={() => setModalType("shortlist")}
-              className="flex items-center gap-2 text-slate-700 hover:text-slate-900 px-3 py-2 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 shadow-2xs transition-all cursor-pointer"
+              title="Saved Option Shortlist"
+              className="flex items-center gap-1.5 text-slate-700 hover:text-slate-900 px-2.5 py-2 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 shadow-2xs transition-all cursor-pointer"
             >
               <Bookmark
-                size={15}
+                size={14}
                 className={
                   bookmarks.length > 0
                     ? "text-electric-blue fill-electric-blue"
                     : "text-slate-500"
                 }
               />
-              <span className="font-semibold text-xs">Shortlist</span>
+              <span className="hidden xl:inline font-semibold text-xs">Shortlist</span>
               <span
                 className={`font-mono tabular-nums text-[11px] font-bold px-1.5 py-0.5 rounded-md transition-colors ${
                   bookmarks.length > 0
@@ -343,7 +344,7 @@ export default function NavigationShell({
               <Link
                 href="/login"
                 title={`Signed in as ${authSession.user.email}`}
-                className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 shadow-2xs transition-all"
+                className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1.5 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 shadow-2xs transition-all"
               >
                 {authSession.user.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -351,21 +352,21 @@ export default function NavigationShell({
                     src={authSession.user.avatar_url}
                     alt={authSession.user.full_name}
                     referrerPolicy="no-referrer"
-                    className="w-6 h-6 rounded-lg object-cover"
+                    className="w-6 h-6 rounded-lg object-cover shrink-0"
                   />
                 ) : (
-                  <span className="w-6 h-6 rounded-lg bg-electric-blue text-white text-[11px] font-bold flex items-center justify-center">
+                  <span className="w-6 h-6 rounded-lg bg-electric-blue text-white text-[11px] font-bold flex items-center justify-center shrink-0">
                     {authSession.user.full_name.charAt(0).toUpperCase()}
                   </span>
                 )}
-                <span className="font-semibold text-xs text-slate-800 max-w-[76px] truncate">
+                <span className="font-semibold text-xs text-slate-800 max-w-[64px] truncate">
                   {authSession.user.full_name.split(" ")[0]}
                 </span>
               </Link>
             ) : (
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 text-slate-700 hover:text-electric-blue px-3 py-2 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 shadow-2xs transition-all text-xs font-semibold"
+                className="flex items-center gap-1.5 text-slate-700 hover:text-electric-blue px-2.5 py-2 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 shadow-2xs transition-all text-xs font-semibold whitespace-nowrap"
               >
                 <LogIn size={14} className="text-electric-blue" />
                 Sign In
@@ -376,10 +377,10 @@ export default function NavigationShell({
               <button
                 type="button"
                 onClick={() => setUpgradeOpen(true)}
-                className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer"
+                className="flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs px-3 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap"
               >
                 <Crown size={14} className="text-emerald-600" />
-                {planSession.plan === "vip" ? "VIP ACTIVE" : "PRO ACTIVE"}
+                {planSession.plan === "vip" ? "VIP" : "PRO"}
               </button>
             ) : (
               <button
@@ -389,10 +390,10 @@ export default function NavigationShell({
                   setUpgradeReason(undefined);
                   setUpgradeOpen(true);
                 }}
-                className="flex items-center gap-1.5 bg-gradient-to-r from-electric-blue to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer"
+                className="flex items-center gap-1.5 bg-gradient-to-r from-electric-blue to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold text-xs px-3 py-2 rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap"
               >
-                <Sparkles size={14} />
-                Upgrade Pro • ₹199
+                <Sparkles size={13} />
+                <span>Pro • ₹199</span>
               </button>
             )}
           </div>

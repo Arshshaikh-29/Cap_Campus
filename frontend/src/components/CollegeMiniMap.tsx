@@ -36,14 +36,10 @@ export default function CollegeMiniMap({
       zoomControl: true,
     });
 
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-      {
-        attribution: "&copy; OpenStreetMap &copy; CARTO",
-        subdomains: "abcd",
-        maxZoom: 19,
-      }
-    ).addTo(map);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19,
+    }).addTo(map);
 
     const pin = L.divIcon({
       className: "cap-mini-pin",
