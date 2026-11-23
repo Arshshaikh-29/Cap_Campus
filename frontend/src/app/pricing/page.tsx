@@ -208,8 +208,8 @@ export default function PricingPage() {
                           : "bg-slate-900 hover:bg-slate-800 text-white"
                       }`}
                     >
-                      <Sparkles size={15} /> Pay ₹{p.priceInr} via GPay (
-                      {GPAY_NUMBER})
+                      <Sparkles size={15} /> Pay ₹{p.priceInr} &amp; Unlock
+                      Instantly
                     </button>
                   )}
                 </div>

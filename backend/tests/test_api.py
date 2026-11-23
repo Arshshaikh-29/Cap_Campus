@@ -990,3 +990,96 @@ def test_interactive_college_map_api():
     coep = client.get("/api/colleges/6006").json()
     assert coep["location"]["is_exact_campus"] is True
     assert 18.4 < coep["location"]["lat"] < 18.7
+
+
+def test_razorpay_instant_payment_and_auto_unlock(monkeypatch):
+    import hashlib
+    import hmac
+    import uuid
+    from backend.api.database import SessionLocal
+    from backend.api.models import PaymentOrder
+
+    test_key_id = "rzp_test_CapCompass1234"
+    test_secret = "super_secret_razorpay_test_key_99999"
+    monkeypatch.setenv("RAZORPAY_KEY_ID", test_key_id)
+    monkeypatch.setenv("RAZORPAY_KEY_SECRET", test_secret)
+
+    # 1. Config endpoint advertises razorpay_enabled=True with public key_id only (never secret!)
+    cfg = client.get("/api/monetization/config").json()
+    assert cfg["razorpay_enabled"] is True
+    assert cfg["razorpay_key_id"] == test_key_id
+    assert test_secret not in str(cfg)
+
+    # 2. Seed a pending Razorpay order (simulating create-order result)
+    rzp_order_id = f"order_{uuid.uuid4().hex[:14]}"
+    rzp_payment_id = f"pay_{uuid.uuid4().hex[:14]}"
+    access_key = f"CAP-PRO-{uuid.uuid4().hex[:12].upper()}"
+
+    db = SessionLocal()
+    order = PaymentOrder(
+        access_key=access_key,
+        full_name="Instant Student",
+        phone="9876543210",
+        email="instant_student@gmail.com",
+        plan="pro",
+        amount_inr=199,
+        utr_number=rzp_order_id,
+        payment_method="Razorpay Instant (UPI/GPay/Card)",
+        status="pending",
+        notes=f"rzp_order:{rzp_order_id}",
+    )
+    db.add(order)
+    db.commit()
+    order_id = order.id
+    db.close()
+
+    try:
+        # 3. Forged Razorpay signature MUST be rejected with 400 and order stays pending
+        bad = client.post(
+            "/api/payments/razorpay/verify",
+            json={
+                "razorpay_order_id": rzp_order_id,
+                "razorpay_payment_id": rzp_payment_id,
+                "razorpay_signature": "0" * 64,
+            },
+        )
+        assert bad.status_code == 400
+
+        # 4. Valid HMAC-SHA256 signature INSTANTLY approves order & issues signed Pro entitlement token
+        valid_sig = hmac.new(
+            test_secret.encode("utf-8"),
+            f"{rzp_order_id}|{rzp_payment_id}".encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+
+        ok = client.post(
+            "/api/payments/razorpay/verify",
+            json={
+                "razorpay_order_id": rzp_order_id,
+                "razorpay_payment_id": rzp_payment_id,
+                "razorpay_signature": valid_sig,
+            },
+        )
+        assert ok.status_code == 200
+        vd = ok.json()
+        assert vd["verified"] is True
+        assert vd["status"] == "approved"
+        assert vd["plan"] == "pro"
+        ent_token = vd["entitlement_token"]
+        assert ent_token.startswith("v1.")
+
+        # 5. Server-enforced Pro feature unlocks IMMEDIATELY with the returned token
+        br = client.post(
+            "/api/betterment-radar",
+            json={"percentile": 95.5, "category": "GOPENS"},
+            headers={"X-Entitlement-Token": ent_token},
+        ).json()
+        assert br["is_pro"] is True
+        assert br["summary"]["locked_betterment_count"] == 0
+    finally:
+        db = SessionLocal()
+        try:
+            db.query(PaymentOrder).filter(PaymentOrder.id == order_id).delete()
+            db.commit()
+        finally:
+            db.close()

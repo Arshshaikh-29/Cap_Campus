@@ -17,6 +17,9 @@ import {
   ArrowRight,
   Clock,
   AlertCircle,
+  Zap,
+  CreditCard,
+  Lock,
 } from "lucide-react";
 import {
   GPAY_NUMBER,
@@ -28,8 +31,44 @@ import {
   clearStoredPlan,
   isProActive,
 } from "@/lib/plan";
+import { getStoredAuth } from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, any>) => {
+      open: () => void;
+      on: (event: string, cb: (resp: any) => void) => void;
+    };
+  }
+}
+
+function loadRazorpayCheckoutScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") {
+      resolve(false);
+      return;
+    }
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const existing = document.getElementById("razorpay-checkout-js");
+    if (existing) {
+      existing.addEventListener("load", () => resolve(true));
+      existing.addEventListener("error", () => resolve(false));
+      return;
+    }
+    const script = document.createElement("script");
+    script.id = "razorpay-checkout-js";
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+}
 
 interface UpgradeModalProps {
   open: boolean;
@@ -44,12 +83,16 @@ export default function UpgradeModal({
   initialPlan = "pro",
   reason,
 }: UpgradeModalProps) {
-  const [tab, setTab] = useState<"pay" | "activate">("pay");
+  const [tab, setTab] = useState<"instant" | "manual" | "activate">("instant");
   const [selectedPlan, setSelectedPlan] = useState<"pro" | "vip">(initialPlan);
   const [copiedNum, setCopiedNum] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
 
-  // Payment submission form
+  // Payment gateway availability
+  const [razorpayEnabled, setRazorpayEnabled] = useState<boolean>(false);
+  const [configLoaded, setConfigLoaded] = useState<boolean>(false);
+
+  // Shared customer details
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -59,6 +102,12 @@ export default function UpgradeModal({
 
   // Submitted receipt or existing session
   const [session, setSession] = useState<PlanSession>({ plan: "free" });
+  const [instantSuccess, setInstantSuccess] = useState<{
+    plan: string;
+    access_key: string;
+    amount_inr: number;
+    message: string;
+  } | null>(null);
   const [receipt, setReceipt] = useState<{
     access_key: string;
     plan: string;
@@ -77,21 +126,42 @@ export default function UpgradeModal({
   } | null>(null);
 
   useEffect(() => {
-    if (open) {
-      setSelectedPlan(initialPlan);
-      setErrorMsg("");
-      setVerifyFeedback(null);
-      const current = getStoredPlan();
-      setSession(current);
-      if (current.accessKey) {
-        setKeyInput(current.accessKey);
-      }
-      if (isProActive(current)) {
-        setTab("activate");
-      } else {
-        setTab("pay");
-      }
+    if (!open) return;
+
+    setSelectedPlan(initialPlan);
+    setErrorMsg("");
+    setVerifyFeedback(null);
+    setInstantSuccess(null);
+
+    const current = getStoredPlan();
+    setSession(current);
+    if (current.accessKey) {
+      setKeyInput(current.accessKey);
     }
+
+    // Pre-fill student name & Gmail automatically if signed in with Google!
+    const auth = getStoredAuth();
+    if (auth?.user) {
+      if (!fullName && auth.user.full_name) setFullName(auth.user.full_name);
+      if (!email && auth.user.email) setEmail(auth.user.email);
+    }
+
+    if (isProActive(current)) {
+      setTab("activate");
+    } else {
+      setTab("instant");
+    }
+
+    // Check if instant Razorpay checkout is enabled on backend
+    axios
+      .get(`${API_BASE}/monetization/config`)
+      .then((res) => {
+        const enabled = Boolean(res.data?.razorpay_enabled);
+        setRazorpayEnabled(enabled);
+      })
+      .catch(() => setRazorpayEnabled(false))
+      .finally(() => setConfigLoaded(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialPlan]);
 
   if (!open) return null;
@@ -111,7 +181,121 @@ export default function UpgradeModal({
     }
   };
 
-  const handleSubmitPayment = async (e: React.FormEvent) => {
+  // DIRECT INSTANT PAYMENT -> CRYPTOGRAPHIC VERIFY -> AUTO-UNLOCK IN 1 SECOND
+  const handleInstantRazorpayPay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSubmitting(true);
+
+    try {
+      const loaded = await loadRazorpayCheckoutScript();
+      if (!loaded || !window.Razorpay) {
+        setErrorMsg(
+          "Could not load Razorpay Checkout. Check your internet/ad-blocker or use Manual GPay UTR."
+        );
+        setSubmitting(false);
+        return;
+      }
+
+      // Step 1: Create server-verified order (price strictly locked on server)
+      const orderRes = await axios.post(
+        `${API_BASE}/payments/razorpay/create-order`,
+        {
+          plan: selectedPlan,
+          full_name: fullName,
+          phone,
+          email: email || null,
+        }
+      );
+      const ord = orderRes.data;
+
+      // Step 2: Launch Razorpay native UPI / GPay / PhonePe / Card popup
+      const rzp = new window.Razorpay({
+        key: ord.key_id,
+        amount: ord.amount,
+        currency: ord.currency || "INR",
+        name: "CAP Compass",
+        description: `${ord.plan_name} — Full 2026 CAP Season`,
+        order_id: ord.razorpay_order_id,
+        prefill: {
+          name: fullName.trim(),
+          email: email.trim() || undefined,
+          contact: phone.replace(/\D+/g, "").slice(-10),
+        },
+        theme: {
+          color: "#2563EB",
+        },
+        modal: {
+          ondismiss: () => {
+            setSubmitting(false);
+          },
+        },
+        handler: async (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) => {
+          // Step 3: Verify HMAC-SHA256 signature on server -> Instant Auto-Unlock!
+          try {
+            const vRes = await axios.post(`${API_BASE}/payments/razorpay/verify`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            const vData = vRes.data;
+            if (vData.verified && vData.entitlement_token) {
+              const nextSession: PlanSession = {
+                plan: vData.plan,
+                requestedPlan: vData.plan,
+                accessKey: vData.access_key,
+                entitlementToken: vData.entitlement_token,
+                fullName: vData.full_name || fullName,
+                status: "approved",
+                utrNumber: vData.payment_id,
+              };
+              saveStoredPlan(nextSession);
+              setSession(nextSession);
+              setKeyInput(vData.access_key);
+              setInstantSuccess({
+                plan: vData.plan,
+                access_key: vData.access_key,
+                amount_inr: vData.amount_inr,
+                message: vData.message,
+              });
+            } else {
+              setErrorMsg("Payment received, but verification failed. Please contact support.");
+            }
+          } catch (err: any) {
+            setErrorMsg(
+              err?.response?.data?.detail ||
+                "Payment captured, but automatic verification hit an error. Contact WhatsApp 9920627188 with your Payment ID."
+            );
+          } finally {
+            setSubmitting(false);
+          }
+        },
+      });
+
+      rzp.on("payment.failed", (resp: any) => {
+        setErrorMsg(
+          resp?.error?.description ||
+            "Payment failed or was cancelled. No amount was deducted."
+        );
+        setSubmitting(false);
+      });
+
+      rzp.open();
+    } catch (err: any) {
+      setErrorMsg(
+        err?.response?.data?.detail ||
+          "Could not start instant checkout. Please check your name and 10-digit mobile number."
+      );
+      setSubmitting(false);
+    }
+  };
+
+  // FALLBACK: Manual GPay UTR submission
+  const handleSubmitManualPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setSubmitting(true);
@@ -134,7 +318,6 @@ export default function UpgradeModal({
       });
       setKeyInput(data.access_key);
 
-      // Save pending or approved status locally (only elevate to Pro if server issued a signed entitlement token)
       const isApprovedWithToken =
         data.status === "approved" && Boolean(data.entitlement_token);
       const nextSession: PlanSession = {
@@ -192,7 +375,7 @@ export default function UpgradeModal({
     } catch {
       setVerifyFeedback({
         type: "error",
-        text: "Unable to verify key right now. Please make sure the server is running.",
+        text: "Unable to verify key right now. Please try again in a moment.",
       });
     } finally {
       setVerifying(false);
@@ -219,7 +402,7 @@ export default function UpgradeModal({
                 Upgrade to CAP Compass Pro
               </h3>
               <p className="text-xs text-slate-500">
-                {reason || "Instant one-time pass via Google Pay (UPI)"}
+                {reason || "Pay directly via UPI / GPay / Cards — unlocks automatically!"}
               </p>
             </div>
           </div>
@@ -233,92 +416,310 @@ export default function UpgradeModal({
           </button>
         </div>
 
-        {/* Tab Switcher */}
+        {/* 3-Tab Switcher */}
         <div className="px-6 pt-5">
-          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
+          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
             <button
               type="button"
-              onClick={() => setTab("pay")}
-              className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                tab === "pay"
+              onClick={() => {
+                setTab("instant");
+                setErrorMsg("");
+              }}
+              className={`py-2 px-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                tab === "instant"
                   ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/5"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <Smartphone size={14} className="text-electric-blue" /> Pay via
-              GPay ({GPAY_NUMBER})
+              <Zap size={13} className="text-electric-blue" /> Instant Pay
             </button>
             <button
               type="button"
-              onClick={() => setTab("activate")}
-              className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              onClick={() => {
+                setTab("manual");
+                setErrorMsg("");
+              }}
+              className={`py-2 px-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                tab === "manual"
+                  ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/5"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Smartphone size={13} className="text-indigo-600" /> GPay UTR
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab("activate");
+                setErrorMsg("");
+              }}
+              className={`py-2 px-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 tab === "activate"
                   ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/5"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <KeyRound size={14} className="text-emerald-600" /> Activate
-              Access Key
+              <KeyRound size={13} className="text-emerald-600" /> Access Key
             </button>
           </div>
         </div>
 
         <div className="p-6 space-y-6">
-          {tab === "pay" && (
-            <>
-              {/* Plan Selector Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(["pro", "vip"] as const).map((pid) => {
-                  const p = PLAN_DEFINITIONS[pid];
-                  const active = selectedPlan === pid;
-                  return (
-                    <button
-                      key={pid}
-                      type="button"
-                      onClick={() => setSelectedPlan(pid)}
-                      className={`p-4 rounded-2xl border text-left transition-all relative cursor-pointer ${
-                        active
-                          ? "bg-electric-blue/[0.05] border-electric-blue ring-2 ring-electric-blue/15"
-                          : "bg-white border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      {p.badge && (
-                        <span
-                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full absolute top-3 right-3 ${
-                            pid === "pro"
-                              ? "bg-electric-blue text-white"
-                              : "bg-amber-500/15 text-amber-700 border border-amber-500/25"
-                          }`}
-                        >
-                          {p.badge}
-                        </span>
-                      )}
-                      <div className="text-sm font-bold text-slate-900 pr-20">
-                        {p.name}
-                      </div>
-                      <div className="mt-1.5 flex items-baseline gap-1">
-                        <span className="text-2xl font-extrabold font-mono tabular-nums text-slate-900">
-                          ₹{p.priceInr}
-                        </span>
-                        <span className="text-[11px] text-slate-500">
-                          / one-time
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
-                        {p.tagline}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
+          {/* Plan Selector Cards (shown on Instant & Manual tabs when not completed) */}
+          {(tab === "instant" || tab === "manual") && !instantSuccess && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(["pro", "vip"] as const).map((pid) => {
+                const p = PLAN_DEFINITIONS[pid];
+                const active = selectedPlan === pid;
+                return (
+                  <button
+                    key={pid}
+                    type="button"
+                    onClick={() => setSelectedPlan(pid)}
+                    className={`p-4 rounded-2xl border text-left transition-all relative cursor-pointer ${
+                      active
+                        ? "bg-electric-blue/[0.05] border-electric-blue ring-2 ring-electric-blue/15"
+                        : "bg-white border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    {p.badge && (
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full absolute top-3 right-3 ${
+                          pid === "pro"
+                            ? "bg-electric-blue text-white"
+                            : "bg-amber-500/15 text-amber-700 border border-amber-500/25"
+                        }`}
+                      >
+                        {p.badge}
+                      </span>
+                    )}
+                    <div className="text-sm font-bold text-slate-900 pr-20">
+                      {p.name}
+                    </div>
+                    <div className="mt-1.5 flex items-baseline gap-1">
+                      <span className="text-2xl font-extrabold font-mono tabular-nums text-slate-900">
+                        ₹{p.priceInr}
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        / one-time
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
+                      {p.tagline}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-              {/* Google Pay Direct Payment Banner */}
+          {/* TAB 1: DIRECT INSTANT AUTO-UNLOCK CHECKOUT (RAZORPAY UPI / GPAY / CARDS) */}
+          {tab === "instant" && (
+            <>
+              {instantSuccess ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-6 space-y-5 text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white mx-auto flex items-center justify-center shadow-md">
+                    <CheckCircle2 size={30} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <h4 className="text-xl font-extrabold text-slate-900">
+                      {PLAN_DEFINITIONS[instantSuccess.plan as "pro" | "vip"]?.name ||
+                        "CAP Pro"}{" "}
+                      Unlocked Instantly!
+                    </h4>
+                    <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
+                      {instantSuccess.message} All unlimited predictions,
+                      60-choice Option Form, Betterment Radar, ROI Finder &amp;
+                      CSV/PDF exports are now active!
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-emerald-200 p-4 flex items-center justify-between gap-3 max-w-md mx-auto text-left">
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Saved Backup Access Key
+                      </div>
+                      <div className="text-sm font-extrabold font-mono text-slate-900">
+                        {instantSuccess.access_key}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => copyText(instantSuccess.access_key, "key")}
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-800 inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      {copiedKey ? (
+                        <>
+                          <Check size={13} className="text-emerald-600" /> Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={13} /> Copy
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-7 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm inline-flex items-center gap-2 shadow-sm cursor-pointer"
+                  >
+                    Start Using {instantSuccess.plan.toUpperCase()} Now{" "}
+                    <ArrowRight size={15} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Instant Checkout Banner */}
+                  <div className="bg-[#0B1120] text-white rounded-2xl p-5 border border-slate-800 relative overflow-hidden">
+                    <div className="absolute -top-16 -right-16 w-48 h-48 bg-electric-blue/25 rounded-full blur-2xl pointer-events-none" />
+                    <div className="relative z-10 space-y-2">
+                      <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+                        <Zap size={13} /> Zero-Wait Instant Auto-Unlock
+                      </div>
+                      <div className="text-sm sm:text-base font-extrabold">
+                        Pay ₹{activePlanDef.priceInr} via GPay, PhonePe, Paytm,
+                        UPI QR or Card
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        Complete payment directly inside the encrypted Razorpay
+                        checkout popup — your{" "}
+                        <strong className="text-white">
+                          {activePlanDef.name}
+                        </strong>{" "}
+                        unlocks automatically within 1 second (no waiting for
+                        manual approval!).
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] font-mono text-slate-300">
+                        <span className="px-2 py-0.5 rounded bg-white/10 border border-white/10">
+                          GPay / PhonePe / Paytm UPI
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-white/10 border border-white/10">
+                          Debit / Credit Cards
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-white/10 border border-white/10">
+                          Netbanking
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {configLoaded && !razorpayEnabled ? (
+                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-3 text-xs text-amber-950">
+                      <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                        <Lock size={14} /> Instant Razorpay Gateway Awaits API
+                        Keys
+                      </div>
+                      <p className="leading-relaxed text-amber-900/90">
+                        Add <code className="bg-white/80 px-1.5 py-0.5 rounded font-mono font-bold">RAZORPAY_KEY_ID</code>{" "}
+                        and{" "}
+                        <code className="bg-white/80 px-1.5 py-0.5 rounded font-mono font-bold">RAZORPAY_KEY_SECRET</code>{" "}
+                        in Render Environment Variables to activate live
+                        1-click auto-unlock checkout.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setTab("manual")}
+                        className="px-4 py-2 rounded-xl bg-amber-900 hover:bg-amber-950 text-white font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        Use Direct GPay ({GPAY_NUMBER}) Meanwhile{" "}
+                        <ArrowRight size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleInstantRazorpayPay} className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                            Student / Parent Full Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Aarav Kulkarni"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-3 focus:ring-electric-blue/15"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                            WhatsApp / Mobile Number *
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            placeholder="10-digit mobile number"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="w-full px-3.5 py-2.5 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-3 focus:ring-electric-blue/15"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                          Google Email (Auto-syncs Pro across all your devices)
+                        </label>
+                        <input
+                          type="email"
+                          placeholder="you@gmail.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-3 focus:ring-electric-blue/15"
+                        />
+                      </div>
+
+                      {errorMsg && (
+                        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
+                          <AlertCircle size={15} className="shrink-0" /> {errorMsg}
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={submitting || !configLoaded}
+                        className="w-full bg-gradient-to-r from-electric-blue to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 text-white font-bold text-sm py-3.5 rounded-xl shadow-md shadow-electric-blue/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        {submitting ? (
+                          <RefreshCw size={16} className="animate-spin" />
+                        ) : (
+                          <CreditCard size={16} />
+                        )}
+                        {submitting
+                          ? "Opening Secure Checkout..."
+                          : `Pay ₹${activePlanDef.priceInr} Now & Unlock Instantly`}
+                        <ArrowRight size={16} />
+                      </button>
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                        <span className="inline-flex items-center gap-1">
+                          <ShieldCheck size={13} className="text-emerald-600" />
+                          256-bit Secured by Razorpay
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setTab("manual")}
+                          className="text-electric-blue font-semibold hover:underline cursor-pointer"
+                        >
+                          Or pay manually via GPay UTR &rarr;
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </>
+              )}
+            </>
+          )}
+
+          {/* TAB 2: MANUAL GPAY UTR FALLBACK */}
+          {tab === "manual" && (
+            <>
               <div className="bg-[#0B1120] text-white rounded-2xl p-5 border border-slate-800 relative overflow-hidden">
                 <div className="absolute -top-16 -right-16 w-48 h-48 bg-electric-blue/25 rounded-full blur-2xl pointer-events-none" />
                 <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                      <ShieldCheck size={13} /> Official Google Pay / UPI Number
+                      <ShieldCheck size={13} /> Manual Backup Google Pay / UPI Number
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-2xl sm:text-3xl font-extrabold font-mono tabular-nums tracking-wider text-white">
@@ -331,8 +732,7 @@ export default function UpgradeModal({
                       >
                         {copiedNum ? (
                           <>
-                            <Check size={13} className="text-emerald-400" />{" "}
-                            Copied
+                            <Check size={13} className="text-emerald-400" /> Copied
                           </>
                         ) : (
                           <>
@@ -342,50 +742,20 @@ export default function UpgradeModal({
                       </button>
                     </div>
                     <p className="text-xs text-slate-400">
-                      Accepts Google Pay (GPay), PhonePe, Paytm &amp; any UPI
-                      App — Pay{" "}
+                      Pay{" "}
                       <strong className="text-white font-mono">
                         ₹{activePlanDef.priceInr}
                       </strong>{" "}
-                      to phone number{" "}
+                      to{" "}
                       <strong className="text-white font-mono">
                         {GPAY_NUMBER}
-                      </strong>
-                      .
+                      </strong>{" "}
+                      on GPay / PhonePe / Paytm and submit your 12-digit UTR below.
                     </p>
-                  </div>
-                </div>
-
-                {/* 3 Simple Steps */}
-                <div className="relative z-10 mt-4 pt-4 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px] text-slate-300">
-                  <div className="bg-white/[0.04] rounded-xl p-2.5 border border-white/10">
-                    <span className="font-mono text-blue-400 font-bold">
-                      Step 1:
-                    </span>{" "}
-                    Open GPay &rarr; <strong>Pay Phone Number</strong> &rarr;{" "}
-                    <span className="font-mono text-white">{GPAY_NUMBER}</span>
-                  </div>
-                  <div className="bg-white/[0.04] rounded-xl p-2.5 border border-white/10">
-                    <span className="font-mono text-blue-400 font-bold">
-                      Step 2:
-                    </span>{" "}
-                    Pay{" "}
-                    <strong className="font-mono text-white">
-                      ₹{activePlanDef.priceInr}
-                    </strong>{" "}
-                    &amp; copy the <strong>12-digit UPI UTR / Ref ID</strong>
-                  </div>
-                  <div className="bg-white/[0.04] rounded-xl p-2.5 border border-white/10">
-                    <span className="font-mono text-blue-400 font-bold">
-                      Step 3:
-                    </span>{" "}
-                    Submit UTR below to receive your{" "}
-                    <strong>Pro Access Key</strong>
                   </div>
                 </div>
               </div>
 
-              {/* Either Receipt OR UTR Form */}
               {receipt ? (
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 space-y-4">
                   <div className="flex items-start gap-3">
@@ -421,8 +791,7 @@ export default function UpgradeModal({
                     >
                       {copiedKey ? (
                         <>
-                          <Check size={13} className="text-emerald-600" />{" "}
-                          Copied
+                          <Check size={13} className="text-emerald-600" /> Copied
                         </>
                       ) : (
                         <>
@@ -482,7 +851,7 @@ export default function UpgradeModal({
                   )}
                 </div>
               ) : (
-                <form onSubmit={handleSubmitPayment} className="space-y-4">
+                <form onSubmit={handleSubmitManualPayment} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -528,11 +897,11 @@ export default function UpgradeModal({
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                        Email (Optional for Receipt)
+                        Email (Optional for Cloud Restore)
                       </label>
                       <input
                         type="email"
-                        placeholder="you@example.com"
+                        placeholder="you@gmail.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-3 focus:ring-electric-blue/15"
@@ -549,7 +918,7 @@ export default function UpgradeModal({
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full bg-electric-blue hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-sm py-3.5 rounded-xl shadow-md shadow-electric-blue/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-sm py-3.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {submitting ? (
                       <RefreshCw size={16} className="animate-spin" />
@@ -558,7 +927,7 @@ export default function UpgradeModal({
                     )}
                     {submitting
                       ? "Recording Payment..."
-                      : `Submit GPay Payment (₹${activePlanDef.priceInr}) & Get Access Key`}
+                      : `Submit GPay UTR (₹${activePlanDef.priceInr}) & Get Access Key`}
                     <ArrowRight size={16} />
                   </button>
                 </form>
@@ -566,6 +935,7 @@ export default function UpgradeModal({
             </>
           )}
 
+          {/* TAB 3: ACTIVATE ACCESS KEY */}
           {tab === "activate" && (
             <div className="space-y-5">
               {isProActive(session) && (
@@ -607,7 +977,7 @@ export default function UpgradeModal({
                 <div className="flex gap-2.5">
                   <input
                     type="text"
-                    placeholder="e.g. CAP-PRO-A1B2C3"
+                    placeholder="e.g. CAP-PRO-A1B2-C3D4-E5F6"
                     value={keyInput}
                     onChange={(e) => setKeyInput(e.target.value.toUpperCase())}
                     className="flex-1 px-4 py-3 text-base font-mono tabular-nums font-bold uppercase bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15"
@@ -627,9 +997,9 @@ export default function UpgradeModal({
                   </button>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Paid via Google Pay (<strong>{GPAY_NUMBER}</strong>)? Enter
-                  the Access Key generated after your UTR submission or sent to
-                  you on WhatsApp.
+                  Already paid? Enter your Access Key or sign in with Google on{" "}
+                  <strong>/login</strong> using the same Gmail to auto-restore
+                  your Pro/VIP pass.
                 </p>
               </div>
 

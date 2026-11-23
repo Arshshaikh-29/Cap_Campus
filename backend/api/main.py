@@ -1,8 +1,10 @@
+import base64
 import json
 import os
 import re
 import secrets
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -34,6 +36,7 @@ from .security import (
     admin_guard,
     get_client_ip,
     get_google_client_id,
+    get_razorpay_credentials,
     issue_admin_token,
     issue_entitlement_token,
     issue_user_token,
@@ -43,6 +46,8 @@ from .security import (
     verify_admin_secret,
     verify_admin_token,
     verify_entitlement_token,
+    verify_razorpay_signature,
+    verify_razorpay_webhook_signature,
     verify_user_token,
 )
 
@@ -2160,12 +2165,230 @@ def _generate_access_key(plan: str) -> str:
 
 @app.get("/api/monetization/config")
 def get_monetization_config():
+    rzp_id, rzp_secret = get_razorpay_credentials()
+    rzp_enabled = bool(rzp_id and rzp_secret)
     return {
         "gpay_number": GPAY_NUMBER,
         "whatsapp_number": f"91{GPAY_NUMBER}",
         "payee_label": "CAP Compass Counselling",
+        "razorpay_enabled": rzp_enabled,
+        "razorpay_key_id": rzp_id if rzp_enabled else None,
         "plans": PLAN_CATALOG,
     }
+
+
+class RazorpayCreateOrderRequest(BaseModel):
+    plan: str = Field(..., max_length=16)
+    full_name: str = Field(..., min_length=2, max_length=100)
+    phone: str = Field(..., min_length=10, max_length=20)
+    email: Optional[str] = Field(default=None, max_length=120)
+
+
+class RazorpayVerifyRequest(BaseModel):
+    razorpay_order_id: str = Field(..., min_length=6, max_length=80)
+    razorpay_payment_id: str = Field(..., min_length=6, max_length=80)
+    razorpay_signature: str = Field(..., min_length=32, max_length=160)
+
+
+@app.post("/api/payments/razorpay/create-order")
+def create_razorpay_order(req: RazorpayCreateOrderRequest, db: Session = Depends(get_db)):
+    rzp_id, rzp_secret = get_razorpay_credentials()
+    if not (rzp_id and rzp_secret):
+        raise HTTPException(
+            status_code=503,
+            detail="Instant Razorpay Checkout is not configured yet. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Render/.env.",
+        )
+
+    plan_id = (req.plan or "").strip().lower()
+    if plan_id not in PLAN_CATALOG:
+        raise HTTPException(status_code=400, detail="Plan must be 'pro' or 'vip'")
+
+    full_name = sanitize_text(req.full_name, max_len=100) or ""
+    phone = re.sub(r"\D+", "", req.phone or "")
+    clean_email = sanitize_email(req.email)
+    if len(full_name) < 2:
+        raise HTTPException(status_code=400, detail="Please enter your full name")
+    if len(phone) < 10 or len(phone) > 15:
+        raise HTTPException(status_code=400, detail="Please enter a valid 10-digit mobile number")
+
+    amount_inr = int(PLAN_CATALOG[plan_id]["amount_inr"])
+    amount_paise = amount_inr * 100
+
+    access_key = _generate_access_key(plan_id)
+    while db.query(PaymentOrder).filter(PaymentOrder.access_key == access_key).first():
+        access_key = _generate_access_key(plan_id)
+
+    # Create order directly via Razorpay REST API (strictly server-controlled amount)
+    auth_raw = base64.b64encode(f"{rzp_id}:{rzp_secret}".encode("utf-8")).decode("ascii")
+    rzp_payload = json.dumps(
+        {
+            "amount": amount_paise,
+            "currency": "INR",
+            "receipt": access_key[:40],
+            "notes": {
+                "plan": plan_id,
+                "access_key": access_key,
+                "full_name": full_name[:80],
+                "phone": phone[-10:],
+                "email": clean_email or "",
+            },
+        }
+    ).encode("utf-8")
+
+    rzp_req = urllib.request.Request(
+        "https://api.razorpay.com/v1/orders",
+        data=rzp_payload,
+        headers={
+            "Authorization": f"Basic {auth_raw}",
+            "Content-Type": "application/json",
+            "User-Agent": "CAP-Compass-Payments/1.0",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(rzp_req, timeout=15) as resp:
+            rzp_order = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="ignore")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Razorpay gateway rejected order creation ({e.code}). Check RAZORPAY_KEY_ID / SECRET. {err_body[:160]}",
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=502,
+            detail="Could not reach Razorpay payment gateway right now. Please try again.",
+        )
+
+    rzp_order_id = str(rzp_order.get("id") or "").strip()
+    if not rzp_order_id:
+        raise HTTPException(status_code=502, detail="Razorpay did not return a valid order ID.")
+
+    order = PaymentOrder(
+        access_key=access_key,
+        full_name=full_name,
+        phone=phone[-10:],
+        email=clean_email,
+        plan=plan_id,
+        amount_inr=amount_inr,
+        utr_number=rzp_order_id,
+        payment_method="Razorpay Instant (UPI/GPay/Card)",
+        status="pending",
+        notes=f"rzp_order:{rzp_order_id}",
+    )
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+
+    return {
+        "order_id": order.id,
+        "razorpay_order_id": rzp_order_id,
+        "key_id": rzp_id,
+        "amount": amount_paise,
+        "amount_inr": amount_inr,
+        "currency": "INR",
+        "access_key": access_key,
+        "plan": plan_id,
+        "plan_name": PLAN_CATALOG[plan_id]["name"],
+    }
+
+
+@app.post("/api/payments/razorpay/verify")
+def verify_razorpay_payment(req: RazorpayVerifyRequest, db: Session = Depends(get_db)):
+    rzp_order_id = sanitize_text(req.razorpay_order_id, max_len=80) or ""
+    rzp_payment_id = sanitize_text(req.razorpay_payment_id, max_len=80) or ""
+    rzp_sig = (req.razorpay_signature or "").strip()
+
+    if not verify_razorpay_signature(rzp_order_id, rzp_payment_id, rzp_sig):
+        raise HTTPException(
+            status_code=400,
+            detail="Payment signature verification failed. Please contact support if money was debited.",
+        )
+
+    order = (
+        db.query(PaymentOrder)
+        .filter(
+            or_(
+                PaymentOrder.utr_number == rzp_order_id,
+                PaymentOrder.utr_number == rzp_payment_id,
+                PaymentOrder.notes == f"rzp_order:{rzp_order_id}",
+            )
+        )
+        .first()
+    )
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail="Matching payment order not found. Please contact support with your Payment ID.",
+        )
+
+    # Cryptographic signature verified -> INSTANT AUTO-APPROVAL & UNLOCK!
+    if order.status != "approved":
+        order.status = "approved"
+        order.utr_number = rzp_payment_id
+        order.approved_at = datetime.now(timezone.utc)
+        order.notes = f"rzp_order:{rzp_order_id} | verified_instant"
+        db.commit()
+        db.refresh(order)
+
+    ent_token = issue_entitlement_token(order.access_key, order.plan)
+    first_name = (order.full_name or "").split()[0] if order.full_name else "Student"
+    return {
+        "verified": True,
+        "status": "approved",
+        "plan": order.plan,
+        "access_key": order.access_key,
+        "entitlement_token": ent_token,
+        "full_name": first_name,
+        "payment_id": mask_utr(rzp_payment_id),
+        "amount_inr": order.amount_inr,
+        "message": (
+            f"Payment verified instantly! {PLAN_CATALOG[order.plan]['name']} is now unlocked."
+        ),
+    }
+
+
+@app.post("/api/payments/razorpay/webhook")
+async def razorpay_webhook(
+    request: Request,
+    x_razorpay_signature: Optional[str] = Header(default=None, alias="X-Razorpay-Signature"),
+    db: Session = Depends(get_db),
+):
+    """Server-to-server Razorpay webhook failsafe (auto-approves even if student closes browser)."""
+    raw_body = await request.body()
+    if not verify_razorpay_webhook_signature(raw_body, x_razorpay_signature or ""):
+        raise HTTPException(status_code=401, detail="Invalid Razorpay webhook signature")
+
+    try:
+        event = json.loads(raw_body.decode("utf-8"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    ev_type = str(event.get("event") or "")
+    if ev_type in ("payment.captured", "order.paid"):
+        pay_entity = (event.get("payload", {}).get("payment", {}) or {}).get("entity", {}) or {}
+        rzp_order_id = str(pay_entity.get("order_id") or "").strip()
+        rzp_payment_id = str(pay_entity.get("id") or "").strip()
+        if rzp_order_id:
+            order = (
+                db.query(PaymentOrder)
+                .filter(
+                    or_(
+                        PaymentOrder.utr_number == rzp_order_id,
+                        PaymentOrder.notes.like(f"rzp_order:{rzp_order_id}%"),
+                    )
+                )
+                .first()
+            )
+            if order and order.status != "approved":
+                order.status = "approved"
+                if rzp_payment_id:
+                    order.utr_number = rzp_payment_id
+                order.approved_at = datetime.now(timezone.utc)
+                order.notes = f"rzp_order:{rzp_order_id} | verified_webhook"
+                db.commit()
+
+    return {"ok": True}
 
 
 @app.post("/api/payments/submit")

@@ -84,6 +84,33 @@ ALLOWED_ORIGIN_REGEX = r"^https://cap-campus(?:-[a-z0-9-]+)?\.vercel\.app$"
 def get_google_client_id() -> str:
     return os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 
+
+def get_razorpay_credentials() -> Tuple[str, str]:
+    key_id = os.environ.get("RAZORPAY_KEY_ID", "").strip()
+    key_secret = os.environ.get("RAZORPAY_KEY_SECRET", "").strip()
+    return key_id, key_secret
+
+
+def get_razorpay_webhook_secret() -> str:
+    return os.environ.get("RAZORPAY_WEBHOOK_SECRET", "").strip()
+
+
+def verify_razorpay_signature(order_id: str, payment_id: str, signature: str) -> bool:
+    _, secret = get_razorpay_credentials()
+    if not secret or not order_id or not payment_id or not signature:
+        return False
+    msg = f"{order_id.strip()}|{payment_id.strip()}".encode("utf-8")
+    expected = hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature.strip().lower())
+
+
+def verify_razorpay_webhook_signature(raw_body: bytes, signature: str) -> bool:
+    secret = get_razorpay_webhook_secret()
+    if not secret or not raw_body or not signature:
+        return False
+    expected = hmac.new(secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature.strip().lower())
+
 # Admin credential (owner sets CAP_ADMIN_PIN in .env; never exposed in frontend code)
 def get_admin_secret() -> str:
     return os.environ.get("CAP_ADMIN_PIN", "992062").strip()
@@ -268,6 +295,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         ("/api/admin/login", {"POST"}, 8, 300),
         ("/api/auth/google", {"POST"}, 15, 300),
         ("/api/auth/sync", {"POST"}, 40, 60),
+        ("/api/payments/razorpay/create-order", {"POST"}, 15, 600),
+        ("/api/payments/razorpay/verify", {"POST"}, 20, 300),
         ("/api/payments/submit", {"POST"}, 8, 600),
         ("/api/leads", {"POST"}, 8, 600),
         ("/api/payments/verify-token", {"POST"}, 30, 60),
