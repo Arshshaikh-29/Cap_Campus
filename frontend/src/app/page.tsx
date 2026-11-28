@@ -276,7 +276,7 @@ export default function Home() {
     axios
       .get(`${API_BASE}/filters`)
       .then((res) => setFilters(res.data))
-      .catch((err) => console.error("Failed to load filters", err));
+      .catch(() => undefined);
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -440,8 +440,7 @@ export default function Home() {
       setResultSearch("");
       setVisibleCount(30);
       setStep(4);
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("Error generating predictions. Please check your inputs.");
     } finally {
       setLoading(false);

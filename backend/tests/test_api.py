@@ -262,7 +262,7 @@ def test_option_form_and_rank_curve():
     assert 98.0 <= data["estimate"]["estimated_percentile"] <= 99.5
     assert data["estimate"]["estimated_rank"] > 1000
 
-    # 2. Smart CAP Option Form Generator
+    # 2. Smart CAP Option Form Generator (server-side Free cap of 10 choices)
     res_opt = client.post(
         "/api/option-form/generate",
         json={
@@ -276,9 +276,13 @@ def test_option_form_and_rank_curve():
     )
     assert res_opt.status_code == 200
     opt = res_opt.json()
-    assert opt["counts"]["total"] >= 10
+    assert opt["is_pro"] is False
+    assert opt["counts"]["total"] == 10
+    assert opt["locked_choices_count"] == 15
+    assert opt["total_generated"] == 25
     assert opt["health_score"] >= 50
     choices = opt["choices"]
+    assert len(choices) == 10
     # Verify strict DTE preference order: cutoff rank ascending (best rank first)
     ranks = [c["historical_rank"] for c in choices if c["historical_rank"] is not None]
     assert ranks == sorted(ranks)
@@ -1163,6 +1167,303 @@ def test_persistent_database_layer_and_saved_option_forms():
         try:
             db.query(SavedOptionForm).filter(SavedOptionForm.user_id == uid).delete()
             db.query(UserAccount).filter(UserAccount.id == uid).delete()
+            db.commit()
+        finally:
+            db.close()
+
+
+def test_security_audit_rbac_revocation_pbkdf2_and_audit_logs(monkeypatch):
+    import uuid
+    from backend.api.database import AppSessionLocal
+    from backend.api.models import (
+        PaymentOrder,
+        RevokedToken,
+        SecurityAuditLog,
+        UserAccount,
+    )
+    from backend.api.security import (
+        SecurityMiddleware,
+        admin_guard,
+        hash_secret,
+        is_admin_pin_configured,
+        issue_entitlement_token,
+        issue_user_token,
+        sanitize_dte_code,
+        sanitize_google_avatar_url,
+        verify_admin_secret,
+        verify_hashed_secret,
+    )
+
+    admin_guard.reset("testclient")
+
+    # 0. Verify sliding-window rate-limiter blocks burst abuse on /api/admin/login & /api/payments/verify
+    monkeypatch.delenv("CAP_DISABLE_RATE_LIMIT", raising=False)
+    rl_mw = SecurityMiddleware(app)
+    for _ in range(8):
+        ok_rl, _, _ = rl_mw._check_rate_limit("203.0.113.10", "/api/admin/login", "POST")
+        assert ok_rl is True
+    ok_rl_9, _, retry_9 = rl_mw._check_rate_limit("203.0.113.10", "/api/admin/login", "POST")
+    assert ok_rl_9 is False and retry_9 > 0
+
+    for _ in range(10):
+        ok_v, _, _ = rl_mw._check_rate_limit("203.0.113.11", "/api/payments/verify", "GET")
+        assert ok_v is True
+    ok_v_11, _, retry_v11 = rl_mw._check_rate_limit("203.0.113.11", "/api/payments/verify", "GET")
+    assert ok_v_11 is False and retry_v11 > 0
+
+    # Isolate remaining RBAC/revocation assertions from earlier tests' IP rate buckets
+    monkeypatch.setenv("CAP_DISABLE_RATE_LIMIT", "1")
+
+    # 1. PBKDF2-HMAC-SHA256 salted password/PIN hashing verification
+    strong_pin = "CapCompass#Audit2026!"
+    pin_hash = hash_secret(strong_pin)
+    assert pin_hash.startswith("pbkdf2:sha256:310000$")
+    assert verify_hashed_secret(strong_pin, pin_hash) is True
+    assert verify_hashed_secret("wrong-pin", pin_hash) is False
+    assert verify_hashed_secret("992062", pin_hash) is False
+
+    # 2. Production fail-closed: public default PIN "992062" MUST be rejected in production
+    monkeypatch.setenv("CAP_ENV", "production")
+    monkeypatch.delenv("CAP_ADMIN_PIN_HASH", raising=False)
+    monkeypatch.delenv("CAP_ADMIN_PIN", raising=False)
+    assert is_admin_pin_configured() is False
+    assert verify_admin_secret("992062") is False
+
+    locked_login = client.post("/api/admin/login", json={"pin": "992062"})
+    assert locked_login.status_code == 503
+    # Legacy X-Admin-Pin header MUST be rejected in production
+    legacy_prod = client.get("/api/admin/overview", headers={"X-Admin-Pin": "992062"})
+    assert legacy_prod.status_code == 401
+    admin_guard.reset("testclient")
+
+    # Configure PBKDF2 hash in production -> /api/admin/login succeeds, X-Admin-Pin STILL blocked!
+    monkeypatch.setenv("CAP_ADMIN_PIN_HASH", pin_hash)
+    assert is_admin_pin_configured() is True
+    assert verify_admin_secret(strong_pin) is True
+
+    legacy_still_blocked = client.get(
+        "/api/admin/overview", headers={"X-Admin-Pin": strong_pin}
+    )
+    assert legacy_still_blocked.status_code == 401
+    admin_guard.reset("testclient")
+
+    prod_login = client.post("/api/admin/login", json={"pin": strong_pin})
+    assert prod_login.status_code == 200
+    admin_tok = prod_login.json()["token"]
+    assert prod_login.json()["expires_in"] == 3600
+    assert prod_login.json()["role"] == "super_admin"
+
+    assert (
+        client.get(
+            "/api/admin/overview", headers={"Authorization": f"Bearer {admin_tok}"}
+        ).status_code
+        == 200
+    )
+
+    # 3. Server-side admin token revocation (/api/admin/logout) defeats stolen token replay
+    out_admin = client.post(
+        "/api/admin/logout", headers={"Authorization": f"Bearer {admin_tok}"}
+    )
+    assert out_admin.status_code == 200
+    replay_admin = client.get(
+        "/api/admin/overview", headers={"Authorization": f"Bearer {admin_tok}"}
+    )
+    assert replay_admin.status_code == 401
+    admin_guard.reset("testclient")
+
+    # 4. Strict server-side RBAC (student -> 403, admin -> overview 200 / role-change 403, super_admin -> 200)
+    db = AppSessionLocal()
+    tag = uuid.uuid4().hex[:8]
+    student_u = UserAccount(
+        google_sub=f"sub_stu_{tag}",
+        email=f"stu_{tag}@gmail.com",
+        full_name="Student User",
+        role="student",
+        is_active=True,
+        token_version=1,
+    )
+    admin_u = UserAccount(
+        google_sub=f"sub_adm_{tag}",
+        email=f"adm_{tag}@gmail.com",
+        full_name="Staff Admin",
+        role="admin",
+        is_active=True,
+        token_version=1,
+    )
+    super_u = UserAccount(
+        google_sub=f"sub_sup_{tag}",
+        email=f"sup_{tag}@gmail.com",
+        full_name="Super Owner",
+        role="super_admin",
+        is_active=True,
+        token_version=1,
+    )
+    pro_key = f"CAP-PRO-{uuid.uuid4().hex[:12].upper()}"
+    pro_order = PaymentOrder(
+        access_key=pro_key,
+        full_name="Pro Tester",
+        phone="9876543210",
+        plan="pro",
+        amount_inr=199,
+        utr_number=f"SECPRO{tag.upper()}",
+        status="approved",
+    )
+    db.add_all([student_u, admin_u, super_u, pro_order])
+    db.commit()
+    for obj in (student_u, admin_u, super_u, pro_order):
+        db.refresh(obj)
+    stu_id, adm_id, sup_id, ord_id = student_u.id, admin_u.id, super_u.id, pro_order.id
+    stu_email, adm_email, sup_email = student_u.email, admin_u.email, super_u.email
+    db.close()
+
+    try:
+        stu_tok = issue_user_token(stu_id, stu_email, role="student", token_version=1)
+        adm_tok = issue_user_token(adm_id, adm_email, role="admin", token_version=1)
+        sup_tok = issue_user_token(sup_id, sup_email, role="super_admin", token_version=1)
+
+        # Student attempting to access admin endpoint -> 403 Forbidden (privilege escalation blocked)
+        esc = client.get(
+            "/api/admin/overview", headers={"Authorization": f"Bearer {stu_tok}"}
+        )
+        assert esc.status_code == 403
+
+        # Regular admin can read overview (200) but CANNOT alter roles (403 Super-Admin only)
+        assert (
+            client.get(
+                "/api/admin/overview", headers={"Authorization": f"Bearer {adm_tok}"}
+            ).status_code
+            == 200
+        )
+        adm_role_try = client.post(
+            f"/api/admin/users/{stu_id}/role",
+            headers={"Authorization": f"Bearer {adm_tok}"},
+            json={"role": "admin"},
+        )
+        assert adm_role_try.status_code == 403
+
+        # Super-admin updates student -> counsellor; token_version increments -> old student token invalidated!
+        promote = client.post(
+            f"/api/admin/users/{stu_id}/role",
+            headers={"Authorization": f"Bearer {sup_tok}"},
+            json={"role": "counsellor", "is_active": True},
+        )
+        assert promote.status_code == 200
+        assert promote.json()["role"] == "counsellor"
+        assert promote.json()["token_version"] == 2
+
+        # Old student token (tv=1) is IMMEDIATELY rejected on /api/auth/me
+        stale_stu = client.get(
+            "/api/auth/me", headers={"Authorization": f"Bearer {stu_tok}"}
+        )
+        assert stale_stu.status_code == 401
+
+        # Super-admin suspends user -> fresh token gets 403 Forbidden
+        suspend = client.post(
+            f"/api/admin/users/{stu_id}/role",
+            headers={"Authorization": f"Bearer {sup_tok}"},
+            json={"role": "student", "is_active": False},
+        )
+        assert suspend.status_code == 200
+        stu_tok_v3 = issue_user_token(stu_id, stu_email, role="student", token_version=3)
+        assert (
+            client.get(
+                "/api/auth/me", headers={"Authorization": f"Bearer {stu_tok_v3}"}
+            ).status_code
+            == 403
+        )
+
+        # User logout (/api/auth/logout) revokes JTI & bumps token_version immediately
+        assert (
+            client.post(
+                "/api/auth/logout", headers={"Authorization": f"Bearer {adm_tok}"}
+            ).status_code
+            == 200
+        )
+        assert (
+            client.get(
+                "/api/auth/me", headers={"Authorization": f"Bearer {adm_tok}"}
+            ).status_code
+            == 401
+        )
+
+        # 5. Server-side Option Form Pro paywall enforcement + Export audit log
+        pro_ent = issue_entitlement_token(pro_key, "pro")
+        opt_pro = client.post(
+            "/api/option-form/generate",
+            headers={"X-Entitlement-Token": pro_ent},
+            json={
+                "percentile": 96.5,
+                "category": "GOPENS",
+                "branches": ["Computer Engineering", "Information Technology"],
+                "cities": ["Pune", "Mumbai"],
+                "strategy": "balanced",
+                "max_choices": 25,
+            },
+        )
+        assert opt_pro.status_code == 200
+        assert opt_pro.json()["is_pro"] is True
+        assert opt_pro.json()["locked_choices_count"] == 0
+        assert len(opt_pro.json()["choices"]) == 25
+
+        exp_res = client.post(
+            "/api/audit/export",
+            headers={"Authorization": f"Bearer {sup_tok}"},
+            json={"export_type": "option_form", "format": "csv", "record_count": 25},
+        )
+        assert exp_res.status_code == 200
+        assert exp_res.json()["recorded"] is True
+
+        # 6. Strict URL allowlist & DTE code sanitization
+        assert sanitize_google_avatar_url("https://evil.example/tracker.png") is None
+        assert sanitize_google_avatar_url("javascript:alert(1)") is None
+        assert (
+            sanitize_google_avatar_url("https://lh3.googleusercontent.com/a/test")
+            == "https://lh3.googleusercontent.com/a/test"
+        )
+        assert sanitize_dte_code("6006<script>") == "6006"
+        assert sanitize_dte_code("not-a-code") == ""
+
+        # 7. Verify Security Audit Logs captured all security events & leaked ZERO secrets
+        logs_res = client.get(
+            "/api/admin/audit-logs?limit=100",
+            headers={"Authorization": f"Bearer {sup_tok}"},
+        )
+        assert logs_res.status_code == 200
+        logs_data = logs_res.json()
+        ev_types = {row["event_type"] for row in logs_data["logs"]}
+        assert "rbac_privilege_escalation_blocked" in ev_types
+        assert "rbac_role_changed" in ev_types
+        assert "admin_logout" in ev_types
+        assert "user_logout" in ev_types
+        assert "data_exported" in ev_types
+        # Confirm ZERO plaintext secrets or tokens ever appear in persisted audit logs
+        raw_dump = str(logs_data)
+        assert strong_pin not in raw_dump
+        assert admin_tok not in raw_dump
+        assert sup_tok not in raw_dump
+    finally:
+        admin_guard.reset("testclient")
+        db = AppSessionLocal()
+        try:
+            db.query(UserAccount).filter(
+                UserAccount.id.in_([stu_id, adm_id, sup_id])
+            ).delete(synchronize_session=False)
+            db.query(PaymentOrder).filter(PaymentOrder.id == ord_id).delete()
+            db.query(RevokedToken).delete()
+            db.query(SecurityAuditLog).filter(
+                SecurityAuditLog.actor_identity.in_(
+                    [stu_email, adm_email, sup_email, "admin_pin"]
+                )
+            ).delete(synchronize_session=False)
+            db.query(SecurityAuditLog).filter(
+                SecurityAuditLog.event_type.in_(
+                    [
+                        "admin_login_misconfigured",
+                        "admin_auth_failed",
+                        "revoked_admin_token_rejected",
+                    ]
+                )
+            ).delete(synchronize_session=False)
             db.commit()
         finally:
             db.close()

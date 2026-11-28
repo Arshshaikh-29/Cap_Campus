@@ -11,6 +11,11 @@
 *.sqlite3-shm
 *.db
 
+# Temporary archives & backup snapshots (never expose in public repo)
+temp_zip/
+*.zip
+*.bak
+
 # Python & Node build artifacts
 __pycache__/
 *.pyc

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from typing import Dict
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -160,3 +160,30 @@ def get_storage_info() -> Dict[str, object]:
         "mode": "sqlite_local",
         "label": "Local SQLite (Set DATABASE_URL on Render for Permanent Cloud Storage)",
     }
+
+
+def ensure_app_schema_migrations() -> None:
+    """
+    Idempotently add new RBAC/session columns (role, is_active, token_version)
+    to pre-existing user_accounts tables in PostgreSQL or SQLite without data loss.
+    """
+    try:
+        insp = inspect(app_engine)
+        if not insp.has_table("user_accounts"):
+            return
+        existing_cols = {c["name"] for c in insp.get_columns("user_accounts")}
+        is_pg = app_engine.dialect.name.startswith("postgres")
+        alters = []
+        if "role" not in existing_cols:
+            alters.append("ALTER TABLE user_accounts ADD COLUMN role VARCHAR(32) NOT NULL DEFAULT 'student'")
+        if "is_active" not in existing_cols:
+            default_bool = "TRUE" if is_pg else "1"
+            alters.append(f"ALTER TABLE user_accounts ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT {default_bool}")
+        if "token_version" not in existing_cols:
+            alters.append("ALTER TABLE user_accounts ADD COLUMN token_version INTEGER NOT NULL DEFAULT 1")
+        if alters:
+            with app_engine.begin() as conn:
+                for stmt in alters:
+                    conn.execute(text(stmt))
+    except Exception:
+        pass

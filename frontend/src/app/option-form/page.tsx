@@ -33,6 +33,7 @@ import {
   isProActive,
   openUpgradeModal,
 } from "@/lib/plan";
+import { getStoredAuth } from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -85,6 +86,8 @@ export default function OptionFormBuilderPage() {
   const [studentMeta, setStudentMeta] = useState<any>(null);
   const [advice, setAdvice] = useState<string[]>([]);
   const [healthScore, setHealthScore] = useState<number>(100);
+  const [serverLockedCount, setServerLockedCount] = useState<number>(0);
+  const [serverTotalGenerated, setServerTotalGenerated] = useState<number>(0);
   const [hasGenerated, setHasGenerated] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [planSession, setPlanSession] = useState<PlanSession>({ plan: "free" });
@@ -93,7 +96,7 @@ export default function OptionFormBuilderPage() {
     axios
       .get(`${API_BASE}/filters`)
       .then((res) => setCategories(res.data.categories || []))
-      .catch(console.error);
+      .catch(() => undefined);
 
     const syncPlan = () => setPlanSession(getStoredPlan());
     syncPlan();
@@ -141,7 +144,7 @@ export default function OptionFormBuilderPage() {
     setter(list.includes(val) ? list.filter((x) => x !== val) : [...list, val]);
   };
 
-  const generateForm = async () => {
+  const generateForm = async (overrideToken?: string) => {
     setLoading(true);
     try {
       const payload: any = {
@@ -156,11 +159,22 @@ export default function OptionFormBuilderPage() {
       } else {
         payload.rank = parseFloat(rank);
       }
-      const res = await axios.post(`${API_BASE}/option-form/generate`, payload);
+      const token = overrideToken ?? getStoredPlan().entitlementToken;
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["X-Entitlement-Token"] = token;
+      }
+      const res = await axios.post(`${API_BASE}/option-form/generate`, payload, {
+        headers,
+      });
       setChoices(res.data.choices || []);
       setStudentMeta(res.data.student || null);
       setAdvice(res.data.advice || []);
       setHealthScore(res.data.health_score ?? 90);
+      setServerLockedCount(Number(res.data.locked_choices_count || 0));
+      setServerTotalGenerated(
+        Number(res.data.total_generated || (res.data.choices || []).length)
+      );
       setHasGenerated(true);
     } catch (err: any) {
       alert(
@@ -170,6 +184,29 @@ export default function OptionFormBuilderPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Automatically re-fetch full 30-60 choices from server the instant user unlocks Pro
+  useEffect(() => {
+    if (hasGenerated && proActive && serverLockedCount > 0 && planSession.entitlementToken) {
+      generateForm(planSession.entitlementToken);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proActive, planSession.entitlementToken]);
+
+  const recordExportAudit = (format: "csv" | "pdf", count: number) => {
+    const auth = getStoredAuth();
+    const headers: Record<string, string> = {};
+    if (auth?.token) {
+      headers.Authorization = `Bearer ${auth.token}`;
+    }
+    axios
+      .post(
+        `${API_BASE}/audit/export`,
+        { export_type: "option_form", format, record_count: count },
+        { headers }
+      )
+      .catch(() => undefined);
   };
 
   // Detect live DTE ordering mistakes when user manually reorders choices
@@ -274,12 +311,16 @@ export default function OptionFormBuilderPage() {
     a.download = `CAP_Option_Form_${category}_${choices.length}_Choices.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    recordExportAudit("csv", choices.length);
   };
 
   const visibleChoices = proActive
     ? choices
     : choices.slice(0, FREE_PREVIEW_LIMIT);
-  const lockedCount = Math.max(0, choices.length - visibleChoices.length);
+  const totalChoicePool = Math.max(serverTotalGenerated, choices.length);
+  const lockedCount = proActive
+    ? 0
+    : Math.max(serverLockedCount, choices.length - visibleChoices.length);
 
   return (
     <div className="flex-1 bg-[#F8FAFC] py-10 px-4 sm:px-6">
@@ -520,7 +561,7 @@ export default function OptionFormBuilderPage() {
 
             <button
               type="button"
-              onClick={generateForm}
+              onClick={() => generateForm()}
               disabled={loading}
               className="bg-electric-blue hover:bg-blue-600 text-white font-bold text-sm px-7 py-4 rounded-xl shadow-lg shadow-electric-blue/25 transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
             >
@@ -663,6 +704,7 @@ export default function OptionFormBuilderPage() {
                         );
                         return;
                       }
+                      recordExportAudit("pdf", choices.length);
                       window.print();
                     }}
                     className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
@@ -819,10 +861,10 @@ export default function OptionFormBuilderPage() {
                     Locked (Including Your Target &amp; Safe Backups)
                   </div>
                   <h3 className="text-xl font-extrabold text-slate-900">
-                    Unlock Your Complete {choices.length}-Choice DTE Option Form
+                    Unlock Your Complete {totalChoicePool}-Choice DTE Option Form
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto">
-                    Get all {choices.length} ordered colleges with official
+                    Get all {totalChoicePool} ordered colleges with official
                     9-digit Choice Codes, unlimited CSV/PDF export, and full
                     season access for just{" "}
                     <strong className="text-slate-900">₹199</strong> via Google
@@ -833,7 +875,7 @@ export default function OptionFormBuilderPage() {
                     onClick={() =>
                       openUpgradeModal(
                         "pro",
-                        `Unlock all ${choices.length} ordered CAP Option Form choices`
+                        `Unlock all ${totalChoicePool} ordered CAP Option Form choices`
                       )
                     }
                     className="bg-electric-blue hover:bg-blue-600 text-white font-bold text-sm px-7 py-3.5 rounded-xl shadow-lg shadow-electric-blue/25 inline-flex items-center gap-2 cursor-pointer"

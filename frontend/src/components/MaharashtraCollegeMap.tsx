@@ -216,23 +216,41 @@ export default function MaharashtraCollegeMap({
       const distLabel =
         c.distance_km != null ? ` • ${c.distance_km.toFixed(1)} km` : "";
 
-      const tooltipHtml = `<div style="font-family:system-ui,sans-serif;font-size:11px;line-height:1.35;max-width:230px;">
-        <div style="font-weight:700;color:#0F172A;">${c.college_name.replace(/</g, "&lt;")}</div>
-        <div style="color:#475569;margin-top:2px;">DTE ${c.college_code} • ${c.city}${distLabel}</div>
-        ${
-          pctLabel
-            ? `<div style="color:#2563EB;font-weight:700;margin-top:2px;">${
-                scoreMode ? c.prediction_category : "Top Cutoff"
-              }: ${pctLabel}</div>`
-            : ""
-        }
-      </div>`;
+      // Construct tooltip with safe DOM nodes (textContent) — eliminates DOM XSS completely
+      const tooltipEl = document.createElement("div");
+      tooltipEl.style.fontFamily = "system-ui, sans-serif";
+      tooltipEl.style.fontSize = "11px";
+      tooltipEl.style.lineHeight = "1.35";
+      tooltipEl.style.maxWidth = "230px";
+
+      const titleEl = document.createElement("div");
+      titleEl.style.fontWeight = "700";
+      titleEl.style.color = "#0F172A";
+      titleEl.textContent = c.college_name || "";
+      tooltipEl.appendChild(titleEl);
+
+      const subEl = document.createElement("div");
+      subEl.style.color = "#475569";
+      subEl.style.marginTop = "2px";
+      subEl.textContent = `DTE ${c.college_code} • ${c.city}${distLabel}`;
+      tooltipEl.appendChild(subEl);
+
+      if (pctLabel) {
+        const pctEl = document.createElement("div");
+        pctEl.style.color = "#2563EB";
+        pctEl.style.fontWeight = "700";
+        pctEl.style.marginTop = "2px";
+        pctEl.textContent = `${
+          scoreMode ? c.prediction_category || "Matched" : "Top Cutoff"
+        }: ${pctLabel}`;
+        tooltipEl.appendChild(pctEl);
+      }
 
       const marker = L.marker([c.lat, c.lng], {
         icon,
         zIndexOffset: isSelected ? 1500 : c.nirf_median_lpa != null ? 500 : 100,
       });
-      marker.bindTooltip(tooltipHtml, {
+      marker.bindTooltip(tooltipEl, {
         direction: "top",
         offset: [0, -Math.ceil(size / 2) - 2],
         opacity: 0.98,

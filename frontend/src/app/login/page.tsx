@@ -26,6 +26,7 @@ import {
   AuthSession,
   clearStoredAuth,
   getStoredAuth,
+  logoutFromServer,
   mergeBookmarks,
   saveStoredAuth,
   syncProfileToCloud,
@@ -271,8 +272,8 @@ export default function GoogleLoginPortalPage() {
         shape: "pill",
         logo_alignment: "left",
       });
-    } catch (err) {
-      console.error("GIS init error", err);
+    } catch {
+      setErrorMsg("Unable to initialize Google Sign-In button. Please refresh and try again.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gisReady, clientId, auth]);
@@ -319,10 +320,10 @@ export default function GoogleLoginPortalPage() {
     }
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     window.google?.accounts?.id?.disableAutoSelect?.();
-    clearStoredAuth();
-    setStatusMsg("Signed out safely. Local shortlist remains on this device.");
+    await logoutFromServer();
+    setStatusMsg("Signed out & session revoked on server. Local shortlist remains on this device.");
   };
 
   const proActive = isProActive(planSession);
@@ -566,6 +567,14 @@ export default function GoogleLoginPortalPage() {
                         ? `${planSession.plan.toUpperCase()} PASS ACTIVE`
                         : "STARTER FREE"}
                     </span>
+                    {(auth.user.role === "admin" || auth.user.role === "super_admin") && (
+                      <Link
+                        href="/admin"
+                        className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 transition-colors"
+                      >
+                        {auth.user.role.toUpperCase()} &rarr; Admin Panel
+                      </Link>
+                    )}
                   </div>
                   <div className="text-xs text-slate-500 font-mono">
                     {auth.user.email}

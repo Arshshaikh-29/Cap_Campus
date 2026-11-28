@@ -38,6 +38,7 @@ const securityHeaders = [
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      ...(isProd ? ["upgrade-insecure-requests"] : []),
     ].join("; "),
   },
 ];

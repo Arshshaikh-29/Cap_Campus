@@ -47,7 +47,7 @@ export default function ExplorerPage() {
     axios
       .get(`${API_BASE}/filters`)
       .then((res) => setFilters(res.data))
-      .catch((err) => console.error(err));
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function ExplorerPage() {
           resetOffset ? incoming : [...prev, ...incoming]
         );
       })
-      .catch((err) => console.error(err))
+      .catch(() => undefined)
       .finally(() => {
         setLoading(false);
         setLoadingMore(false);

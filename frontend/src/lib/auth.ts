@@ -9,6 +9,8 @@ export interface AuthUser {
   email: string;
   full_name: string;
   avatar_url?: string | null;
+  role?: "student" | "counsellor" | "admin" | "super_admin";
+  is_active?: boolean;
   saved_input_type: "percentile" | "rank";
   saved_score?: number | null;
   saved_category: string;
@@ -59,6 +61,21 @@ export function clearStoredAuth() {
     window.dispatchEvent(new Event("cap_auth_updated"));
   } catch {
     // ignore storage errors
+  }
+}
+
+export async function logoutFromServer(): Promise<void> {
+  const session = getStoredAuth();
+  clearStoredAuth();
+  if (!session?.token) return;
+  try {
+    await axios.post(
+      `${API_BASE}/auth/logout`,
+      {},
+      { headers: { Authorization: `Bearer ${session.token}` } }
+    );
+  } catch {
+    // non-blocking: client token is already purged
   }
 }
 

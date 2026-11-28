@@ -61,7 +61,7 @@ export default function Analytics() {
     axios
       .get(`${API_BASE}/filters`)
       .then((res) => setGlobalFilters(res.data))
-      .catch(console.error);
+      .catch(() => undefined);
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -87,7 +87,7 @@ export default function Analytics() {
               setBranch(brs[0]);
             }
           })
-          .catch(console.error);
+          .catch(() => undefined);
       }
     }
   }, []);
@@ -96,7 +96,8 @@ export default function Analytics() {
     if (search.trim().length > 1) {
       axios
         .get(`${API_BASE}/colleges`, { params: { search, limit: 8 } })
-        .then((res) => setColleges(res.data.results || []));
+        .then((res) => setColleges(res.data.results || []))
+        .catch(() => undefined);
     } else {
       setColleges([]);
     }
@@ -120,7 +121,7 @@ export default function Analytics() {
           "";
         setBranch(pref);
       })
-      .catch(console.error);
+      .catch(() => undefined);
   };
 
   useEffect(() => {
@@ -140,7 +141,7 @@ export default function Analytics() {
             setBranch(pref);
           }
         })
-        .catch(console.error);
+        .catch(() => undefined);
     } else {
       setAvailableBranches(globalFilters.branches);
     }
@@ -173,7 +174,7 @@ export default function Analytics() {
           setBranchComparison(res.data.branch_comparison || []);
           setCategoryComparison(res.data.category_comparison || []);
         })
-        .catch(console.error)
+        .catch(() => undefined)
         .finally(() => setLoading(false));
     }
   }, [selectedCollege, branch, category]);

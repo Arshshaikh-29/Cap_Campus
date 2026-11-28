@@ -174,8 +174,7 @@ export default function CollegeMapPage() {
             });
           }
         }
-      } catch (err) {
-        console.error("Failed to fetch map colleges", err);
+      } catch {
         setFetchError(
           "Backend is waking up or unreachable. Click Retry to load all 400 college pins."
         );

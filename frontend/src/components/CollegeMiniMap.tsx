@@ -48,14 +48,22 @@ export default function CollegeMiniMap({
       iconAnchor: [9, 9],
     });
 
-    L.marker([lat, lng], { icon: pin })
-      .addTo(map)
-      .bindPopup(
-        `<div style="font-family:system-ui,sans-serif;font-size:12px;">
-          <strong>${collegeName.replace(/</g, "&lt;")}</strong><br/>
-          <span style="color:#475569;">DTE ${collegeCode} • ${city}</span>
-        </div>`
-      );
+    // Construct popup using safe DOM nodes (textContent) — prevents DOM XSS
+    const popupEl = document.createElement("div");
+    popupEl.style.fontFamily = "system-ui, sans-serif";
+    popupEl.style.fontSize = "12px";
+
+    const nameStrong = document.createElement("strong");
+    nameStrong.textContent = collegeName || "";
+    popupEl.appendChild(nameStrong);
+    popupEl.appendChild(document.createElement("br"));
+
+    const metaSpan = document.createElement("span");
+    metaSpan.style.color = "#475569";
+    metaSpan.textContent = `DTE ${collegeCode} • ${city}`;
+    popupEl.appendChild(metaSpan);
+
+    L.marker([lat, lng], { icon: pin }).addTo(map).bindPopup(popupEl);
 
     mapRef.current = map;
 

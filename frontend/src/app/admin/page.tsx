@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import axios from "axios";
 import {
   Lock,
@@ -15,10 +16,14 @@ import {
   Check,
   MessageCircle,
   ShieldCheck,
+  ShieldAlert,
   Sparkles,
   Database,
+  Activity,
+  UserCheck,
 } from "lucide-react";
 import { GPAY_NUMBER } from "@/lib/plan";
+import { AuthSession, getStoredAuth } from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -29,7 +34,12 @@ export default function AdminRevenuePage() {
   const [loading, setLoading] = useState(false);
 
   const [overview, setOverview] = useState<any>(null);
-  const [tab, setTab] = useState<"orders" | "leads" | "users">("orders");
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditSummary, setAuditSummary] = useState<any>(null);
+  const [auditSeverity, setAuditSeverity] = useState<"" | "critical" | "warning" | "info">("");
+  const [tab, setTab] = useState<"orders" | "leads" | "users" | "audit">("orders");
+  const [googleAuth, setGoogleAuth] = useState<AuthSession | null>(null);
+  const [roleBusyId, setRoleBusyId] = useState<number | null>(null);
 
   // Direct manual key generator
   const [genName, setGenName] = useState("");
@@ -38,6 +48,10 @@ export default function AdminRevenuePage() {
   const [genLoading, setGenLoading] = useState(false);
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    setGoogleAuth(getStoredAuth());
+  }, []);
 
   const authHeaders = (token: string) => ({
     Authorization: `Bearer ${token}`,
@@ -48,17 +62,45 @@ export default function AdminRevenuePage() {
     if (status === 401) {
       setAdminToken(null);
       setOverview(null);
-      setAuthError("Admin session expired or invalid credentials. Please sign in again.");
-      return true;
-    }
-    if (status === 429) {
       setAuthError(
         err?.response?.data?.detail ||
-          "Too many failed login attempts. Please try again later."
+          "Admin session expired or invalid credentials. Please sign in again."
+      );
+      return true;
+    }
+    if (status === 403) {
+      setAuthError(
+        err?.response?.data?.detail ||
+          "Access denied: your account does not have Administrator privileges."
+      );
+      return true;
+    }
+    if (status === 429 || status === 503) {
+      setAuthError(
+        err?.response?.data?.detail ||
+          "Admin login is temporarily restricted. Please try again later."
       );
       return true;
     }
     return false;
+  };
+
+  const fetchAuditLogs = async (
+    token: string,
+    severity: "" | "critical" | "warning" | "info" = auditSeverity
+  ) => {
+    try {
+      const params: Record<string, string | number> = { limit: 120 };
+      if (severity) params.severity = severity;
+      const res = await axios.get(`${API_BASE}/admin/audit-logs`, {
+        headers: authHeaders(token),
+        params,
+      });
+      setAuditLogs(res.data?.logs || []);
+      setAuditSummary(res.data?.summary || null);
+    } catch {
+      // non-blocking
+    }
   };
 
   const fetchOverview = async (token: string) => {
@@ -70,6 +112,7 @@ export default function AdminRevenuePage() {
       });
       setOverview(res.data);
       setAdminToken(token);
+      fetchAuditLogs(token, auditSeverity);
     } catch (err: any) {
       if (!handleAuthError(err)) {
         setAuthError("Unable to connect to backend API.");
@@ -97,21 +140,56 @@ export default function AdminRevenuePage() {
       setPin("");
       await fetchOverview(token);
     } catch (err: any) {
-      const status = err?.response?.status;
-      if (status === 429) {
-        setAuthError(
-          err?.response?.data?.detail ||
-            "Too many failed attempts. Login temporarily locked."
-        );
-      } else if (status === 401) {
-        setAuthError(
-          err?.response?.data?.detail || "Invalid Admin Security PIN."
-        );
-      } else {
+      if (!handleAuthError(err)) {
         setAuthError("Unable to connect to backend API.");
       }
       setAdminToken(null);
       setLoading(false);
+    }
+  };
+
+  const handleGoogleAdminUnlock = async () => {
+    const sess = getStoredAuth();
+    if (!sess?.token) {
+      setAuthError("Sign in with Google on /login first to use Super-Admin Google auth.");
+      return;
+    }
+    await fetchOverview(sess.token);
+  };
+
+  const handleLockPanel = async () => {
+    const tok = adminToken;
+    setAdminToken(null);
+    setOverview(null);
+    setAuditLogs([]);
+    setPin("");
+    if (tok) {
+      axios
+        .post(`${API_BASE}/admin/logout`, {}, { headers: authHeaders(tok) })
+        .catch(() => undefined);
+    }
+  };
+
+  const handleUpdateUserRole = async (
+    userId: number,
+    role: string,
+    isActive: boolean
+  ) => {
+    if (!adminToken) return;
+    setRoleBusyId(userId);
+    try {
+      await axios.post(
+        `${API_BASE}/admin/users/${userId}/role`,
+        { role, is_active: isActive },
+        { headers: authHeaders(adminToken) }
+      );
+      await fetchOverview(adminToken);
+    } catch (err: any) {
+      if (!handleAuthError(err)) {
+        alert(err?.response?.data?.detail || "Failed to update user role.");
+      }
+    } finally {
+      setRoleBusyId(null);
     }
   };
 
@@ -220,8 +298,10 @@ export default function AdminRevenuePage() {
               className="w-full px-4 py-3 text-lg font-mono tracking-widest bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15"
             />
             <p className="text-[11px] text-slate-400">
-              Protected by brute-force lockout &amp; signed expiring session tokens.
-              Configure <code className="font-mono">CAP_ADMIN_PIN</code> in your server <code className="font-mono">.env</code> file.
+              Protected by PBKDF2-HMAC-SHA256 hashing, distributed brute-force
+              lockout, JTI session revocation &amp; server-side RBAC. Configure{" "}
+              <code className="font-mono">CAP_ADMIN_PIN_HASH</code> or{" "}
+              <code className="font-mono">CAP_SUPERADMIN_EMAILS</code> on Render.
             </p>
           </div>
           {authError && (
@@ -236,12 +316,34 @@ export default function AdminRevenuePage() {
           >
             {loading ? "Authenticating..." : "Unlock Revenue Dashboard"}
           </button>
+
+          <div className="pt-4 border-t border-slate-100 space-y-2.5">
+            {googleAuth ? (
+              <button
+                type="button"
+                onClick={handleGoogleAdminUnlock}
+                disabled={loading}
+                className="w-full py-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-electric-blue border border-blue-200 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <UserCheck size={15} />
+                Unlock as Google Admin ({googleAuth.user.email})
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="w-full py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5"
+              >
+                <UserCheck size={14} /> Or Sign In via Authorized Super-Admin Google Account
+              </Link>
+            )}
+          </div>
         </form>
       </div>
     );
   }
 
   const m = overview.metrics;
+  const isSuperAdmin = overview.actor?.role === "super_admin";
 
   return (
     <div className="flex-1 bg-[#F8FAFC] py-10 px-4 sm:px-6">
@@ -265,9 +367,15 @@ export default function AdminRevenuePage() {
                   {overview.database.label}
                 </div>
               )}
+              {overview.actor?.role && (
+                <div className="inline-flex items-center gap-1.5 text-xs font-mono font-bold uppercase px-2.5 py-1 rounded-md border bg-indigo-50 text-indigo-700 border-indigo-200">
+                  <ShieldAlert size={13} />
+                  RBAC: {overview.actor.role}
+                </div>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-              CAP Compass Revenue &amp; Database Admin
+              CAP Compass Revenue &amp; Security Admin
             </h1>
           </div>
           <div className="flex items-center gap-2.5">
@@ -281,14 +389,10 @@ export default function AdminRevenuePage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setAdminToken(null);
-                setOverview(null);
-                setPin("");
-              }}
+              onClick={handleLockPanel}
               className="px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold cursor-pointer"
             >
-              Lock Panel
+              Lock &amp; Revoke Session
             </button>
           </div>
         </div>
@@ -451,7 +555,21 @@ export default function AdminRevenuePage() {
                   : "border-transparent text-slate-500 hover:text-slate-900"
               }`}
             >
-              Google Students ({overview.users?.length || 0})
+              Users &amp; RBAC ({overview.users?.length || 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab("audit");
+                if (adminToken) fetchAuditLogs(adminToken, auditSeverity);
+              }}
+              className={`pb-3 text-sm font-bold border-b-2 transition-colors cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5 ${
+                tab === "audit"
+                  ? "border-electric-blue text-electric-blue"
+                  : "border-transparent text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              <Activity size={14} /> Security Audit Logs ({auditSummary?.total ?? m.security_alerts ?? 0})
             </button>
           </div>
 
@@ -648,26 +766,27 @@ export default function AdminRevenuePage() {
                 </tbody>
               </table>
             </div>
-          ) : (
+          ) : tab === "users" ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[700px]">
+              <table className="w-full text-left border-collapse min-w-[820px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     <th className="py-3 px-4">Student Name &amp; Gmail</th>
-                    <th className="py-3 px-4">Saved Category</th>
-                    <th className="py-3 px-4">Saved Score</th>
+                    <th className="py-3 px-4">Role &amp; Status</th>
+                    <th className="py-3 px-4">Saved Category / Score</th>
                     <th className="py-3 px-4">Shortlisted</th>
                     <th className="py-3 px-4">Last Sign-In</th>
+                    {isSuperAdmin && <th className="py-3 px-4 text-right">RBAC Controls</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {(!overview.users || overview.users.length === 0) ? (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={isSuperAdmin ? 6 : 5}
                         className="py-10 text-center text-slate-400"
                       >
-                        No students have signed in with Google yet.
+                        No users have signed in with Google yet.
                       </td>
                     </tr>
                   ) : (
@@ -681,11 +800,33 @@ export default function AdminRevenuePage() {
                             {u.email}
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 font-mono font-semibold text-electric-blue">
-                          {u.saved_category || "GOPENS"}
+                        <td className="py-3.5 px-4">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span
+                              className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
+                                u.role === "super_admin"
+                                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                                  : u.role === "admin"
+                                  ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                  : u.role === "counsellor"
+                                  ? "bg-blue-50 text-electric-blue border-blue-200"
+                                  : "bg-slate-100 text-slate-600 border-slate-200"
+                              }`}
+                            >
+                              {u.role || "student"}
+                            </span>
+                            {u.is_active === false && (
+                              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                                Suspended
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 font-mono">
-                          {u.saved_score != null ? u.saved_score : "-"}
+                          <span className="font-semibold text-electric-blue">
+                            {u.saved_category || "GOPENS"}
+                          </span>{" "}
+                          • {u.saved_score != null ? u.saved_score : "-"}
                         </td>
                         <td className="py-3.5 px-4 font-mono font-bold">
                           {u.bookmarks_count || 0} colleges
@@ -695,11 +836,173 @@ export default function AdminRevenuePage() {
                             ? new Date(u.last_login_at).toLocaleString()
                             : "-"}
                         </td>
+                        {isSuperAdmin && (
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="inline-flex items-center gap-1.5">
+                              <select
+                                value={u.role || "student"}
+                                disabled={roleBusyId === u.id}
+                                onChange={(e) =>
+                                  handleUpdateUserRole(
+                                    u.id,
+                                    e.target.value,
+                                    u.is_active !== false
+                                  )
+                                }
+                                className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-[11px] font-mono font-semibold"
+                              >
+                                <option value="student">student</option>
+                                <option value="counsellor">counsellor</option>
+                                <option value="admin">admin</option>
+                                <option value="super_admin">super_admin</option>
+                              </select>
+                              <button
+                                type="button"
+                                disabled={roleBusyId === u.id}
+                                onClick={() =>
+                                  handleUpdateUserRole(
+                                    u.id,
+                                    u.role || "student",
+                                    u.is_active === false
+                                  )
+                                }
+                                className={`px-2 py-1 rounded-lg text-[11px] font-bold border cursor-pointer ${
+                                  u.is_active === false
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                    : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+                                }`}
+                              >
+                                {u.is_active === false ? "Activate" : "Suspend"}
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
+            </div>
+          ) : (
+            <div className="space-y-4 p-5">
+              {/* Audit Summary & Severity Filters */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold">
+                    Total: {auditSummary?.total ?? auditLogs.length}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 font-bold">
+                    Critical: {auditSummary?.critical ?? 0}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-bold">
+                    Warnings: {auditSummary?.warning ?? 0}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">
+                    Blocked: {auditSummary?.blocked ?? 0}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs">
+                  {(["", "critical", "warning", "info"] as const).map((sev) => (
+                    <button
+                      key={sev || "all"}
+                      type="button"
+                      onClick={() => {
+                        setAuditSeverity(sev);
+                        if (adminToken) fetchAuditLogs(adminToken, sev);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg font-bold capitalize cursor-pointer border ${
+                        auditSeverity === sev
+                          ? "bg-slate-900 text-white border-slate-900"
+                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      {sev || "All"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                <table className="w-full text-left border-collapse min-w-[860px]">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="py-2.5 px-3">Time</th>
+                      <th className="py-2.5 px-3">Severity</th>
+                      <th className="py-2.5 px-3">Event</th>
+                      <th className="py-2.5 px-3">Actor / Role</th>
+                      <th className="py-2.5 px-3">Target</th>
+                      <th className="py-2.5 px-3">IP &amp; Outcome</th>
+                      <th className="py-2.5 px-3">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-[11px]">
+                    {auditLogs.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="py-8 text-center text-slate-400"
+                        >
+                          No security audit events matching this filter yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      auditLogs.map((log: any) => (
+                        <tr key={log.id} className="hover:bg-slate-50/70">
+                          <td className="py-2.5 px-3 font-mono text-slate-500 whitespace-nowrap">
+                            {log.created_at
+                              ? new Date(log.created_at).toLocaleString()
+                              : "-"}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span
+                              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                                log.severity === "critical"
+                                  ? "bg-rose-100 text-rose-800"
+                                  : log.severity === "warning"
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-slate-100 text-slate-700"
+                              }`}
+                            >
+                              {log.severity}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
+                            {log.event_type}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono">
+                            <div>{log.actor_identity || "anonymous"}</div>
+                            {log.actor_role && (
+                              <div className="text-[10px] text-slate-400">
+                                {log.actor_role}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-slate-700 max-w-[160px] truncate">
+                            {log.target_resource || "-"}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono">
+                            <div className="text-slate-600">{log.ip_address || "-"}</div>
+                            <span
+                              className={`text-[10px] font-bold uppercase ${
+                                log.outcome === "blocked"
+                                  ? "text-rose-700"
+                                  : log.outcome === "failure"
+                                  ? "text-amber-700"
+                                  : "text-emerald-700"
+                              }`}
+                            >
+                              {log.outcome}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600 max-w-xs truncate">
+                            {log.details || "-"}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

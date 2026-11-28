@@ -55,7 +55,7 @@ export default function RankCalculatorPage() {
       axios
         .get(`${API_BASE}/rank-curve`, { params })
         .then((res) => setData(res.data))
-        .catch(console.error)
+        .catch(() => undefined)
         .finally(() => setLoading(false));
     }, 150);
 

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Float, Index, DateTime, Text
+from sqlalchemy import Boolean, Column, DateTime, Float, Index, Integer, String, Text
 from .database import Base, AppDataBase
 
 
@@ -65,6 +65,10 @@ class UserAccount(AppDataBase):
     email = Column(String, unique=True, index=True, nullable=False)
     full_name = Column(String, nullable=False)
     avatar_url = Column(String, nullable=True)
+    # Strict Server-Side RBAC & Session Controls (NEVER writable by client)
+    role = Column(String, default="student", nullable=False, index=True)  # student | counsellor | admin | super_admin
+    is_active = Column(Boolean, default=True, nullable=False)
+    token_version = Column(Integer, default=1, nullable=False)
     saved_input_type = Column(String, default="percentile")
     saved_score = Column(Float, nullable=True)
     saved_category = Column(String, default="GOPENS")
@@ -83,3 +87,31 @@ class SavedOptionForm(AppDataBase):
     score_label = Column(String, nullable=True)
     choices_json = Column(Text, nullable=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class RevokedToken(AppDataBase):
+    """Server-side JTI revocation blocklist (defeats session hijacking & replay)."""
+    __tablename__ = "revoked_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    jti = Column(String, unique=True, index=True, nullable=False)
+    scope = Column(String, nullable=False, default="user")
+    expires_at = Column(Integer, nullable=False, index=True)
+    revoked_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class SecurityAuditLog(AppDataBase):
+    """Immutable security monitoring & compliance audit log (never stores secrets/tokens)."""
+    __tablename__ = "security_audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_type = Column(String, nullable=False, index=True)
+    severity = Column(String, nullable=False, default="info", index=True)  # info | warning | critical
+    actor_identity = Column(String, nullable=True, index=True)
+    actor_role = Column(String, nullable=True)
+    target_resource = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True, index=True)
+    user_agent = Column(String, nullable=True)
+    outcome = Column(String, nullable=False, default="success")  # success | failure | blocked
+    details = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)

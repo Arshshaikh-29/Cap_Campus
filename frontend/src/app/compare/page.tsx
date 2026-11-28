@@ -40,7 +40,7 @@ export default function Compare() {
     axios
       .get(`${API_BASE}/filters`)
       .then((res) => setCategories(res.data.categories || []))
-      .catch(console.error);
+      .catch(() => undefined);
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -116,8 +116,8 @@ export default function Compare() {
       });
       setComparisonData(res.data.comparison || []);
       setHasCompared(true);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      alert("Unable to load preset comparison right now. Please retry.");
     } finally {
       setLoading(false);
     }
@@ -154,8 +154,8 @@ export default function Compare() {
       });
       setComparisonData(res.data.comparison || []);
       setHasCompared(true);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      alert("Unable to load preset comparison right now. Please retry.");
     } finally {
       setLoading(false);
     }

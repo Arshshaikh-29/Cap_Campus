@@ -71,7 +71,7 @@ export default function CollegeDetailClient({ id }: { id: string }) {
       axios
         .get(`${API_BASE}/colleges/${id}`)
         .then((res) => setCollege(res.data))
-        .catch((err) => console.error(err))
+        .catch(() => undefined)
         .finally(() => setLoading(false));
     }
   }, [id]);

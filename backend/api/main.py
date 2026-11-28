@@ -14,12 +14,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, desc, func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from .database import (
     AppDataBase,
     Base,
     app_engine,
     engine,
+    ensure_app_schema_migrations,
     get_app_db,
     get_db,
     get_storage_info,
@@ -28,7 +30,9 @@ from .models import (
     CollegeRecord,
     CounsellingLead,
     PaymentOrder,
+    RevokedToken,
     SavedOptionForm,
+    SecurityAuditLog,
     UserAccount,
 )
 from .rank_scale import get_rank_scale
@@ -51,11 +55,17 @@ from .security import (
     get_client_ip,
     get_google_client_id,
     get_razorpay_credentials,
+    get_superadmin_emails,
+    is_admin_pin_configured,
+    is_production_runtime,
     issue_admin_token,
     issue_entitlement_token,
     issue_user_token,
+    log_security_event,
     mask_utr,
+    sanitize_dte_code,
     sanitize_email,
+    sanitize_google_avatar_url,
     sanitize_text,
     verify_admin_secret,
     verify_admin_token,
@@ -67,10 +77,11 @@ from .security import (
 
 Base.metadata.create_all(bind=engine)
 AppDataBase.metadata.create_all(bind=app_engine)
+ensure_app_schema_migrations()
 
 app = FastAPI(
     title="CAP Compass API",
-    version="2.6.0",
+    version="2.7.0",
     docs_url=None if IS_PRODUCTION else "/docs",
     redoc_url=None if IS_PRODUCTION else "/redoc",
     openapi_url=None if IS_PRODUCTION else "/openapi.json",
@@ -1803,14 +1814,14 @@ def get_cutoff_analytics(
 # =====================================================================
 
 class OptionFormRequest(BaseModel):
-    percentile: Optional[float] = None
-    rank: Optional[float] = None
-    category: str = "GOPENS"
-    branches: Optional[List[str]] = None
-    cities: Optional[List[str]] = None
-    round_number: Optional[int] = None
-    strategy: str = "balanced"  # balanced | dream_heavy | safe_first
-    max_choices: int = 30
+    percentile: Optional[float] = Field(default=None, ge=0.0, le=100.0)
+    rank: Optional[float] = Field(default=None, ge=1.0, le=500000.0)
+    category: str = Field(default="GOPENS", min_length=1, max_length=24)
+    branches: Optional[List[str]] = Field(default=None, max_length=50)
+    cities: Optional[List[str]] = Field(default=None, max_length=50)
+    round_number: Optional[int] = Field(default=None, ge=1, le=4)
+    strategy: str = Field(default="balanced", max_length=24)  # balanced | dream_heavy | safe_first
+    max_choices: int = Field(default=30, ge=5, le=60)
     exact_only: Optional[bool] = False
 
 
@@ -1936,7 +1947,12 @@ def get_rank_curve(
 
 
 @app.post("/api/option-form/generate")
-def generate_option_form(req: OptionFormRequest, db: Session = Depends(get_db)):
+def generate_option_form(
+    req: OptionFormRequest,
+    x_entitlement_token: Optional[str] = Header(default=None, alias="X-Entitlement-Token"),
+    db: Session = Depends(get_db),
+    app_db: Session = Depends(get_app_db),
+):
     if req.percentile is None and req.rank is None:
         raise HTTPException(status_code=400, detail="Provide percentile or rank")
 
@@ -1988,11 +2004,8 @@ def generate_option_form(req: OptionFormRequest, db: Session = Depends(get_db)):
             safe_pool.append({**p, "tier": "Safe"})
 
     # Sort each bucket cleanly:
-    # Dream -> closest reachable ambitions first (lowest rank_ratio / highest chance)
     dream_pool.sort(key=lambda x: (abs(x.get("margin_percentile", -99)), x.get("historical_rank", 1e9)))
-    # Target -> best rank first (most prestigious target colleges)
     target_pool.sort(key=lambda x: x.get("historical_rank", 1e9))
-    # Safe -> highest cutoff / best reputation safe colleges first
     safe_pool.sort(key=lambda x: x.get("historical_rank", 1e9))
 
     strategy = (req.strategy or "balanced").lower()
@@ -2056,19 +2069,31 @@ def generate_option_form(req: OptionFormRequest, db: Session = Depends(get_db)):
     if not warnings:
         warnings.append("Optimal DTE Preference Order: Dream choices placed at the top, followed by Target and guaranteed Safe backups.")
 
+    # Server-side Pro/VIP entitlement enforcement (never rely on frontend paywall alone)
+    tier = _resolve_entitlement_tier(x_entitlement_token, app_db)
+    is_pro = tier in ("pro", "vip")
+    FREE_OPTION_FORM_LIMIT = 10
+    returned_choices = ordered_choices if is_pro else ordered_choices[:FREE_OPTION_FORM_LIMIT]
+    locked_choices_count = 0 if is_pro else max(0, len(ordered_choices) - len(returned_choices))
+
     return {
+        "tier": tier,
+        "is_pro": is_pro,
+        "locked_choices_count": locked_choices_count,
+        "total_generated": len(ordered_choices),
         "student": pred_res["student"],
         "strategy": strategy,
         "total_pool_matched": len(pool),
         "counts": {
-            "total": len(ordered_choices),
+            "total": len(returned_choices),
+            "full_total": len(ordered_choices),
             "dream": dream_cnt,
             "target": target_cnt,
             "safe": safe_cnt,
         },
         "health_score": max(35, health),
         "advice": warnings,
-        "choices": ordered_choices,
+        "choices": returned_choices,
     }
 
 
@@ -2114,33 +2139,183 @@ class EntitlementVerifyRequest(BaseModel):
     entitlement_token: str = Field(..., min_length=10, max_length=512)
 
 
+class AdminRoleUpdateRequest(BaseModel):
+    role: str = Field(..., max_length=24)  # student | counsellor | admin | super_admin
+    is_active: Optional[bool] = Field(default=None)
+
+
+class ExportAuditRequest(BaseModel):
+    export_type: str = Field(..., min_length=2, max_length=64)
+    format: str = Field(default="csv", max_length=16)
+    record_count: int = Field(default=0, ge=0, le=50000)
+
+
+def _is_token_revoked(jti: Optional[str], db: Session) -> bool:
+    if not jti:
+        return False
+    return (
+        db.query(RevokedToken.id)
+        .filter(RevokedToken.jti == jti)
+        .first()
+        is not None
+    )
+
+
+def _revoke_token(jti: Optional[str], scope: str, exp: int, db: Session) -> None:
+    if not jti:
+        return
+    try:
+        now_ts = int(time.time())
+        db.query(RevokedToken).filter(RevokedToken.expires_at < now_ts).delete()
+        exists = db.query(RevokedToken.id).filter(RevokedToken.jti == jti).first()
+        if not exists:
+            db.add(
+                RevokedToken(
+                    jti=jti,
+                    scope=scope,
+                    expires_at=int(exp or (now_ts + 3600)),
+                )
+            )
+        db.commit()
+    except Exception:
+        db.rollback()
+
+
+def _safe_float(val: Any, min_v: float = 0.0, max_v: float = 1_000_000.0) -> Optional[float]:
+    if val is None or isinstance(val, bool):
+        return None
+    try:
+        num = float(val)
+        if num != num or num < min_v or num > max_v:
+            return None
+        return round(num, 4)
+    except Exception:
+        return None
+
+
 def _require_admin(
     request: Request,
     authorization: Optional[str] = Header(default=None),
     x_admin_pin: Optional[str] = Header(default=None),
-):
+    app_db: Session = Depends(get_app_db),
+) -> dict:
     ip = get_client_ip(request)
     locked_sec = admin_guard.check_locked(ip)
     if locked_sec is not None:
+        log_security_event(
+            app_db,
+            event_type="admin_access_locked",
+            outcome="blocked",
+            severity="warning",
+            target_resource=request.url.path,
+            request=request,
+            details=f"Lockout active ({locked_sec}s remaining)",
+        )
         raise HTTPException(
             status_code=429,
             detail=f"Too many failed admin login attempts. Try again in {locked_sec}s.",
             headers={"Retry-After": str(locked_sec)},
         )
 
-    # Preferred: signed short-lived Bearer token issued by POST /api/admin/login
+    # 1. Preferred: Signed Bearer token (Admin session token OR live-DB verified Google admin/super_admin)
     if authorization and authorization.lower().startswith("bearer "):
         tok = authorization[7:].strip()
-        if verify_admin_token(tok):
-            admin_guard.reset(ip)
-            return True
 
-    # Fallback header verified in constant-time (protected by same brute-force lockout)
-    if x_admin_pin and verify_admin_secret(x_admin_pin):
+        admin_payload = verify_admin_token(tok)
+        if admin_payload:
+            jti = admin_payload.get("jti")
+            if _is_token_revoked(jti, app_db):
+                log_security_event(
+                    app_db,
+                    event_type="revoked_admin_token_rejected",
+                    outcome="blocked",
+                    severity="warning",
+                    actor_identity=admin_payload.get("actor"),
+                    actor_role=admin_payload.get("role"),
+                    target_resource=request.url.path,
+                    request=request,
+                )
+                raise HTTPException(
+                    status_code=401,
+                    detail="Admin session has been signed out or revoked. Please log in again.",
+                )
+            admin_guard.reset(ip)
+            return {
+                "actor": admin_payload.get("actor") or "admin_pin",
+                "role": admin_payload.get("role") or "super_admin",
+                "user_id": None,
+                "jti": jti,
+                "exp": int(admin_payload.get("exp") or 0),
+                "scope": "admin",
+            }
+
+        # Verify Google User token against live DB role (never trust client-supplied role!)
+        user_payload = verify_user_token(tok)
+        if user_payload:
+            jti = user_payload.get("jti")
+            if _is_token_revoked(jti, app_db):
+                raise HTTPException(
+                    status_code=401,
+                    detail="Session has been revoked. Please sign in again.",
+                )
+            user = (
+                app_db.query(UserAccount)
+                .filter(UserAccount.id == user_payload.get("uid"))
+                .first()
+            )
+            if (
+                user
+                and user.is_active
+                and int(user_payload.get("tv") or 0) == int(user.token_version or 1)
+            ):
+                if user.role in ("admin", "super_admin"):
+                    admin_guard.reset(ip)
+                    return {
+                        "actor": user.email,
+                        "role": user.role,
+                        "user_id": user.id,
+                        "jti": jti,
+                        "exp": int(user_payload.get("exp") or 0),
+                        "scope": "user",
+                    }
+                log_security_event(
+                    app_db,
+                    event_type="rbac_privilege_escalation_blocked",
+                    outcome="blocked",
+                    severity="critical",
+                    actor_identity=user.email,
+                    actor_role=user.role,
+                    target_resource=request.url.path,
+                    request=request,
+                    details=f"Role '{user.role}' attempted to access admin endpoint",
+                )
+                raise HTTPException(
+                    status_code=403,
+                    detail="Forbidden: Administrator role required.",
+                )
+
+    # 2. Legacy X-Admin-Pin header is DISABLED in production (forces Bearer tokens from /api/admin/login)
+    if x_admin_pin and not is_production_runtime() and verify_admin_secret(x_admin_pin):
         admin_guard.reset(ip)
-        return True
+        return {
+            "actor": "dev_admin_pin",
+            "role": "super_admin",
+            "user_id": None,
+            "jti": None,
+            "exp": 0,
+            "scope": "dev_header",
+        }
 
     remaining = admin_guard.record_failure(ip)
+    log_security_event(
+        app_db,
+        event_type="admin_auth_failed",
+        outcome="failure" if remaining > 0 else "blocked",
+        severity="warning" if remaining > 0 else "critical",
+        target_resource=request.url.path,
+        request=request,
+        details=f"Invalid admin credentials ({remaining} attempt(s) remaining)",
+    )
     if remaining <= 0:
         raise HTTPException(
             status_code=429,
@@ -2150,11 +2325,67 @@ def _require_admin(
     raise HTTPException(status_code=401, detail="Invalid Admin credentials")
 
 
+def _require_super_admin(
+    request: Request,
+    admin_ctx: dict = Depends(_require_admin),
+    app_db: Session = Depends(get_app_db),
+) -> dict:
+    if admin_ctx.get("role") != "super_admin":
+        log_security_event(
+            app_db,
+            event_type="rbac_superadmin_denied",
+            outcome="blocked",
+            severity="critical",
+            actor_identity=admin_ctx.get("actor"),
+            actor_role=admin_ctx.get("role"),
+            target_resource=request.url.path,
+            request=request,
+            details="Super-Admin privileges required",
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Super-Admin privileges required for this operation.",
+        )
+    return admin_ctx
+
+
 @app.post("/api/admin/login")
-def admin_login(req: AdminLoginRequest, request: Request):
+def admin_login(
+    req: AdminLoginRequest,
+    request: Request,
+    app_db: Session = Depends(get_app_db),
+):
+    if is_production_runtime() and not is_admin_pin_configured():
+        log_security_event(
+            app_db,
+            event_type="admin_login_misconfigured",
+            outcome="blocked",
+            severity="critical",
+            target_resource="/api/admin/login",
+            request=request,
+            details="Production PIN login blocked: set CAP_ADMIN_PIN_HASH or strong CAP_ADMIN_PIN (>=8 chars)",
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Admin PIN login is locked down in production until CAP_ADMIN_PIN_HASH "
+                "(or a non-default 8+ character CAP_ADMIN_PIN) is configured in Render. "
+                "Authorized Super-Admins can also sign in with Google."
+            ),
+        )
+
     ip = get_client_ip(request)
     locked_sec = admin_guard.check_locked(ip)
     if locked_sec is not None:
+        log_security_event(
+            app_db,
+            event_type="admin_login_locked",
+            outcome="blocked",
+            severity="warning",
+            target_resource="/api/admin/login",
+            request=request,
+            details=f"Lockout active ({locked_sec}s remaining)",
+        )
         raise HTTPException(
             status_code=429,
             detail=f"Too many failed attempts. Locked for {locked_sec} seconds.",
@@ -2162,6 +2393,15 @@ def admin_login(req: AdminLoginRequest, request: Request):
         )
     if not verify_admin_secret(req.pin):
         remaining = admin_guard.record_failure(ip)
+        log_security_event(
+            app_db,
+            event_type="admin_login_failed",
+            outcome="failure" if remaining > 0 else "blocked",
+            severity="warning" if remaining > 0 else "critical",
+            target_resource="/api/admin/login",
+            request=request,
+            details=f"Invalid PIN ({remaining} attempt(s) left before lockout)",
+        )
         if remaining <= 0:
             raise HTTPException(
                 status_code=429,
@@ -2173,8 +2413,50 @@ def admin_login(req: AdminLoginRequest, request: Request):
             detail=f"Invalid Admin PIN ({remaining} attempt(s) remaining before lockout).",
         )
     admin_guard.reset(ip)
-    token, expires_in = issue_admin_token(ttl_seconds=7200)
-    return {"token": token, "token_type": "bearer", "expires_in": expires_in}
+    token, expires_in = issue_admin_token(
+        ttl_seconds=3600, role="super_admin", actor="admin_pin"
+    )
+    log_security_event(
+        app_db,
+        event_type="admin_login_success",
+        outcome="success",
+        severity="info",
+        actor_identity="admin_pin",
+        actor_role="super_admin",
+        target_resource="/api/admin/login",
+        request=request,
+    )
+    return {
+        "token": token,
+        "token_type": "bearer",
+        "expires_in": expires_in,
+        "role": "super_admin",
+    }
+
+
+@app.post("/api/admin/logout")
+def admin_logout(
+    request: Request,
+    admin_ctx: dict = Depends(_require_admin),
+    app_db: Session = Depends(get_app_db),
+):
+    _revoke_token(
+        admin_ctx.get("jti"),
+        admin_ctx.get("scope") or "admin",
+        int(admin_ctx.get("exp") or 0),
+        app_db,
+    )
+    log_security_event(
+        app_db,
+        event_type="admin_logout",
+        outcome="success",
+        severity="info",
+        actor_identity=admin_ctx.get("actor"),
+        actor_role=admin_ctx.get("role"),
+        target_resource="/api/admin/logout",
+        request=request,
+    )
+    return {"logged_out": True}
 
 
 def _generate_access_key(plan: str) -> str:
@@ -2212,12 +2494,16 @@ class RazorpayVerifyRequest(BaseModel):
 
 
 @app.post("/api/payments/razorpay/create-order")
-def create_razorpay_order(req: RazorpayCreateOrderRequest, db: Session = Depends(get_app_db)):
+def create_razorpay_order(
+    req: RazorpayCreateOrderRequest,
+    request: Request,
+    db: Session = Depends(get_app_db),
+):
     rzp_id, rzp_secret = get_razorpay_credentials()
     if not (rzp_id and rzp_secret):
         raise HTTPException(
             status_code=503,
-            detail="Instant Razorpay Checkout is not configured yet. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Render/.env.",
+            detail="Instant Razorpay Checkout is not configured yet. Please use UPI/GPay payment option.",
         )
 
     plan_id = (req.plan or "").strip().lower()
@@ -2270,10 +2556,20 @@ def create_razorpay_order(req: RazorpayCreateOrderRequest, db: Session = Depends
         with urllib.request.urlopen(rzp_req, timeout=15) as resp:
             rzp_order = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
-        err_body = e.read().decode("utf-8", errors="ignore")
+        log_security_event(
+            db,
+            event_type="razorpay_order_gateway_error",
+            outcome="failure",
+            severity="warning",
+            actor_identity=clean_email or phone[-10:],
+            actor_role="student",
+            target_resource=plan_id,
+            request=request,
+            details=f"Razorpay gateway returned HTTP {e.code}",
+        )
         raise HTTPException(
             status_code=502,
-            detail=f"Razorpay gateway rejected order creation ({e.code}). Check RAZORPAY_KEY_ID / SECRET. {err_body[:160]}",
+            detail="Payment gateway rejected order creation. Please retry or use UPI payment.",
         )
     except Exception:
         raise HTTPException(
@@ -2298,8 +2594,27 @@ def create_razorpay_order(req: RazorpayCreateOrderRequest, db: Session = Depends
         notes=f"rzp_order:{rzp_order_id}",
     )
     db.add(order)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Duplicate payment order conflict. Please retry.",
+        )
     db.refresh(order)
+
+    log_security_event(
+        db,
+        event_type="razorpay_order_created",
+        outcome="success",
+        severity="info",
+        actor_identity=clean_email or phone[-10:],
+        actor_role="student",
+        target_resource=order.access_key,
+        request=request,
+        details=f"plan={plan_id} amount_inr={amount_inr}",
+    )
 
     return {
         "order_id": order.id,
@@ -2315,12 +2630,25 @@ def create_razorpay_order(req: RazorpayCreateOrderRequest, db: Session = Depends
 
 
 @app.post("/api/payments/razorpay/verify")
-def verify_razorpay_payment(req: RazorpayVerifyRequest, db: Session = Depends(get_app_db)):
+def verify_razorpay_payment(
+    req: RazorpayVerifyRequest,
+    request: Request,
+    db: Session = Depends(get_app_db),
+):
     rzp_order_id = sanitize_text(req.razorpay_order_id, max_len=80) or ""
     rzp_payment_id = sanitize_text(req.razorpay_payment_id, max_len=80) or ""
     rzp_sig = (req.razorpay_signature or "").strip()
 
     if not verify_razorpay_signature(rzp_order_id, rzp_payment_id, rzp_sig):
+        log_security_event(
+            db,
+            event_type="razorpay_signature_invalid",
+            outcome="blocked",
+            severity="critical",
+            target_resource=rzp_order_id,
+            request=request,
+            details="Forged or invalid Razorpay payment HMAC signature",
+        )
         raise HTTPException(
             status_code=400,
             detail="Payment signature verification failed. Please contact support if money was debited.",
@@ -2333,6 +2661,7 @@ def verify_razorpay_payment(req: RazorpayVerifyRequest, db: Session = Depends(ge
                 PaymentOrder.utr_number == rzp_order_id,
                 PaymentOrder.utr_number == rzp_payment_id,
                 PaymentOrder.notes == f"rzp_order:{rzp_order_id}",
+                PaymentOrder.notes.like(f"rzp_order:{rzp_order_id} |%"),
             )
         )
         .first()
@@ -2343,14 +2672,57 @@ def verify_razorpay_payment(req: RazorpayVerifyRequest, db: Session = Depends(ge
             detail="Matching payment order not found. Please contact support with your Payment ID.",
         )
 
-    # Cryptographic signature verified -> INSTANT AUTO-APPROVAL & UNLOCK!
-    if order.status != "approved":
-        order.status = "approved"
-        order.utr_number = rzp_payment_id
-        order.approved_at = datetime.now(timezone.utc)
-        order.notes = f"rzp_order:{rzp_order_id} | verified_instant"
-        db.commit()
+    if order.status == "rejected":
+        log_security_event(
+            db,
+            event_type="rejected_order_replay_blocked",
+            outcome="blocked",
+            severity="critical",
+            actor_identity=order.email or order.phone,
+            target_resource=order.access_key,
+            request=request,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="This payment order has been rejected. Please contact support.",
+        )
+
+    # Atomic conditional state transition (defeats concurrent verify + webhook race conditions)
+    if order.status == "pending":
+        updated = (
+            db.query(PaymentOrder)
+            .filter(PaymentOrder.id == order.id, PaymentOrder.status == "pending")
+            .update(
+                {
+                    PaymentOrder.status: "approved",
+                    PaymentOrder.utr_number: rzp_payment_id,
+                    PaymentOrder.approved_at: datetime.now(timezone.utc),
+                    PaymentOrder.notes: f"rzp_order:{rzp_order_id} | verified_instant",
+                },
+                synchronize_session=False,
+            )
+        )
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="This payment ID has already been applied to another order.",
+            )
         db.refresh(order)
+        if updated:
+            log_security_event(
+                db,
+                event_type="razorpay_payment_verified",
+                outcome="success",
+                severity="info",
+                actor_identity=order.email or order.phone,
+                actor_role="student",
+                target_resource=order.access_key,
+                request=request,
+                details=f"plan={order.plan} amount_inr={order.amount_inr}",
+            )
 
     ent_token = issue_entitlement_token(order.access_key, order.plan)
     first_name = (order.full_name or "").split()[0] if order.full_name else "Student"
@@ -2378,6 +2750,14 @@ async def razorpay_webhook(
     """Server-to-server Razorpay webhook failsafe (auto-approves even if student closes browser)."""
     raw_body = await request.body()
     if not verify_razorpay_webhook_signature(raw_body, x_razorpay_signature or ""):
+        log_security_event(
+            db,
+            event_type="razorpay_webhook_invalid_signature",
+            outcome="blocked",
+            severity="critical",
+            target_resource="/api/payments/razorpay/webhook",
+            request=request,
+        )
         raise HTTPException(status_code=401, detail="Invalid Razorpay webhook signature")
 
     try:
@@ -2401,19 +2781,45 @@ async def razorpay_webhook(
                 )
                 .first()
             )
-            if order and order.status != "approved":
-                order.status = "approved"
+            if order and order.status == "pending":
+                update_fields = {
+                    PaymentOrder.status: "approved",
+                    PaymentOrder.approved_at: datetime.now(timezone.utc),
+                    PaymentOrder.notes: f"rzp_order:{rzp_order_id} | verified_webhook",
+                }
                 if rzp_payment_id:
-                    order.utr_number = rzp_payment_id
-                order.approved_at = datetime.now(timezone.utc)
-                order.notes = f"rzp_order:{rzp_order_id} | verified_webhook"
-                db.commit()
+                    update_fields[PaymentOrder.utr_number] = rzp_payment_id
+                updated = (
+                    db.query(PaymentOrder)
+                    .filter(PaymentOrder.id == order.id, PaymentOrder.status == "pending")
+                    .update(update_fields, synchronize_session=False)
+                )
+                try:
+                    db.commit()
+                    if updated:
+                        log_security_event(
+                            db,
+                            event_type="razorpay_webhook_approved",
+                            outcome="success",
+                            severity="info",
+                            actor_identity="razorpay_webhook",
+                            actor_role="system",
+                            target_resource=order.access_key,
+                            request=request,
+                            details=f"event={ev_type} plan={order.plan}",
+                        )
+                except IntegrityError:
+                    db.rollback()
 
     return {"ok": True}
 
 
 @app.post("/api/payments/submit")
-def submit_gpay_payment(req: PaymentSubmitRequest, db: Session = Depends(get_app_db)):
+def submit_gpay_payment(
+    req: PaymentSubmitRequest,
+    request: Request,
+    db: Session = Depends(get_app_db),
+):
     plan_id = (req.plan or "").strip().lower()
     if plan_id not in PLAN_CATALOG:
         raise HTTPException(status_code=400, detail="Plan must be 'pro' or 'vip'")
@@ -2440,6 +2846,17 @@ def submit_gpay_payment(req: PaymentSubmitRequest, db: Session = Depends(get_app
     if existing_utr:
         # Only return the existing access key if phone matches; prevents UTR probing for others' keys!
         if existing_utr.phone != phone[-10:]:
+            log_security_event(
+                db,
+                event_type="utr_enumeration_blocked",
+                outcome="blocked",
+                severity="warning",
+                actor_identity=phone[-10:],
+                actor_role="guest",
+                target_resource=mask_utr(utr),
+                request=request,
+                details="Mismatched phone probed an already-registered UTR",
+            )
             raise HTTPException(
                 status_code=409,
                 detail="This UTR reference is already registered to another payment record.",
@@ -2477,8 +2894,27 @@ def submit_gpay_payment(req: PaymentSubmitRequest, db: Session = Depends(get_app
         notes=clean_notes,
     )
     db.add(order)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="This UTR reference was already submitted. Please check your Access Key.",
+        )
     db.refresh(order)
+
+    log_security_event(
+        db,
+        event_type="gpay_payment_submitted",
+        outcome="success",
+        severity="info",
+        actor_identity=clean_email or phone[-10:],
+        actor_role="student",
+        target_resource=order.access_key,
+        request=request,
+        details=f"plan={plan_id} amount_inr={order.amount_inr}",
+    )
 
     return {
         "already_submitted": False,
@@ -2496,13 +2932,26 @@ def submit_gpay_payment(req: PaymentSubmitRequest, db: Session = Depends(get_app
 
 
 @app.get("/api/payments/verify")
-def verify_access_key(access_key: str, db: Session = Depends(get_app_db)):
+def verify_access_key(
+    access_key: str,
+    request: Request,
+    db: Session = Depends(get_app_db),
+):
     key = re.sub(r"[^A-Za-z0-9\-]", "", (access_key or "").strip().upper())
     if not key or len(key) > 40:
         raise HTTPException(status_code=400, detail="Valid access key is required")
 
     order = db.query(PaymentOrder).filter(PaymentOrder.access_key == key).first()
     if not order:
+        log_security_event(
+            db,
+            event_type="access_key_not_found",
+            outcome="failure",
+            severity="warning",
+            target_resource=f"{key[:12]}...",
+            request=request,
+            details="Unknown access key verification attempt",
+        )
         return {
             "valid": False,
             "status": "not_found",
@@ -2589,7 +3038,7 @@ def submit_counselling_lead(req: LeadSubmitRequest, db: Session = Depends(get_ap
 
 @app.get("/api/admin/overview")
 def admin_overview(
-    _: bool = Depends(_require_admin), db: Session = Depends(get_app_db)
+    admin_ctx: dict = Depends(_require_admin), db: Session = Depends(get_app_db)
 ):
     orders = (
         db.query(PaymentOrder).order_by(desc(PaymentOrder.created_at)).limit(200).all()
@@ -2607,6 +3056,12 @@ def admin_overview(
         .all()
     )
     saved_forms_count = db.query(func.count(SavedOptionForm.id)).scalar() or 0
+    security_alerts_count = (
+        db.query(func.count(SecurityAuditLog.id))
+        .filter(SecurityAuditLog.severity.in_(["warning", "critical"]))
+        .scalar()
+        or 0
+    )
 
     approved_revenue = sum(o.amount_inr for o in orders if o.status == "approved")
     pending_revenue = sum(o.amount_inr for o in orders if o.status == "pending")
@@ -2614,6 +3069,10 @@ def admin_overview(
     return {
         "gpay_number": GPAY_NUMBER,
         "database": get_storage_info(),
+        "actor": {
+            "identity": admin_ctx.get("actor"),
+            "role": admin_ctx.get("role"),
+        },
         "metrics": {
             "total_revenue_inr": approved_revenue,
             "pending_revenue_inr": pending_revenue,
@@ -2624,12 +3083,15 @@ def admin_overview(
             "new_leads": sum(1 for l in leads if l.status == "new"),
             "total_users": len(users),
             "saved_forms": saved_forms_count,
+            "security_alerts": security_alerts_count,
         },
         "users": [
             {
                 "id": u.id,
                 "full_name": u.full_name,
                 "email": u.email,
+                "role": u.role or "student",
+                "is_active": bool(u.is_active),
                 "saved_category": u.saved_category,
                 "saved_score": u.saved_score,
                 "bookmarks_count": len(json.loads(u.bookmarks_json)) if u.bookmarks_json else 0,
@@ -2675,7 +3137,8 @@ def admin_overview(
 def admin_update_payment_status(
     order_id: int,
     req: AdminStatusUpdateRequest,
-    _: bool = Depends(_require_admin),
+    request: Request,
+    admin_ctx: dict = Depends(_require_admin),
     db: Session = Depends(get_app_db),
 ):
     new_status = (req.status or "").strip().lower()
@@ -2686,6 +3149,7 @@ def admin_update_payment_status(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
+    old_status = order.status
     order.status = new_status
     if new_status == "approved":
         order.approved_at = datetime.now(timezone.utc)
@@ -2693,6 +3157,18 @@ def admin_update_payment_status(
         order.notes = sanitize_text(req.notes, max_len=300)
     db.commit()
     db.refresh(order)
+
+    log_security_event(
+        db,
+        event_type="admin_payment_status_changed",
+        outcome="success",
+        severity="warning" if new_status == "rejected" else "info",
+        actor_identity=admin_ctx.get("actor"),
+        actor_role=admin_ctx.get("role"),
+        target_resource=order.access_key,
+        request=request,
+        details=f"order_id={order.id} {old_status} -> {new_status}",
+    )
 
     return {
         "id": order.id,
@@ -2705,7 +3181,8 @@ def admin_update_payment_status(
 @app.post("/api/admin/keys/generate")
 def admin_generate_direct_key(
     req: AdminKeyGenerateRequest,
-    _: bool = Depends(_require_admin),
+    request: Request,
+    admin_ctx: dict = Depends(_require_admin),
     db: Session = Depends(get_app_db),
 ):
     plan_id = (req.plan or "pro").strip().lower()
@@ -2733,6 +3210,18 @@ def admin_generate_direct_key(
     db.commit()
     db.refresh(order)
 
+    log_security_event(
+        db,
+        event_type="admin_direct_key_issued",
+        outcome="success",
+        severity="info",
+        actor_identity=admin_ctx.get("actor"),
+        actor_role=admin_ctx.get("role"),
+        target_resource=order.access_key,
+        request=request,
+        details=f"plan={plan_id} amount_inr={order.amount_inr}",
+    )
+
     return {
         "id": order.id,
         "access_key": order.access_key,
@@ -2746,7 +3235,8 @@ def admin_generate_direct_key(
 def admin_update_lead_status(
     lead_id: int,
     req: AdminStatusUpdateRequest,
-    _: bool = Depends(_require_admin),
+    request: Request,
+    admin_ctx: dict = Depends(_require_admin),
     db: Session = Depends(get_app_db),
 ):
     new_status = (req.status or "").strip().lower()
@@ -2757,9 +3247,171 @@ def admin_update_lead_status(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
+    old_status = lead.status
     lead.status = new_status
     db.commit()
+
+    log_security_event(
+        db,
+        event_type="admin_lead_status_changed",
+        outcome="success",
+        severity="info",
+        actor_identity=admin_ctx.get("actor"),
+        actor_role=admin_ctx.get("role"),
+        target_resource=f"lead:{lead.id}",
+        request=request,
+        details=f"{old_status} -> {new_status}",
+    )
     return {"id": lead.id, "status": lead.status}
+
+
+@app.post("/api/admin/users/{user_id}/role")
+def admin_update_user_role(
+    user_id: int,
+    req: AdminRoleUpdateRequest,
+    request: Request,
+    admin_ctx: dict = Depends(_require_super_admin),
+    db: Session = Depends(get_app_db),
+):
+    """Strict Super-Admin RBAC endpoint: updates user role/active state and rotates token_version."""
+    new_role = (req.role or "").strip().lower()
+    if new_role not in ("student", "counsellor", "admin", "super_admin"):
+        raise HTTPException(
+            status_code=400,
+            detail="Role must be student, counsellor, admin, or super_admin.",
+        )
+
+    user = db.query(UserAccount).filter(UserAccount.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User account not found")
+
+    if admin_ctx.get("user_id") == user.id and (
+        new_role != "super_admin" or req.is_active is False
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Super-Admin cannot demote or suspend their own active account.",
+        )
+
+    old_role = user.role or "student"
+    old_active = bool(user.is_active)
+    user.role = new_role
+    if req.is_active is not None:
+        user.is_active = bool(req.is_active)
+    # Force session re-validation across all devices immediately on permission change
+    user.token_version = int(user.token_version or 1) + 1
+    db.commit()
+    db.refresh(user)
+
+    log_security_event(
+        db,
+        event_type="rbac_role_changed",
+        outcome="success",
+        severity="critical",
+        actor_identity=admin_ctx.get("actor"),
+        actor_role=admin_ctx.get("role"),
+        target_resource=user.email,
+        request=request,
+        details=f"role: {old_role}->{user.role}; active: {old_active}->{user.is_active}; tv={user.token_version}",
+    )
+    return {
+        "id": user.id,
+        "email": user.email,
+        "role": user.role,
+        "is_active": bool(user.is_active),
+        "token_version": user.token_version,
+    }
+
+
+@app.get("/api/admin/audit-logs")
+def admin_get_audit_logs(
+    limit: int = 100,
+    severity: Optional[str] = None,
+    admin_ctx: dict = Depends(_require_admin),
+    db: Session = Depends(get_app_db),
+):
+    limit = max(1, min(200, int(limit or 100)))
+    q = db.query(SecurityAuditLog).order_by(desc(SecurityAuditLog.created_at))
+    if severity in ("info", "warning", "critical"):
+        q = q.filter(SecurityAuditLog.severity == severity)
+    rows = q.limit(limit).all()
+
+    total_logs = db.query(func.count(SecurityAuditLog.id)).scalar() or 0
+    critical_count = (
+        db.query(func.count(SecurityAuditLog.id))
+        .filter(SecurityAuditLog.severity == "critical")
+        .scalar()
+        or 0
+    )
+    warning_count = (
+        db.query(func.count(SecurityAuditLog.id))
+        .filter(SecurityAuditLog.severity == "warning")
+        .scalar()
+        or 0
+    )
+    blocked_count = (
+        db.query(func.count(SecurityAuditLog.id))
+        .filter(SecurityAuditLog.outcome == "blocked")
+        .scalar()
+        or 0
+    )
+
+    return {
+        "actor_role": admin_ctx.get("role"),
+        "summary": {
+            "total": total_logs,
+            "critical": critical_count,
+            "warning": warning_count,
+            "blocked": blocked_count,
+        },
+        "logs": [
+            {
+                "id": r.id,
+                "event_type": r.event_type,
+                "severity": r.severity,
+                "actor_identity": r.actor_identity,
+                "actor_role": r.actor_role,
+                "target_resource": r.target_resource,
+                "ip_address": r.ip_address,
+                "outcome": r.outcome,
+                "details": r.details,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in rows
+        ],
+    }
+
+
+@app.post("/api/audit/export")
+def record_export_audit(
+    req: ExportAuditRequest,
+    request: Request,
+    authorization: Optional[str] = Header(default=None, alias="Authorization"),
+    db: Session = Depends(get_app_db),
+):
+    """Record CSV/PDF data exports in the security audit trail (supports guest & signed-in users)."""
+    actor_identity = "guest"
+    actor_role = "guest"
+    if authorization and authorization.lower().startswith("bearer "):
+        payload = verify_user_token(authorization[7:].strip())
+        if payload and not _is_token_revoked(payload.get("jti"), db):
+            actor_identity = str(payload.get("email") or "user")
+            actor_role = str(payload.get("role") or "student")
+
+    fmt = sanitize_text(req.format.lower(), max_len=16) or "csv"
+    exp_type = sanitize_text(req.export_type, max_len=64) or "option_form"
+    log_security_event(
+        db,
+        event_type="data_exported",
+        outcome="success",
+        severity="info",
+        actor_identity=actor_identity,
+        actor_role=actor_role,
+        target_resource=f"{exp_type}:{fmt}",
+        request=request,
+        details=f"records={int(req.record_count)}",
+    )
+    return {"recorded": True}
 
 
 # =============================================================================
@@ -2821,6 +3473,8 @@ def _serialize_user(u: UserAccount) -> dict:
         "email": u.email,
         "full_name": u.full_name,
         "avatar_url": u.avatar_url,
+        "role": u.role or "student",
+        "is_active": bool(u.is_active),
         "saved_input_type": u.saved_input_type or "percentile",
         "saved_score": u.saved_score,
         "saved_category": u.saved_category or "GOPENS",
@@ -2855,6 +3509,7 @@ def _lookup_email_entitlement(email: str, db: Session) -> Optional[dict]:
 
 
 def _require_user(
+    request: Request,
     authorization: Optional[str] = Header(default=None, alias="Authorization"),
     db: Session = Depends(get_app_db),
 ) -> UserAccount:
@@ -2863,9 +3518,34 @@ def _require_user(
     payload = verify_user_token(authorization[7:].strip())
     if not payload:
         raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+    if _is_token_revoked(payload.get("jti"), db):
+        raise HTTPException(
+            status_code=401,
+            detail="Session has been signed out. Please sign in again.",
+        )
     user = db.query(UserAccount).filter(UserAccount.id == payload.get("uid")).first()
     if not user:
         raise HTTPException(status_code=401, detail="Account not found.")
+    if not user.is_active:
+        log_security_event(
+            db,
+            event_type="suspended_user_access_blocked",
+            outcome="blocked",
+            severity="warning",
+            actor_identity=user.email,
+            actor_role=user.role,
+            target_resource=request.url.path,
+            request=request,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been suspended by an administrator.",
+        )
+    if int(payload.get("tv") or 0) != int(user.token_version or 1):
+        raise HTTPException(
+            status_code=401,
+            detail="Session invalidated after security update. Please sign in again.",
+        )
     return user
 
 
@@ -2879,7 +3559,11 @@ def get_auth_config():
 
 
 @app.post("/api/auth/google")
-def login_with_google(req: GoogleAuthRequest, db: Session = Depends(get_app_db)):
+def login_with_google(
+    req: GoogleAuthRequest,
+    request: Request,
+    db: Session = Depends(get_app_db),
+):
     cid = get_google_client_id()
     if not cid:
         raise HTTPException(
@@ -2887,16 +3571,28 @@ def login_with_google(req: GoogleAuthRequest, db: Session = Depends(get_app_db))
             detail="Google Sign-In is not configured on the server yet. Set GOOGLE_CLIENT_ID in Render/.env.",
         )
 
-    info = _verify_google_id_token(req.credential.strip(), cid)
+    try:
+        info = _verify_google_id_token(req.credential.strip(), cid)
+    except HTTPException as exc:
+        log_security_event(
+            db,
+            event_type="google_login_failed",
+            outcome="failure",
+            severity="warning",
+            target_resource="/api/auth/google",
+            request=request,
+            details=str(exc.detail),
+        )
+        raise
+
     sub = sanitize_text(info.get("sub"), max_len=128)
     email = sanitize_email(info.get("email"))
     if not sub or not email:
         raise HTTPException(status_code=401, detail="Incomplete Google account profile.")
 
     name = sanitize_text(info.get("name"), max_len=100) or email.split("@")[0]
-    pic = str(info.get("picture") or "").strip()
-    if pic and not pic.startswith("https://"):
-        pic = None
+    pic = sanitize_google_avatar_url(info.get("picture"))
+    superadmin_emails = get_superadmin_emails()
 
     user = (
         db.query(UserAccount)
@@ -2905,32 +3601,100 @@ def login_with_google(req: GoogleAuthRequest, db: Session = Depends(get_app_db))
     )
     now = datetime.now(timezone.utc)
     if user:
+        if not user.is_active:
+            log_security_event(
+                db,
+                event_type="suspended_login_blocked",
+                outcome="blocked",
+                severity="warning",
+                actor_identity=user.email,
+                actor_role=user.role,
+                target_resource="/api/auth/google",
+                request=request,
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="This account has been suspended. Please contact support.",
+            )
         user.google_sub = sub
         user.email = email
         user.full_name = name
         if pic:
             user.avatar_url = pic
+        if email in superadmin_emails and user.role != "super_admin":
+            user.role = "super_admin"
         user.last_login_at = now
     else:
+        initial_role = "super_admin" if email in superadmin_emails else "student"
         user = UserAccount(
             google_sub=sub,
             email=email,
             full_name=name,
             avatar_url=pic,
+            role=initial_role,
+            is_active=True,
+            token_version=1,
             last_login_at=now,
         )
         db.add(user)
     db.commit()
     db.refresh(user)
 
-    token = issue_user_token(user.id, user.email)
+    token = issue_user_token(
+        user.id,
+        user.email,
+        role=user.role or "student",
+        token_version=int(user.token_version or 1),
+    )
     entitlement = _lookup_email_entitlement(user.email, db)
+
+    log_security_event(
+        db,
+        event_type="google_login_success",
+        outcome="success",
+        severity="info",
+        actor_identity=user.email,
+        actor_role=user.role,
+        target_resource="/api/auth/google",
+        request=request,
+    )
     return {
         "token": token,
         "token_type": "bearer",
         "user": _serialize_user(user),
         "entitlement": entitlement,
     }
+
+
+@app.post("/api/auth/logout")
+def logout_user(
+    request: Request,
+    authorization: Optional[str] = Header(default=None, alias="Authorization"),
+    db: Session = Depends(get_app_db),
+):
+    """Server-side session revocation: blacklists JTI and bumps token_version immediately."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return {"logged_out": True}
+    payload = verify_user_token(authorization[7:].strip())
+    if not payload:
+        return {"logged_out": True}
+
+    _revoke_token(payload.get("jti"), "user", int(payload.get("exp") or 0), db)
+    user = db.query(UserAccount).filter(UserAccount.id == payload.get("uid")).first()
+    if user:
+        user.token_version = int(user.token_version or 1) + 1
+        db.commit()
+        log_security_event(
+            db,
+            event_type="user_logout",
+            outcome="success",
+            severity="info",
+            actor_identity=user.email,
+            actor_role=user.role,
+            target_resource="/api/auth/logout",
+            request=request,
+        )
+    return {"logged_out": True}
 
 
 @app.get("/api/auth/me")
@@ -2947,6 +3711,7 @@ def get_current_user_profile(
 @app.post("/api/auth/sync")
 def sync_user_profile(
     req: ProfileSyncRequest,
+    request: Request,
     user: UserAccount = Depends(_require_user),
     db: Session = Depends(get_app_db),
 ):
@@ -2964,12 +3729,12 @@ def sync_user_profile(
             cleaned_bms.append(
                 {
                     "key": sanitize_text(item.get("key"), max_len=140) or "",
-                    "college_code": sanitize_text(item.get("college_code"), max_len=16) or "",
+                    "college_code": sanitize_dte_code(item.get("college_code")),
                     "college_name": sanitize_text(item.get("college_name"), max_len=180) or "",
                     "city": sanitize_text(item.get("city"), max_len=60) or "",
                     "branch": sanitize_text(item.get("branch"), max_len=120) or "",
-                    "historical_percentile": item.get("historical_percentile"),
-                    "historical_rank": item.get("historical_rank"),
+                    "historical_percentile": _safe_float(item.get("historical_percentile"), 0.0, 100.0),
+                    "historical_rank": _safe_float(item.get("historical_rank"), 1.0, 500_000.0),
                     "prediction_category": sanitize_text(item.get("prediction_category"), max_len=40),
                 }
             )
@@ -2977,6 +3742,17 @@ def sync_user_profile(
 
     db.commit()
     db.refresh(user)
+    log_security_event(
+        db,
+        event_type="student_profile_synced",
+        outcome="success",
+        severity="info",
+        actor_identity=user.email,
+        actor_role=user.role,
+        target_resource=f"user:{user.id}",
+        request=request,
+        details=f"category={user.saved_category}",
+    )
     return {"synced": True, "user": _serialize_user(user)}
 
 
@@ -2990,25 +3766,28 @@ class SaveOptionFormRequest(BaseModel):
 @app.post("/api/option-form/save")
 def save_option_form_to_db(
     req: SaveOptionFormRequest,
+    request: Request,
     user: UserAccount = Depends(_require_user),
     db: Session = Depends(get_app_db),
 ):
     """Persist a signed-in student's custom DTE Option Form in the database."""
     cleaned_choices = []
-    for item in (req.choices or [])[:120]:
+    for idx, item in enumerate((req.choices or [])[:120], start=1):
         if not isinstance(item, dict):
             continue
+        pref_raw = item.get("preference_no")
+        pref_no = int(pref_raw) if isinstance(pref_raw, int) and 1 <= pref_raw <= 200 else idx
         cleaned_choices.append(
             {
-                "preference_no": item.get("preference_no"),
-                "college_code": sanitize_text(item.get("college_code"), max_len=16) or "",
-                "choice_code": sanitize_text(item.get("choice_code"), max_len=20) or "",
+                "preference_no": pref_no,
+                "college_code": sanitize_dte_code(item.get("college_code")),
+                "choice_code": re.sub(r"[^0-9A-Za-z]", "", str(item.get("choice_code") or ""))[:20],
                 "college_name": sanitize_text(item.get("college_name"), max_len=180) or "",
                 "city": sanitize_text(item.get("city"), max_len=60) or "",
                 "branch": sanitize_text(item.get("branch"), max_len=120) or "",
                 "band": sanitize_text(item.get("band"), max_len=30) or "",
-                "historical_percentile": item.get("historical_percentile"),
-                "historical_rank": item.get("historical_rank"),
+                "historical_percentile": _safe_float(item.get("historical_percentile"), 0.0, 100.0),
+                "historical_rank": _safe_float(item.get("historical_rank"), 1.0, 500_000.0),
             }
         )
 
@@ -3038,6 +3817,17 @@ def save_option_form_to_db(
         db.add(form_row)
     db.commit()
     db.refresh(form_row)
+    log_security_event(
+        db,
+        event_type="student_option_form_saved",
+        outcome="success",
+        severity="info",
+        actor_identity=user.email,
+        actor_role=user.role,
+        target_resource=f"option_form:{form_row.id}",
+        request=request,
+        details=f"choices={len(cleaned_choices)}",
+    )
     return {
         "saved": True,
         "id": form_row.id,

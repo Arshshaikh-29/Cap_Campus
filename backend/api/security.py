@@ -7,9 +7,10 @@ import re
 import secrets
 import threading
 import time
+import urllib.parse
 from collections import defaultdict, deque
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -111,21 +112,104 @@ def verify_razorpay_webhook_signature(raw_body: bytes, signature: str) -> bool:
     expected = hmac.new(secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature.strip().lower())
 
-# Admin credential (owner sets CAP_ADMIN_PIN in .env; never exposed in frontend code)
-def get_admin_secret() -> str:
-    return os.environ.get("CAP_ADMIN_PIN", "992062").strip()
+
+# -----------------------------------------------------------------------------
+# PASSWORD / PIN HASHING (PBKDF2-HMAC-SHA256 — OWASP 2026 Compliant)
+# -----------------------------------------------------------------------------
+PBKDF2_ITERATIONS = 310_000
+_LEGACY_DEV_PIN = "992062"
+
+
+def hash_secret(plaintext: str, iterations: int = PBKDF2_ITERATIONS) -> str:
+    """Derive a salted PBKDF2-HMAC-SHA256 password/PIN hash (never store plaintext)."""
+    salt = secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac(
+        "sha256",
+        plaintext.strip().encode("utf-8"),
+        salt.encode("ascii"),
+        iterations,
+    )
+    return f"pbkdf2:sha256:{iterations}${salt}${dk.hex()}"
+
+
+def verify_hashed_secret(candidate: str, stored_hash: str) -> bool:
+    """Constant-time verification of a PBKDF2-HMAC-SHA256 hash string."""
+    if not candidate or not stored_hash:
+        return False
+    try:
+        header, salt, digest_hex = stored_hash.strip().split("$", 2)
+        parts = header.split(":")
+        if len(parts) != 3 or parts[0] != "pbkdf2" or parts[1] != "sha256":
+            return False
+        iters = int(parts[2])
+        if iters < 100_000 or iters > 2_000_000:
+            return False
+        dk = hashlib.pbkdf2_hmac(
+            "sha256",
+            candidate.strip().encode("utf-8"),
+            salt.encode("ascii"),
+            iters,
+        )
+        return hmac.compare_digest(dk.hex(), digest_hex.strip().lower())
+    except Exception:
+        return False
+
+
+def is_production_runtime() -> bool:
+    return (
+        os.environ.get("CAP_ENV", "development").strip().lower() == "production"
+        or os.environ.get("RENDER", "").strip().lower() == "true"
+    )
+
+
+def get_superadmin_emails() -> Set[str]:
+    raw = os.environ.get("CAP_SUPERADMIN_EMAILS", "").strip()
+    return {e.strip().lower() for e in raw.split(",") if e.strip()}
+
+
+def is_admin_pin_configured() -> bool:
+    """
+    In production, fail closed unless CAP_ADMIN_PIN_HASH or a non-default
+    CAP_ADMIN_PIN (>= 8 chars) is explicitly configured in environment variables.
+    """
+    if os.environ.get("CAP_ADMIN_PIN_HASH", "").strip():
+        return True
+    env_pin = os.environ.get("CAP_ADMIN_PIN", "").strip()
+    if is_production_runtime():
+        return len(env_pin) >= 8 and env_pin != _LEGACY_DEV_PIN
+    return True
 
 
 def verify_admin_secret(candidate: Optional[str]) -> bool:
-    if not candidate:
+    if not candidate or not isinstance(candidate, str):
         return False
-    expected = get_admin_secret()
-    # Hash both inputs to equal length before constant-time comparison
-    h_cand = hashlib.sha256(candidate.strip().encode("utf-8")).digest()
+    cand = candidate.strip()
+    if not cand:
+        return False
+
+    # 1. Preferred: Salted PBKDF2 hash stored in CAP_ADMIN_PIN_HASH
+    stored_hash = os.environ.get("CAP_ADMIN_PIN_HASH", "").strip()
+    if stored_hash:
+        return verify_hashed_secret(cand, stored_hash)
+
+    # 2. Environment-configured PIN (production forbids weak public-repo default)
+    env_pin = os.environ.get("CAP_ADMIN_PIN", "").strip()
+    if is_production_runtime():
+        if len(env_pin) < 8 or env_pin == _LEGACY_DEV_PIN:
+            return False
+        expected = env_pin
+    else:
+        expected = env_pin or _LEGACY_DEV_PIN
+
+    # Hash both to equal length before constant-time comparison
+    h_cand = hashlib.sha256(cand.encode("utf-8")).digest()
     h_exp = hashlib.sha256(expected.encode("utf-8")).digest()
     return hmac.compare_digest(h_cand, h_exp)
 
 
+# -----------------------------------------------------------------------------
+# SIGNED SESSION & ENTITLEMENT TOKENS (HMAC-SHA256 with JTI & Token Version)
+# -----------------------------------------------------------------------------
 def _b64url_encode(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
@@ -136,7 +220,13 @@ def _b64url_decode(s: str) -> bytes:
 
 
 def sign_token(payload: dict, ttl_seconds: int) -> str:
-    body = {**payload, "exp": int(time.time()) + ttl_seconds, "iat": int(time.time())}
+    now = int(time.time())
+    body = {
+        **payload,
+        "jti": payload.get("jti") or secrets.token_hex(12),
+        "exp": now + ttl_seconds,
+        "iat": now,
+    }
     raw = json.dumps(body, separators=(",", ":"), sort_keys=True).encode("utf-8")
     b64_payload = _b64url_encode(raw)
     sig = hmac.new(SIGNING_SECRET, b64_payload.encode("ascii"), hashlib.sha256).digest()
@@ -165,21 +255,37 @@ def verify_signed_token(token: str, expected_scope: str) -> Optional[dict]:
         return None
     if payload.get("scope") != expected_scope:
         return None
-    if int(payload.get("exp", 0)) < int(time.time()):
+    now = int(time.time())
+    if int(payload.get("exp", 0)) < now:
+        return None
+    # Reject tokens claiming an iat far in the future (clock-skew forgery)
+    if int(payload.get("iat", 0)) > now + 60:
         return None
     return payload
 
 
-def issue_admin_token(ttl_seconds: int = 7200) -> Tuple[str, int]:
-    tok = sign_token({"scope": "admin", "jti": secrets.token_hex(8)}, ttl_seconds)
+def issue_admin_token(
+    ttl_seconds: int = 3600, role: str = "super_admin", actor: str = "admin_pin"
+) -> Tuple[str, int]:
+    tok = sign_token(
+        {
+            "scope": "admin",
+            "role": role,
+            "actor": actor,
+            "jti": secrets.token_hex(12),
+        },
+        ttl_seconds,
+    )
     return tok, ttl_seconds
 
 
-def verify_admin_token(token: str) -> bool:
-    return verify_signed_token(token, "admin") is not None
+def verify_admin_token(token: str) -> Optional[dict]:
+    return verify_signed_token(token, "admin")
 
 
-def issue_entitlement_token(access_key: str, plan: str, ttl_seconds: int = 86400 * 7) -> str:
+def issue_entitlement_token(
+    access_key: str, plan: str, ttl_seconds: int = 86400 * 7
+) -> str:
     return sign_token(
         {"scope": "entitlement", "key": access_key, "plan": plan}, ttl_seconds
     )
@@ -189,9 +295,23 @@ def verify_entitlement_token(token: str) -> Optional[dict]:
     return verify_signed_token(token, "entitlement")
 
 
-def issue_user_token(user_id: int, email: str, ttl_seconds: int = 86400 * 30) -> str:
+def issue_user_token(
+    user_id: int,
+    email: str,
+    role: str = "student",
+    token_version: int = 1,
+    ttl_seconds: int = 86400 * 7,
+) -> str:
     return sign_token(
-        {"scope": "user", "uid": int(user_id), "email": email.lower()}, ttl_seconds
+        {
+            "scope": "user",
+            "uid": int(user_id),
+            "email": email.lower(),
+            "role": role,
+            "tv": int(token_version),
+            "jti": secrets.token_hex(12),
+        },
+        ttl_seconds,
     )
 
 
@@ -199,10 +319,14 @@ def verify_user_token(token: str) -> Optional[dict]:
     return verify_signed_token(token, "user")
 
 
-# Input sanitization helpers (defeats Stored XSS, HTML injection, control char attacks)
+# -----------------------------------------------------------------------------
+# INPUT SANITIZATION & URL ALLOWLISTING
+# -----------------------------------------------------------------------------
 _HTML_TAG_RE = re.compile(r"<[^>]*>")
 _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]{1,64}@[A-Za-z0-9.\-]{1,190}\.[A-Za-z]{2,24}$")
+_DTE_CODE_RE = re.compile(r"^[0-9]{4,6}$")
+_VALID_ROLES = {"student", "counsellor", "admin", "super_admin"}
 
 
 def sanitize_text(val: Optional[str], max_len: int = 200) -> Optional[str]:
@@ -226,6 +350,28 @@ def sanitize_email(val: Optional[str]) -> Optional[str]:
     return cleaned.lower()
 
 
+def sanitize_dte_code(val: Optional[str]) -> str:
+    s = re.sub(r"[^0-9]", "", str(val or "").strip())
+    return s if _DTE_CODE_RE.match(s) else ""
+
+
+def sanitize_google_avatar_url(val: Optional[str]) -> Optional[str]:
+    """Allow only HTTPS Google-hosted profile picture domains (prevents SSRF / tracking injection)."""
+    raw = str(val or "").strip()
+    if not raw or len(raw) > 512:
+        return None
+    try:
+        parsed = urllib.parse.urlparse(raw)
+        if parsed.scheme != "https":
+            return None
+        host = (parsed.hostname or "").lower()
+        if not (host == "googleusercontent.com" or host.endswith(".googleusercontent.com")):
+            return None
+        return raw
+    except Exception:
+        return None
+
+
 def mask_utr(utr: Optional[str]) -> str:
     s = str(utr or "").strip()
     if len(s) <= 4:
@@ -237,38 +383,57 @@ def get_client_ip(request: Request) -> str:
     if TRUST_PROXY:
         xff = request.headers.get("x-forwarded-for", "")
         if xff:
-            return xff.split(",")[0].strip()
+            return xff.split(",")[0].strip()[:64]
     if request.client and request.client.host:
-        return request.client.host
+        return str(request.client.host)[:64]
     return "unknown"
 
 
-# Brute-Force Protection for Admin Auth
+# -----------------------------------------------------------------------------
+# BRUTE-FORCE & CREDENTIAL-STUFFING GUARD (Per-IP + Global Progressive Lockout)
+# -----------------------------------------------------------------------------
 class AdminBruteForceGuard:
-    def __init__(self, max_failures: int = 5, window_sec: int = 900, lockout_sec: int = 900):
+    def __init__(
+        self,
+        max_failures: int = 5,
+        window_sec: int = 900,
+        lockout_sec: int = 900,
+        global_max_failures: int = 25,
+    ):
         self.max_failures = max_failures
         self.window_sec = window_sec
         self.lockout_sec = lockout_sec
+        self.global_max_failures = global_max_failures
         self._failures: Dict[str, deque] = defaultdict(deque)
         self._locked_until: Dict[str, float] = {}
+        self._global_failures: deque = deque()
+        self._global_locked_until: float = 0.0
         self._lock = threading.Lock()
 
     def check_locked(self, ip: str) -> Optional[int]:
         now = time.time()
         with self._lock:
+            if self._global_locked_until > now:
+                return int(self._global_locked_until - now) + 1
             until = self._locked_until.get(ip, 0.0)
             if until > now:
                 return int(until - now) + 1
             if ip in self._locked_until:
                 del self._locked_until[ip]
-            return None
+        return None
 
     def record_failure(self, ip: str) -> int:
         now = time.time()
         with self._lock:
+            # Global credential-stuffing check across distributed IPs
+            while self._global_failures and now - self._global_failures[0] > self.window_sec:
+                self._global_failures.popleft()
+            self._global_failures.append(now)
+            if len(self._global_failures) >= self.global_max_failures:
+                self._global_locked_until = now + self.lockout_sec
+
             q = self._failures[ip]
-            cutoff = now - self.window_sec
-            while q and q[0] < cutoff:
+            while q and now - q[0] > self.window_sec:
                 q.popleft()
             q.append(now)
             if len(q) >= self.max_failures:
@@ -281,26 +446,81 @@ class AdminBruteForceGuard:
         with self._lock:
             self._failures.pop(ip, None)
             self._locked_until.pop(ip, None)
+            self._global_failures.clear()
+            self._global_locked_until = 0.0
 
 
 admin_guard = AdminBruteForceGuard()
 
 
-# Sliding-window per-IP rate limiter + Body size guard + OWASP security headers
+# -----------------------------------------------------------------------------
+# PERSISTENT SECURITY AUDIT LOGGER (Scrubs all secrets/tokens automatically)
+# -----------------------------------------------------------------------------
+def log_security_event(
+    db,
+    *,
+    event_type: str,
+    outcome: str = "success",
+    severity: str = "info",
+    actor_identity: Optional[str] = None,
+    actor_role: Optional[str] = None,
+    target_resource: Optional[str] = None,
+    request: Optional[Request] = None,
+    details: Optional[str] = None,
+) -> None:
+    """Persist structured security audit logs without ever storing passwords or tokens."""
+    if db is None:
+        return
+    try:
+        from .models import SecurityAuditLog
+
+        ip = get_client_ip(request) if request is not None else None
+        ua = (
+            sanitize_text(request.headers.get("user-agent"), max_len=160)
+            if request is not None
+            else None
+        )
+        row = SecurityAuditLog(
+            event_type=sanitize_text(event_type, max_len=64) or "event",
+            severity=severity if severity in ("info", "warning", "critical") else "info",
+            actor_identity=sanitize_text(actor_identity, max_len=120),
+            actor_role=sanitize_text(actor_role, max_len=32),
+            target_resource=sanitize_text(target_resource, max_len=120),
+            ip_address=ip,
+            user_agent=ua,
+            outcome=outcome if outcome in ("success", "failure", "blocked") else "success",
+            details=sanitize_text(details, max_len=400),
+        )
+        db.add(row)
+        db.commit()
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+# -----------------------------------------------------------------------------
+# SLIDING-WINDOW RATE LIMITER + BODY SIZE GUARD + OWASP SECURITY HEADERS
+# -----------------------------------------------------------------------------
 class SecurityMiddleware(BaseHTTPMiddleware):
     MAX_BODY_BYTES = 65_536  # 64 KB hard ceiling against memory DoS
 
     # (path_prefix, methods, max_requests, window_seconds)
     RATE_RULES = [
         ("/api/admin/login", {"POST"}, 8, 300),
+        ("/api/admin/users/", {"POST"}, 20, 300),
         ("/api/auth/google", {"POST"}, 15, 300),
+        ("/api/auth/logout", {"POST"}, 20, 60),
         ("/api/auth/sync", {"POST"}, 40, 60),
+        ("/api/option-form/save", {"POST"}, 30, 60),
+        ("/api/audit/export", {"POST"}, 30, 60),
         ("/api/payments/razorpay/create-order", {"POST"}, 15, 600),
         ("/api/payments/razorpay/verify", {"POST"}, 20, 300),
         ("/api/payments/submit", {"POST"}, 8, 600),
         ("/api/leads", {"POST"}, 8, 600),
         ("/api/payments/verify-token", {"POST"}, 30, 60),
-        ("/api/payments/verify", {"GET"}, 20, 60),
+        ("/api/payments/verify", {"GET"}, 10, 300),
         ("/api/what-if", {"POST"}, 30, 60),
         ("/api/betterment-radar", {"POST"}, 30, 60),
         ("/api/roi-finder", {"POST"}, 30, 60),
@@ -355,6 +575,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             path.startswith("/api/admin")
             or path.startswith("/api/payments")
             or path.startswith("/api/auth")
+            or path.startswith("/api/option-form/save")
         ):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
             response.headers["Pragma"] = "no-cache"
