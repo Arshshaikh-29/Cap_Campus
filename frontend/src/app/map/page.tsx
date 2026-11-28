@@ -378,7 +378,7 @@ export default function CollegeMapPage() {
   return (
     <div className="flex-1 bg-[#F8FAFC] flex flex-col">
       {/* Top Map Control Bar */}
-      <div className="bg-white border-b border-slate-200/90 px-4 sm:px-6 py-4">
+      <div className="bg-white border-b border-[#E2E8F0] px-4 sm:px-6 py-4">
         <div className="max-w-[1600px] mx-auto space-y-3">
           {/* Row 1: Title + Mode Switch + Locate Me */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -388,7 +388,7 @@ export default function CollegeMapPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+                  <h1 className="text-lg sm:text-xl font-extrabold text-[#172554] tracking-tight">
                     Maharashtra Engineering College Map
                   </h1>
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -422,7 +422,7 @@ export default function CollegeMapPage() {
                   }}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                     !scoreMode
-                      ? "bg-white text-slate-900 shadow-2xs"
+                      ? "bg-white text-[#172554] shadow-2xs"
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
@@ -458,7 +458,7 @@ export default function CollegeMapPage() {
                 disabled={locating}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all inline-flex items-center gap-1.5 cursor-pointer ${
                   userLocation
-                    ? "bg-blue-50 border-electric-blue/40 text-electric-blue"
+                    ? "bg-[#EEF2FF] border-electric-blue/40 text-electric-blue"
                     : "bg-white hover:bg-slate-50 border-slate-200 text-slate-800"
                 }`}
               >
@@ -489,7 +489,7 @@ export default function CollegeMapPage() {
                   onClick={() => handleCityQuickJump(v)}
                   className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     active
-                      ? "bg-[#0B1120] text-white border-[#0B1120]"
+                      ? "bg-[#172554] text-white border-[#172554]"
                       : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
                   }`}
                 >
@@ -613,7 +613,7 @@ export default function CollegeMapPage() {
                       insights: insightsOnly,
                     })
                   }
-                  className="px-3.5 py-2 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                 >
                   <Compass size={13} /> Map My Score
                 </button>
@@ -648,7 +648,7 @@ export default function CollegeMapPage() {
                   onClick={() => setBandFilter(b.id)}
                   className={`px-3 py-1 rounded-full text-[11px] font-bold border inline-flex items-center gap-1.5 cursor-pointer transition-all ${
                     bandFilter === b.id
-                      ? "bg-[#0B1120] text-white border-[#0B1120]"
+                      ? "bg-[#172554] text-white border-[#172554]"
                       : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                   }`}
                 >
@@ -698,7 +698,7 @@ export default function CollegeMapPage() {
             onClick={() => setMobileView("map")}
             className={`py-2 rounded-lg transition-all cursor-pointer ${
               mobileView === "map"
-                ? "bg-white text-slate-900 shadow-2xs"
+                ? "bg-white text-[#172554] shadow-2xs"
                 : "text-slate-500"
             }`}
           >
@@ -709,7 +709,7 @@ export default function CollegeMapPage() {
             onClick={() => setMobileView("list")}
             className={`py-2 rounded-lg transition-all cursor-pointer ${
               mobileView === "list"
-                ? "bg-white text-slate-900 shadow-2xs"
+                ? "bg-white text-[#172554] shadow-2xs"
                 : "text-slate-500"
             }`}
           >
@@ -724,7 +724,7 @@ export default function CollegeMapPage() {
         <div
           className={`${
             mobileView === "list" ? "flex" : "hidden lg:flex"
-          } lg:col-span-4 xl:col-span-3 bg-white border-r border-slate-200/90 flex-col max-h-[72vh] lg:max-h-[calc(100vh-220px)] overflow-hidden`}
+          } lg:col-span-4 xl:col-span-3 bg-white border-r border-[#E2E8F0] flex-col max-h-[72vh] lg:max-h-[calc(100vh-220px)] overflow-hidden`}
         >
           <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between text-xs">
             <span className="font-bold text-slate-700">
@@ -772,14 +772,14 @@ export default function CollegeMapPage() {
                         DTE {c.college_code} • {c.city}
                       </span>
                       {c.distance_km != null && (
-                        <span className="font-mono font-bold text-electric-blue bg-blue-50 px-1.5 py-0.5 rounded">
+                        <span className="font-mono font-bold text-electric-blue bg-[#EEF2FF] px-1.5 py-0.5 rounded">
                           {c.distance_km < 10
                             ? `${c.distance_km.toFixed(1)} km`
                             : `${Math.round(c.distance_km)} km`}
                         </span>
                       )}
                     </div>
-                    <div className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug">
+                    <div className="text-xs font-bold text-[#172554] line-clamp-2 leading-snug">
                       {c.college_name}
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-[10px] font-mono">
@@ -826,7 +826,7 @@ export default function CollegeMapPage() {
           />
 
           {/* Floating Map Style Switcher (Top Left) */}
-          <div className="absolute top-3 left-3 z-[400] bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl p-1 shadow-md inline-flex items-center gap-0.5 text-[11px] font-bold">
+          <div className="absolute top-3 left-3 z-[400] bg-white/95 backdrop-blur-md border border-[#E2E8F0] rounded-xl p-1 shadow-md inline-flex items-center gap-0.5 text-[11px] font-bold">
             {(
               [
                 { id: "osm", label: "Street" },
@@ -840,8 +840,8 @@ export default function CollegeMapPage() {
                 onClick={() => setTileStyle(s.id)}
                 className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                   tileStyle === s.id
-                    ? "bg-[#0B1120] text-white shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    ? "bg-[#172554] text-white shadow-2xs"
+                    : "text-slate-600 hover:text-[#172554] hover:bg-slate-100"
                 }`}
               >
                 {s.label}
@@ -850,7 +850,7 @@ export default function CollegeMapPage() {
           </div>
 
           {/* Floating Legend (Top Right) */}
-          <div className="absolute top-3 right-3 z-[400] bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl px-3.5 py-2.5 shadow-md text-[11px] space-y-1">
+          <div className="absolute top-3 right-3 z-[400] bg-white/95 backdrop-blur-md border border-[#E2E8F0] rounded-2xl px-3.5 py-2.5 shadow-md text-[11px] space-y-1">
             <div className="font-bold text-slate-800 text-[10px] uppercase tracking-wider">
               Map Legend
             </div>
@@ -880,11 +880,11 @@ export default function CollegeMapPage() {
 
           {/* Floating Selected College Detail Card (Bottom Left) */}
           {selected && (
-            <div className="absolute bottom-4 left-4 right-4 sm:right-auto sm:w-[410px] z-[400] bg-white rounded-2xl border border-slate-200/90 shadow-2xl p-5 space-y-3.5">
+            <div className="absolute bottom-4 left-4 right-4 sm:right-auto sm:w-[410px] z-[400] bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl p-5 space-y-3.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono font-bold">
-                    <span className="bg-[#0B1120] text-white px-2 py-0.5 rounded">
+                    <span className="bg-[#172554] text-white px-2 py-0.5 rounded">
                       DTE {selected.college_code}
                     </span>
                     <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded flex items-center gap-1">
@@ -901,12 +901,12 @@ export default function CollegeMapPage() {
                       {selected.is_exact_campus ? "Exact Campus Pin" : "Locality Area Pin"}
                     </span>
                     {selected.distance_km != null && (
-                      <span className="bg-blue-50 text-electric-blue px-2 py-0.5 rounded">
+                      <span className="bg-[#EEF2FF] text-electric-blue px-2 py-0.5 rounded">
                         {selected.distance_km.toFixed(1)} km away
                       </span>
                     )}
                   </div>
-                  <h2 className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
+                  <h2 className="text-sm sm:text-base font-extrabold text-[#172554] leading-snug">
                     {selected.college_name}
                   </h2>
                 </div>
@@ -922,11 +922,11 @@ export default function CollegeMapPage() {
 
               {/* Metrics Grid */}
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/80">
+                <div className="p-2 rounded-xl bg-slate-50 border border-[#E2E8F0]">
                   <div className="text-[9px] font-bold uppercase text-slate-400">
                     {scoreMode ? "Match Cutoff" : "Top Cutoff"}
                   </div>
-                  <div className="text-xs font-extrabold font-mono text-slate-900 mt-0.5">
+                  <div className="text-xs font-extrabold font-mono text-[#172554] mt-0.5">
                     {(scoreMode
                       ? selected.matched_percentile
                       : selected.top_cutoff_percentile) != null
@@ -976,14 +976,14 @@ export default function CollegeMapPage() {
                   href={selected.google_maps_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 px-3 py-2 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 shadow-xs"
+                  className="flex-1 px-3 py-2 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 shadow-xs"
                 >
                   <Navigation size={13} /> Directions
                   <ExternalLink size={10} />
                 </a>
                 <Link
                   href={`/college/${selected.college_code}`}
-                  className="flex-1 px-3 py-2 rounded-xl bg-[#0B1120] hover:bg-slate-800 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5"
+                  className="flex-1 px-3 py-2 rounded-xl bg-[#172554] hover:bg-slate-800 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5"
                 >
                   Full Profile <ArrowRight size={12} />
                 </Link>

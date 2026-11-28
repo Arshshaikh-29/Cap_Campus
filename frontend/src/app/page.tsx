@@ -640,34 +640,30 @@ export default function Home() {
   return (
     <div className="flex-1 flex flex-col justify-center bg-[#F8FAFC]">
       {step === 1 && (
-        <section className="relative overflow-hidden py-10 sm:py-16 lg:py-24 flex-1 flex flex-col">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-electric-blue/10 via-teal-accent/5 to-transparent rounded-full blur-3xl -z-10 pointer-events-none" />
-
+        <section className="relative py-10 sm:py-14 lg:py-20 flex-1 flex flex-col">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            <div className="lg:col-span-7 space-y-6 sm:space-y-8">
+            <div className="lg:col-span-7 space-y-6 sm:space-y-7">
               <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-[11px] sm:text-xs font-semibold tracking-wide uppercase">
-                  <Sparkles size={14} /> MHT-CET Engineering Admissions 2023–2026
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EEF2FF] border border-[#4F46E5]/20 text-[#4F46E5] text-[11px] sm:text-xs font-semibold tracking-wide uppercase">
+                  <Sparkles size={13} /> MHT-CET Engineering Admissions 2023–2026
                 </div>
                 <Link
                   href="/about"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0B1120] hover:bg-slate-800 text-white text-[11px] sm:text-xs font-semibold transition-colors shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#172554] hover:bg-[#1E3A8A] text-white text-[11px] sm:text-xs font-semibold transition-colors"
                 >
-                  <Code2 size={13} className="text-blue-400" />
-                  Made by Arsh Shaikh
+                  <Code2 size={13} className="text-[#C7D2FE]" />
+                  Engineered by Arsh Shaikh
                 </Link>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.08]">
+              <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight text-[#172554] leading-[1.08]">
                 Navigate CAP Admissions with{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-electric-blue to-teal-accent">
-                  Clarity.
-                </span>
+                <span className="text-[#4F46E5]">Clarity.</span>
               </h1>
 
               <p className="text-base sm:text-lg text-slate-600 max-w-2xl leading-relaxed">
                 Explore 400 Maharashtra engineering colleges with{" "}
-                <strong className="text-slate-900 font-semibold">
+                <strong className="text-[#172554] font-semibold">
                   category-wise rank & percentile cutoffs
                 </strong>{" "}
                 across 2023–2026 CAP Rounds 1–4, live Percentile &harr; Merit
@@ -677,7 +673,7 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-1">
                 <button
                   onClick={() => setStep(2)}
-                  className="bg-electric-blue hover:bg-blue-600 text-white font-semibold px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl shadow-lg shadow-electric-blue/25 hover:shadow-electric-blue/35 transition-all flex items-center justify-center gap-2 text-sm sm:text-base group cursor-pointer"
+                  className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl shadow-lg shadow-electric-blue/25 hover:shadow-electric-blue/35 transition-all flex items-center justify-center gap-2 text-sm sm:text-base group cursor-pointer"
                 >
                   Predict My Colleges
                   <ArrowRight
@@ -687,16 +683,16 @@ export default function Home() {
                 </button>
                 <Link
                   href="/map"
-                  className="bg-white hover:bg-slate-50 text-slate-900 border border-slate-200/90 font-semibold px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+                  className="bg-white hover:bg-slate-50 text-[#172554] border border-[#E2E8F0] font-semibold px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   <MapPin size={17} className="text-electric-blue" />
                   Explore College Map
                 </Link>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 sm:gap-6 pt-6 sm:pt-8 border-t border-slate-200/80">
+              <div className="grid grid-cols-3 gap-3 sm:gap-6 pt-6 sm:pt-8 border-t border-[#E2E8F0]">
                 <div>
-                  <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-slate-900">
+                  <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-[#172554]">
                     198,300+
                   </div>
                   <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
@@ -704,7 +700,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-slate-900">
+                  <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-[#172554]">
                     400
                   </div>
                   <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
@@ -712,7 +708,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-slate-900">
+                  <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-[#172554]">
                     Rounds 1–4
                   </div>
                   <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
@@ -723,13 +719,13 @@ export default function Home() {
             </div>
 
             <div className="lg:col-span-5 relative">
-              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_20px_50px_-15px_rgba(15,23,42,0.08)] p-6 relative z-10">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-[0_20px_50px_-15px_rgba(15,23,42,0.08)] p-6 relative z-10">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                   <div>
                     <div className="text-[11px] font-bold text-electric-blue uppercase tracking-wider">
                       Live 2026 CAP Benchmark (GOPENS)
                     </div>
-                    <div className="text-base font-bold text-slate-900 mt-0.5">
+                    <div className="text-base font-bold text-[#172554] mt-0.5">
                       Top Autonomous Cutoffs (Rank & %ile)
                     </div>
                   </div>
@@ -784,10 +780,10 @@ export default function Home() {
                     <Link
                       key={i}
                       href={`/college/${item.code}`}
-                      className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 flex flex-col gap-1.5 hover:border-electric-blue/40 hover:bg-white transition-all block"
+                      className="p-3.5 rounded-xl border border-[#E2E8F0] bg-slate-50/60 flex flex-col gap-1.5 hover:border-electric-blue/40 hover:bg-white transition-all block"
                     >
                       <div className="flex justify-between items-start">
-                        <div className="font-bold text-slate-900 text-sm">
+                        <div className="font-bold text-[#172554] text-sm">
                           {item.name}
                         </div>
                         <span
@@ -798,7 +794,7 @@ export default function Home() {
                       </div>
                       <div className="flex justify-between items-center text-xs text-slate-500">
                         <span>{item.branch}</span>
-                        <span className="font-mono tabular-nums font-semibold text-slate-900">
+                        <span className="font-mono tabular-nums font-semibold text-[#172554]">
                           {item.cutoff} • {item.rank}
                         </span>
                       </div>
@@ -829,7 +825,7 @@ export default function Home() {
                 <div className="text-xs font-bold uppercase tracking-widest text-electric-blue">
                   Built for Maharashtra CAP Admissions
                 </div>
-                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
                   Everything You Need to Lock Your Best Engineering Seat
                 </h2>
                 <p className="text-sm sm:text-base text-slate-500">
@@ -899,18 +895,18 @@ export default function Home() {
                   return (
                     <div
                       key={i}
-                      className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-2xs hover:shadow-md hover:border-electric-blue/35 transition-all flex flex-col justify-between gap-5"
+                      className="bg-white rounded-2xl border border-[#E2E8F0] p-6 shadow-2xs hover:shadow-md hover:border-electric-blue/35 transition-all flex flex-col justify-between gap-5"
                     >
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="w-10 h-10 rounded-xl bg-electric-blue/10 text-electric-blue flex items-center justify-center">
                             <Icon size={20} />
                           </div>
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/80">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-[#E2E8F0]">
                             {card.badge}
                           </span>
                         </div>
-                        <h3 className="text-base font-bold text-slate-900">
+                        <h3 className="text-base font-bold text-[#172554]">
                           {card.title}
                         </h3>
                         <p className="text-xs text-slate-500 leading-relaxed">
@@ -940,11 +936,11 @@ export default function Home() {
             </div>
 
             {/* Monetization Banner — Direct GPay 9920627188 */}
-            <div className="bg-[#0B1120] text-white rounded-3xl p-8 sm:p-10 border border-slate-800 shadow-xl relative overflow-hidden">
+            <div className="bg-[#172554] text-white rounded-3xl p-8 sm:p-10 border border-slate-800 shadow-xl relative overflow-hidden">
               <div className="absolute -top-28 -right-28 w-96 h-96 bg-electric-blue/25 rounded-full blur-3xl pointer-events-none" />
               <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                 <div className="lg:col-span-7 space-y-4">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-teal-300 text-xs font-bold uppercase tracking-wider">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[#C7D2FE] text-xs font-bold uppercase tracking-wider">
                     <Crown size={13} /> CAP Compass Pro &amp; 1-on-1 VIP Plans
                   </div>
                   <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
@@ -963,7 +959,7 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => openUpgradeModal("pro")}
-                      className="bg-electric-blue hover:bg-blue-500 text-white font-bold text-sm px-6 py-3.5 rounded-xl shadow-lg shadow-electric-blue/30 flex items-center gap-2 cursor-pointer"
+                      className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm px-6 py-3.5 rounded-xl shadow-lg shadow-electric-blue/30 flex items-center gap-2 cursor-pointer"
                     >
                       <Sparkles size={16} /> Unlock CAP Pro — ₹199
                     </button>
@@ -994,19 +990,19 @@ export default function Home() {
                   </div>
                   <ul className="space-y-2.5 text-xs text-slate-300">
                     <li className="flex items-center gap-2">
-                      <CheckCircle2 size={15} className="text-teal-400 shrink-0" />
+                      <CheckCircle2 size={15} className="text-[#C7D2FE] shrink-0" />
                       Unlock all 300+ matching colleges &amp; 3-year cutoff history
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle2 size={15} className="text-teal-400 shrink-0" />
+                      <CheckCircle2 size={15} className="text-[#C7D2FE] shrink-0" />
                       Generate 60-choice DTE Option Form with 9-digit Choice Codes
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle2 size={15} className="text-teal-400 shrink-0" />
+                      <CheckCircle2 size={15} className="text-[#C7D2FE] shrink-0" />
                       Unlimited CET-Ready CSV &amp; Printable PDF Exports
                     </li>
                     <li className="flex items-center gap-2">
-                      <CheckCircle2 size={15} className="text-teal-400 shrink-0" />
+                      <CheckCircle2 size={15} className="text-[#C7D2FE] shrink-0" />
                       VIP includes personal WhatsApp/Call review on {GPAY_NUMBER}
                     </li>
                   </ul>
@@ -1017,7 +1013,7 @@ export default function Home() {
             {/* Interactive CAP Counselling FAQ Accordion */}
             <div className="max-w-3xl mx-auto space-y-6 pb-8">
               <div className="text-center space-y-2">
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#172554]">
                   Frequently Asked CAP Counselling Questions
                 </h2>
                 <p className="text-sm text-slate-500">
@@ -1048,14 +1044,14 @@ export default function Home() {
                   return (
                     <div
                       key={idx}
-                      className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden"
+                      className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden"
                     >
                       <button
                         type="button"
                         onClick={() => setOpenFaq(isOpen ? null : idx)}
                         className="w-full px-6 py-4 text-left flex items-center justify-between gap-4 cursor-pointer"
                       >
-                        <span className="text-sm font-bold text-slate-900">
+                        <span className="text-sm font-bold text-[#172554]">
                           {item.q}
                         </span>
                         <ChevronDown
@@ -1082,15 +1078,15 @@ export default function Home() {
       {/* STEP 2 & 3: MODERN SAAS SPLIT-CARD ADMISSION WIZARD */}
       {(step === 2 || step === 3) && (
         <section className="py-10 px-4 sm:px-6 max-w-5xl mx-auto w-full flex-1 flex flex-col justify-center">
-          <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-3xl border border-slate-200/90 shadow-[0_24px_60px_-15px_rgba(15,23,42,0.08),0_4px_16px_-4px_rgba(15,23,42,0.04)] overflow-hidden min-h-[620px]">
+          <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-3xl border border-[#E2E8F0] shadow-[0_24px_60px_-15px_rgba(15,23,42,0.08),0_4px_16px_-4px_rgba(15,23,42,0.04)] overflow-hidden min-h-[620px]">
             {/* Left Stepper Panel */}
-            <div className="md:col-span-4 bg-[#0B1120] text-white p-7 lg:p-8 flex flex-col justify-between relative overflow-hidden">
+            <div className="md:col-span-4 bg-[#172554] text-white p-7 lg:p-8 flex flex-col justify-between relative overflow-hidden">
               {/* Top-left subtle radial mesh glow */}
-              <div className="absolute -top-24 -left-24 w-80 h-80 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.35),rgba(20,184,166,0.12)_55%,transparent_75%)] blur-2xl pointer-events-none" />
+              <div className="absolute -top-24 -left-24 w-80 h-80 bg-[radial-gradient(circle_at_top_left,rgba(79,70,229,0.35),rgba(20,184,166,0.12)_55%,transparent_75%)] blur-2xl pointer-events-none" />
               <div className="absolute -bottom-28 -right-28 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
               <div className="relative z-10">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/10 text-blue-400 font-bold tracking-wider uppercase text-[11px] mb-6">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[#C7D2FE] font-bold tracking-wider uppercase text-[11px] mb-6">
                   <Compass size={13} /> Admission Wizard
                 </div>
                 <h2 className="text-xl lg:text-2xl font-bold tracking-tight text-white leading-snug">
@@ -1152,9 +1148,9 @@ export default function Home() {
                         <div
                           className={`w-8 h-8 rounded-full flex items-center justify-center font-mono tabular-nums text-xs font-bold shrink-0 transition-all ${
                             isActive
-                              ? "bg-electric-blue text-white ring-4 ring-electric-blue/30 shadow-[0_0_16px_rgba(37,99,235,0.6)]"
+                              ? "bg-electric-blue text-white ring-4 ring-electric-blue/30 shadow-[0_0_16px_rgba(79,70,229,0.6)]"
                               : isCompleted
-                              ? "bg-teal-500/20 border border-teal-400/50 text-teal-300"
+                              ? "bg-teal-500/20 border border-teal-400/50 text-[#C7D2FE]"
                               : "bg-[#0F172A] border border-white/15 text-slate-400"
                           }`}
                         >
@@ -1201,13 +1197,13 @@ export default function Home() {
                       code: "S",
                       title: "State Level",
                       meta: "All-Maharashtra Pool",
-                      pill: "bg-blue-500/20 text-blue-300 border-blue-400/30",
+                      pill: "bg-blue-500/20 text-[#C7D2FE] border-blue-400/30",
                     },
                     {
                       code: "H",
                       title: "Home University",
                       meta: "Local Univ. Jurisdiction",
-                      pill: "bg-teal-500/20 text-teal-300 border-teal-400/30",
+                      pill: "bg-teal-500/20 text-[#C7D2FE] border-teal-400/30",
                     },
                     {
                       code: "O",
@@ -1254,7 +1250,7 @@ export default function Home() {
                     <div className="space-y-6">
                       {/* Header */}
                       <div>
-                        <h3 className="text-2xl font-bold tracking-tight text-slate-900">
+                        <h3 className="text-2xl font-bold tracking-tight text-[#172554]">
                           Enter Your Score & Category
                         </h3>
                         <p className="text-sm text-slate-500 mt-1">
@@ -1269,7 +1265,7 @@ export default function Home() {
                         <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                           Score Input Mode
                         </span>
-                        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)]">
+                        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-[#E2E8F0] shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)]">
                           <button
                             type="button"
                             onClick={() =>
@@ -1277,8 +1273,8 @@ export default function Home() {
                             }
                             className={`py-2.5 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
                               form.inputType === "percentile"
-                                ? "bg-white text-slate-900 font-semibold shadow-xs ring-1 ring-slate-900/5"
-                                : "text-slate-600 hover:text-slate-900 font-medium"
+                                ? "bg-white text-[#172554] font-semibold shadow-xs ring-1 ring-slate-900/5"
+                                : "text-slate-600 hover:text-[#172554] font-medium"
                             }`}
                           >
                             <Percent
@@ -1298,8 +1294,8 @@ export default function Home() {
                             }
                             className={`py-2.5 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
                               form.inputType === "rank"
-                                ? "bg-white text-slate-900 font-semibold shadow-xs ring-1 ring-slate-900/5"
-                                : "text-slate-600 hover:text-slate-900 font-medium"
+                                ? "bg-white text-[#172554] font-semibold shadow-xs ring-1 ring-slate-900/5"
+                                : "text-slate-600 hover:text-[#172554] font-medium"
                             }`}
                           >
                             <Hash
@@ -1336,9 +1332,9 @@ export default function Home() {
                               onChange={(e) =>
                                 setForm({ ...form, percentile: e.target.value })
                               }
-                              className="w-full text-2xl font-mono tabular-nums font-bold text-slate-900 placeholder:text-slate-300 placeholder:font-medium pl-4 pr-20 py-3.5 bg-white border border-slate-300 hover:border-slate-400 rounded-xl shadow-2xs focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15 transition-all"
+                              className="w-full text-2xl font-mono tabular-nums font-bold text-[#172554] placeholder:text-slate-300 placeholder:font-medium pl-4 pr-20 py-3.5 bg-white border border-slate-300 hover:border-slate-400 rounded-xl shadow-2xs focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15 transition-all"
                             />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-100 border border-slate-200/90 text-slate-600 font-mono tabular-nums text-xs font-bold px-2.5 py-1 rounded-lg select-none pointer-events-none">
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-100 border border-[#E2E8F0] text-slate-600 font-mono tabular-nums text-xs font-bold px-2.5 py-1 rounded-lg select-none pointer-events-none">
                               %ile
                             </span>
                           </div>
@@ -1360,7 +1356,7 @@ export default function Home() {
                                   className={`text-xs font-mono tabular-nums px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
                                     active
                                       ? "bg-electric-blue text-white border-electric-blue font-semibold shadow-2xs"
-                                      : "bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200/90 font-medium"
+                                      : "bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-[#172554] border-[#E2E8F0] font-medium"
                                   }`}
                                 >
                                   {val}%
@@ -1372,7 +1368,7 @@ export default function Home() {
                           {/* Live Conversion Preview */}
                           {conversionPreview &&
                             conversionPreview.input_type === "percentile" && (
-                              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                              <div className="p-3 rounded-xl bg-slate-50 border border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                                 <div className="flex items-center gap-2 text-slate-700">
                                   <ArrowLeftRight
                                     size={14}
@@ -1439,9 +1435,9 @@ export default function Home() {
                               onChange={(e) =>
                                 setForm({ ...form, rank: e.target.value })
                               }
-                              className="w-full text-2xl font-mono tabular-nums font-bold text-slate-900 placeholder:text-slate-300 placeholder:font-medium pl-4 pr-24 py-3.5 bg-white border border-slate-300 hover:border-slate-400 rounded-xl shadow-2xs focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15 transition-all"
+                              className="w-full text-2xl font-mono tabular-nums font-bold text-[#172554] placeholder:text-slate-300 placeholder:font-medium pl-4 pr-24 py-3.5 bg-white border border-slate-300 hover:border-slate-400 rounded-xl shadow-2xs focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15 transition-all"
                             />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-100 border border-slate-200/90 text-slate-600 font-mono tabular-nums text-xs font-bold px-2.5 py-1 rounded-lg select-none pointer-events-none">
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-100 border border-[#E2E8F0] text-slate-600 font-mono tabular-nums text-xs font-bold px-2.5 py-1 rounded-lg select-none pointer-events-none">
                               Rank #
                             </span>
                           </div>
@@ -1463,7 +1459,7 @@ export default function Home() {
                                   className={`text-xs font-mono tabular-nums px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
                                     active
                                       ? "bg-electric-blue text-white border-electric-blue font-semibold shadow-2xs"
-                                      : "bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200/90 font-medium"
+                                      : "bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-[#172554] border-[#E2E8F0] font-medium"
                                   }`}
                                 >
                                   #{Number(val).toLocaleString()}
@@ -1475,7 +1471,7 @@ export default function Home() {
                           {/* Live Conversion Preview */}
                           {conversionPreview &&
                             conversionPreview.input_type === "rank" && (
-                              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                              <div className="p-3 rounded-xl bg-slate-50 border border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                                 <div className="flex items-center gap-2 text-slate-700">
                                   <ArrowLeftRight
                                     size={14}
@@ -1553,7 +1549,7 @@ export default function Home() {
                                 className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 cursor-pointer ${
                                   active
                                     ? "bg-electric-blue/[0.06] border-electric-blue ring-2 ring-electric-blue/15 shadow-2xs"
-                                    : "bg-white hover:bg-slate-50/90 border-slate-200/90 hover:border-slate-300 shadow-2xs"
+                                    : "bg-white hover:bg-slate-50/90 border-[#E2E8F0] hover:border-slate-300 shadow-2xs"
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-1">
@@ -1561,7 +1557,7 @@ export default function Home() {
                                     className={`text-sm font-bold tracking-tight ${
                                       active
                                         ? "text-electric-blue"
-                                        : "text-slate-900"
+                                        : "text-[#172554]"
                                     }`}
                                   >
                                     {item.name}
@@ -1575,7 +1571,7 @@ export default function Home() {
                                     className={`font-mono tabular-nums text-[11px] font-semibold px-1.5 py-0.5 rounded border ${
                                       active
                                         ? "bg-electric-blue text-white border-electric-blue"
-                                        : "bg-slate-100 text-slate-600 border-slate-200/80"
+                                        : "bg-slate-100 text-slate-600 border-[#E2E8F0]"
                                     }`}
                                   >
                                     {item.code}
@@ -1594,7 +1590,7 @@ export default function Home() {
                           className={`p-2.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
                             !isPrimaryCategory
                               ? "bg-electric-blue/[0.06] border-electric-blue ring-2 ring-electric-blue/15"
-                              : "bg-slate-50/90 border-slate-200/80"
+                              : "bg-slate-50/90 border-[#E2E8F0]"
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0 pl-1">
@@ -1618,7 +1614,7 @@ export default function Home() {
                               onChange={(e) =>
                                 setForm({ ...form, category: e.target.value })
                               }
-                              className="w-full appearance-none pl-3 pr-8 py-1.5 bg-white border border-slate-200/90 hover:border-slate-300 rounded-lg text-xs font-semibold text-slate-800 shadow-2xs focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/15 cursor-pointer truncate"
+                              className="w-full appearance-none pl-3 pr-8 py-1.5 bg-white border border-[#E2E8F0] hover:border-slate-300 rounded-lg text-xs font-semibold text-slate-800 shadow-2xs focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/15 cursor-pointer truncate"
                             >
                               {renderGroupedCategoryOptions()}
                             </select>
@@ -1630,7 +1626,7 @@ export default function Home() {
                         </div>
 
                         {/* Clean Soft-Blue Callout Box */}
-                        <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/70 flex items-start gap-2.5 text-xs text-slate-700 leading-relaxed">
+                        <div className="p-3.5 rounded-xl bg-blue-50/60 border border-[#4F46E5]/20/70 flex items-start gap-2.5 text-xs text-slate-700 leading-relaxed">
                           <Info
                             size={15}
                             className="text-electric-blue shrink-0 mt-0.5"
@@ -1638,11 +1634,11 @@ export default function Home() {
                           <div>
                             Matches official CAP category cutoffs directly, and
                             calibrates both{" "}
-                            <strong className="font-semibold text-slate-900">
+                            <strong className="font-semibold text-[#172554]">
                               Percentile
                             </strong>{" "}
                             and{" "}
-                            <strong className="font-semibold text-slate-900">
+                            <strong className="font-semibold text-[#172554]">
                               State Merit Rank
                             </strong>{" "}
                             when a course only lists State-Level Open, TFWS, or
@@ -1653,7 +1649,7 @@ export default function Home() {
                     </div>
 
                     {/* Sticky Action Footer (Back hidden on Step 2; two right-aligned primary actions) */}
-                    <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-5 mt-6 border-t border-slate-200/80 flex items-center justify-end gap-3">
+                    <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-5 mt-6 border-t border-[#E2E8F0] flex items-center justify-end gap-3">
                       <button
                         type="button"
                         disabled={!isScoreValid || loading}
@@ -1674,7 +1670,7 @@ export default function Home() {
                         type="button"
                         disabled={!isScoreValid}
                         onClick={() => setStep(3)}
-                        className="group bg-electric-blue hover:bg-blue-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:shadow-none text-white border border-electric-blue font-semibold px-6 py-3 rounded-xl shadow-md shadow-electric-blue/20 hover:shadow-lg hover:shadow-electric-blue/30 transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer disabled:pointer-events-none"
+                        className="group bg-[#4F46E5] hover:bg-[#4338CA] disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:shadow-none text-white border border-electric-blue font-semibold px-6 py-3 rounded-xl shadow-md shadow-electric-blue/20 hover:shadow-lg hover:shadow-electric-blue/30 transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer disabled:pointer-events-none"
                       >
                         Next: Branch & City
                         <ChevronRight
@@ -1697,7 +1693,7 @@ export default function Home() {
                   >
                     <div className="space-y-6">
                       <div>
-                        <h3 className="text-2xl font-bold tracking-tight text-slate-900">
+                        <h3 className="text-2xl font-bold tracking-tight text-[#172554]">
                           Multi-Branch, Multi-City &amp; Round Preferences
                         </h3>
                         <p className="text-sm text-slate-500 mt-1">
@@ -1765,7 +1761,7 @@ export default function Home() {
                             className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all flex items-center gap-1 cursor-pointer ${
                               form.branches.length === 0
                                 ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                                : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/90"
+                                : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-[#E2E8F0]"
                             }`}
                           >
                             {form.branches.length === 0 && <Check size={12} />}
@@ -1781,7 +1777,7 @@ export default function Home() {
                                 className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all flex items-center gap-1 cursor-pointer ${
                                   active
                                     ? "bg-electric-blue text-white border-electric-blue shadow-2xs"
-                                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/90"
+                                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-[#E2E8F0]"
                                 }`}
                               >
                                 {active && <Check size={12} />}
@@ -1827,7 +1823,7 @@ export default function Home() {
 
                         {/* Selected Branches Removable Pill Strip (especially helpful for dropdown-added branches) */}
                         {form.branches.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl bg-blue-50/50 border border-blue-200/70">
+                          <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl bg-blue-50/50 border border-[#4F46E5]/20/70">
                             {form.branches.map((b) => (
                               <span
                                 key={b}
@@ -1901,7 +1897,7 @@ export default function Home() {
                             className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all flex items-center gap-1 cursor-pointer ${
                               form.cities.length === 0
                                 ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                                : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/90"
+                                : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-[#E2E8F0]"
                             }`}
                           >
                             {form.cities.length === 0 && <Check size={12} />}
@@ -1917,7 +1913,7 @@ export default function Home() {
                                 className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all flex items-center gap-1 cursor-pointer ${
                                   active
                                     ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/90"
+                                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-[#E2E8F0]"
                                 }`}
                               >
                                 {active && <Check size={12} />}
@@ -1967,7 +1963,7 @@ export default function Home() {
                               onChange={(e) =>
                                 setForm({ ...form, round: e.target.value })
                               }
-                              className="w-full px-4 py-2.5 bg-white border border-slate-300 hover:border-slate-400 rounded-xl shadow-2xs focus:outline-none focus:ring-4 focus:ring-electric-blue/15 focus:border-electric-blue transition-all font-medium text-slate-900 text-xs sm:text-sm"
+                              className="w-full px-4 py-2.5 bg-white border border-slate-300 hover:border-slate-400 rounded-xl shadow-2xs focus:outline-none focus:ring-4 focus:ring-electric-blue/15 focus:border-electric-blue transition-all font-medium text-[#172554] text-xs sm:text-sm"
                             >
                               <option value="All">
                                 All Rounds (Closing Cutoff)
@@ -1982,7 +1978,7 @@ export default function Home() {
 
                         {/* Selected Cities Removable Pill Strip */}
                         {form.cities.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200/90">
+                          <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl bg-slate-50 border border-[#E2E8F0]">
                             {form.cities.map((c) => (
                               <span
                                 key={c}
@@ -2006,11 +2002,11 @@ export default function Home() {
                     </div>
 
                     {/* Sticky Action Footer for Step 3 */}
-                    <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-5 mt-6 border-t border-slate-200/80 flex items-center justify-between gap-3">
+                    <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-5 mt-6 border-t border-[#E2E8F0] flex items-center justify-between gap-3">
                       <button
                         type="button"
                         onClick={() => setStep(2)}
-                        className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                        className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-[#172554] hover:bg-slate-100 transition-colors cursor-pointer"
                       >
                         &larr; Back to Score
                       </button>
@@ -2018,7 +2014,7 @@ export default function Home() {
                         type="button"
                         onClick={() => handlePredict()}
                         disabled={loading}
-                        className="group bg-electric-blue hover:bg-blue-600 text-white font-semibold px-7 py-3 rounded-xl shadow-md shadow-electric-blue/25 hover:shadow-lg hover:shadow-electric-blue/35 transition-all flex items-center gap-2 text-sm cursor-pointer"
+                        className="group bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-7 py-3 rounded-xl shadow-md shadow-electric-blue/25 hover:shadow-lg hover:shadow-electric-blue/35 transition-all flex items-center gap-2 text-sm cursor-pointer"
                       >
                         {loading ? (
                           <RefreshCw className="animate-spin" size={17} />
@@ -2044,7 +2040,7 @@ export default function Home() {
       {step === 4 && (
         <section className="py-8 px-6 max-w-7xl mx-auto w-full flex-1">
           {/* Top Summary & Quick-Tune Bar */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs mb-6 space-y-4 print:border-none print:p-0 print:mb-4">
+          <div className="bg-white rounded-2xl p-6 border border-[#E2E8F0] shadow-xs mb-6 space-y-4 print:border-none print:p-0 print:mb-4">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
@@ -2052,7 +2048,7 @@ export default function Home() {
                     Your {studentInfo?.rank_scale_year || 2026} CAP Equivalent Profile
                   </span>
                   {studentInfo && (
-                    <div className="flex items-center gap-2 text-xs font-mono tabular-nums font-bold text-slate-900 bg-slate-50 px-3 py-1 rounded-md border border-slate-200">
+                    <div className="flex items-center gap-2 text-xs font-mono tabular-nums font-bold text-[#172554] bg-slate-50 px-3 py-1 rounded-md border border-slate-200">
                       <span>
                         {Number(
                           studentInfo.percentile ??
@@ -2075,7 +2071,7 @@ export default function Home() {
                   </span>
                 </div>
 
-                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2 pt-1">
+                <h2 className="text-2xl font-bold text-[#172554] flex items-center gap-2 pt-1">
                   Category Rank & Percentile Predictions (
                   {basePredictions.length} Courses)
                   {loading && (
@@ -2097,7 +2093,7 @@ export default function Home() {
               <div className="flex flex-wrap gap-2 print:hidden">
                 <Link
                   href={`/option-form?${buildCrossToolQuery()}`}
-                  className="px-3.5 py-2 text-xs font-bold text-white bg-electric-blue hover:bg-blue-600 rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
+                  className="px-3.5 py-2 text-xs font-bold text-white bg-[#4F46E5] hover:bg-[#4338CA] rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
                 >
                   <ListOrdered size={14} /> Build Option Form
                 </Link>
@@ -2171,7 +2167,7 @@ export default function Home() {
             </div>
 
             {/* Inline Quick-Switch Controls Bar */}
-            <div className="pt-4 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 print:hidden">
+            <div className="pt-4 border-t border-[#E2E8F0] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 print:hidden">
               {/* Inline Score Switcher */}
               <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
                 <button
@@ -2199,7 +2195,7 @@ export default function Home() {
                           : prev.rank,
                     }))
                   }
-                  className="px-2 py-1.5 bg-white text-slate-900 rounded-lg text-[11px] font-mono tabular-nums font-bold border border-slate-200/80 shrink-0 cursor-pointer"
+                  className="px-2 py-1.5 bg-white text-[#172554] rounded-lg text-[11px] font-mono tabular-nums font-bold border border-[#E2E8F0] shrink-0 cursor-pointer"
                   title="Click to toggle between Percentile and Rank input"
                 >
                   {form.inputType === "percentile" ? "%ile" : "Rank #"}
@@ -2225,7 +2221,7 @@ export default function Home() {
                   placeholder={
                     form.inputType === "percentile" ? "96.45" : "12500"
                   }
-                  className="w-full bg-transparent text-xs font-mono tabular-nums font-bold text-slate-900 px-1.5 focus:outline-none"
+                  className="w-full bg-transparent text-xs font-mono tabular-nums font-bold text-[#172554] px-1.5 focus:outline-none"
                 />
                 <button
                   type="button"
@@ -2247,7 +2243,7 @@ export default function Home() {
                   setForm((prev) => ({ ...prev, category: nextCat }));
                   handlePredict({ category: nextCat });
                 }}
-                className="text-xs text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200 font-semibold cursor-pointer focus:outline-none focus:border-electric-blue truncate"
+                className="text-xs text-[#172554] bg-slate-50 hover:bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200 font-semibold cursor-pointer focus:outline-none focus:border-electric-blue truncate"
               >
                 {renderGroupedCategoryOptions()}
               </select>
@@ -2268,7 +2264,7 @@ export default function Home() {
                     handlePredict({ branches: nextBranches });
                   }
                 }}
-                className="text-xs text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200 font-semibold cursor-pointer focus:outline-none focus:border-electric-blue truncate"
+                className="text-xs text-[#172554] bg-slate-50 hover:bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200 font-semibold cursor-pointer focus:outline-none focus:border-electric-blue truncate"
               >
                 <option value="">
                   {form.branches.length === 0
@@ -2303,7 +2299,7 @@ export default function Home() {
                     handlePredict({ cities: nextCities });
                   }
                 }}
-                className="text-xs text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200 font-semibold cursor-pointer focus:outline-none focus:border-electric-blue truncate"
+                className="text-xs text-[#172554] bg-slate-50 hover:bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200 font-semibold cursor-pointer focus:outline-none focus:border-electric-blue truncate"
               >
                 <option value="">
                   {form.cities.length === 0
@@ -2332,7 +2328,7 @@ export default function Home() {
                   setForm((prev) => ({ ...prev, round: nextRound }));
                   handlePredict({ round: nextRound });
                 }}
-                className="text-xs text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200 font-semibold cursor-pointer focus:outline-none focus:border-electric-blue"
+                className="text-xs text-[#172554] bg-slate-50 hover:bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200 font-semibold cursor-pointer focus:outline-none focus:border-electric-blue"
               >
                 <option value="All">All Rounds (Closing Cutoff)</option>
                 <option value="1">CAP Round 1</option>
@@ -2375,7 +2371,7 @@ export default function Home() {
                     key={`ct-${c}`}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 text-white text-xs font-semibold"
                   >
-                    <MapPin size={11} className="text-teal-300" />
+                    <MapPin size={11} className="text-[#C7D2FE]" />
                     {c}
                     <button
                       type="button"
@@ -2421,14 +2417,14 @@ export default function Home() {
               className={`bg-white p-5 rounded-2xl border text-left transition-all flex items-center gap-4 cursor-pointer ${
                 bandFilter === "Historically Within Range"
                   ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs"
-                  : "border-slate-200/90 hover:border-emerald-500/50"
+                  : "border-[#E2E8F0] hover:border-emerald-500/50"
               }`}
             >
               <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
                 <CheckCircle2 size={22} />
               </div>
               <div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900">
+                <div className="text-2xl font-bold font-mono tabular-nums text-[#172554]">
                   {counts.within}
                 </div>
                 <div className="text-xs font-medium text-slate-500">
@@ -2445,14 +2441,14 @@ export default function Home() {
               className={`bg-white p-5 rounded-2xl border text-left transition-all flex items-center gap-4 cursor-pointer ${
                 bandFilter === "Moderate"
                   ? "border-amber-500 ring-2 ring-amber-500/20 shadow-xs"
-                  : "border-slate-200/90 hover:border-amber-500/50"
+                  : "border-[#E2E8F0] hover:border-amber-500/50"
               }`}
             >
               <div className="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
                 <Award size={22} />
               </div>
               <div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900">
+                <div className="text-2xl font-bold font-mono tabular-nums text-[#172554]">
                   {counts.mod}
                 </div>
                 <div className="text-xs font-medium text-slate-500">
@@ -2469,14 +2465,14 @@ export default function Home() {
               className={`bg-white p-5 rounded-2xl border text-left transition-all flex items-center gap-4 cursor-pointer ${
                 bandFilter === "Ambitious"
                   ? "border-rose-500 ring-2 ring-rose-500/20 shadow-xs"
-                  : "border-slate-200/90 hover:border-rose-500/50"
+                  : "border-[#E2E8F0] hover:border-rose-500/50"
               }`}
             >
               <div className="w-11 h-11 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
                 <TrendingUp size={22} />
               </div>
               <div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900">
+                <div className="text-2xl font-bold font-mono tabular-nums text-[#172554]">
                   {counts.amb}
                 </div>
                 <div className="text-xs font-medium text-slate-500">
@@ -2495,14 +2491,14 @@ export default function Home() {
               className={`bg-white p-5 rounded-2xl border text-left transition-all flex items-center gap-4 cursor-pointer ${
                 bandFilter === "Bookmarked"
                   ? "border-electric-blue ring-2 ring-electric-blue/20 shadow-xs"
-                  : "border-slate-200/90 hover:border-electric-blue/50"
+                  : "border-[#E2E8F0] hover:border-electric-blue/50"
               }`}
             >
               <div className="w-11 h-11 rounded-xl bg-electric-blue/10 text-electric-blue flex items-center justify-center shrink-0">
                 <Bookmark size={22} />
               </div>
               <div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900">
+                <div className="text-2xl font-bold font-mono tabular-nums text-[#172554]">
                   {counts.saved}
                 </div>
                 <div className="text-xs font-medium text-slate-500">
@@ -2513,7 +2509,7 @@ export default function Home() {
           </div>
 
           {/* Search & Sort Controls */}
-          <div className="bg-white rounded-xl border border-slate-200/90 p-4 mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 print:hidden">
+          <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 print:hidden">
             <div className="relative flex-1">
               <Search
                 size={16}
@@ -2564,7 +2560,7 @@ export default function Home() {
                 <select
                   value={resultSort}
                   onChange={(e) => setResultSort(e.target.value as any)}
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none"
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#172554] focus:outline-none"
                 >
                   <option value="best_match">
                     Best Match (Within Range + Top Cutoff)
@@ -2585,11 +2581,11 @@ export default function Home() {
 
           {/* Results List */}
           {filteredPredictions.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-12 text-center space-y-4">
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] p-12 text-center space-y-4">
               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-400">
                 <ShieldAlert size={32} />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">
+              <h3 className="text-lg font-bold text-[#172554]">
                 No Matching Colleges Found
               </h3>
               <p className="text-sm text-slate-500 max-w-md mx-auto">
@@ -2660,7 +2656,7 @@ export default function Home() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: Math.min(idx * 0.015, 0.2) }}
                       key={`${p.college_code}-${p.branch}-${idx}`}
-                      className="bg-white rounded-2xl p-6 border border-slate-200/90 hover:border-electric-blue/40 shadow-2xs hover:shadow-md transition-all flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6"
+                      className="bg-white rounded-2xl p-6 border border-[#E2E8F0] hover:border-electric-blue/40 shadow-2xs hover:shadow-md transition-all flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6"
                     >
                       {/* Left Column: College, Branch & 3-Year Category History */}
                       <div className="space-y-2.5 flex-1 min-w-0">
@@ -2701,7 +2697,7 @@ export default function Home() {
                           )}
                         </div>
 
-                        <h3 className="text-lg font-bold text-slate-900 leading-snug">
+                        <h3 className="text-lg font-bold text-[#172554] leading-snug">
                           <Link
                             href={`/college/${p.college_code}`}
                             className="hover:text-electric-blue transition-colors"
@@ -2719,7 +2715,7 @@ export default function Home() {
                               href={p.official_website || p.cet_portal_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-slate-600 hover:text-electric-blue bg-slate-50 hover:bg-electric-blue/5 border border-slate-200/80 hover:border-electric-blue/30 px-2 py-0.5 rounded-md transition-colors print:hidden"
+                              className="inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-slate-600 hover:text-electric-blue bg-slate-50 hover:bg-electric-blue/5 border border-[#E2E8F0] hover:border-electric-blue/30 px-2 py-0.5 rounded-md transition-colors print:hidden"
                             >
                               <Globe size={11} className="text-electric-blue" />
                               {p.website_domain || "CET Official Profile"}
@@ -2759,7 +2755,7 @@ export default function Home() {
                             {p.history.map((h: any) => (
                               <span
                                 key={h.year}
-                                className="text-[11px] font-mono tabular-nums bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded text-slate-800"
+                                className="text-[11px] font-mono tabular-nums bg-slate-50 border border-[#E2E8F0] px-2 py-0.5 rounded text-slate-800"
                               >
                                 <strong>{h.year}:</strong>{" "}
                                 {Number(h.percentile).toFixed(2)}%{" "}
@@ -2773,15 +2769,15 @@ export default function Home() {
                       </div>
 
                       {/* Right Column: Dual Category Cutoffs (Percentile + Rankwise) & Actions */}
-                      <div className="flex flex-col sm:flex-row lg:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-200/80">
+                      <div className="flex flex-col sm:flex-row lg:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto border-t lg:border-t-0 pt-4 lg:pt-0 border-[#E2E8F0]">
                         {/* Side-by-Side Category Percentile & Rankwise Cutoff Boxes */}
                         <div className="grid grid-cols-2 gap-2.5 sm:gap-3 flex-1 sm:flex-initial">
                           {/* Box 1: Category Percentile Cutoff */}
-                          <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl px-3 sm:px-4 py-2.5 text-left sm:text-right min-w-0 sm:min-w-[148px]">
+                          <div className="bg-slate-50/80 border border-[#E2E8F0] rounded-xl px-3 sm:px-4 py-2.5 text-left sm:text-right min-w-0 sm:min-w-[148px]">
                             <div className="text-[10px] font-mono tabular-nums font-bold uppercase tracking-wider text-slate-500 truncate">
                               {form.category} %ile ({p.year} R{p.round})
                             </div>
-                            <div className="text-base sm:text-lg font-extrabold font-mono tabular-nums text-slate-900 mt-0.5">
+                            <div className="text-base sm:text-lg font-extrabold font-mono tabular-nums text-[#172554] mt-0.5">
                               {p.historical_percentile != null
                                 ? `${p.historical_percentile.toFixed(2)} %`
                                 : "N/A"}
@@ -2799,7 +2795,7 @@ export default function Home() {
                           </div>
 
                           {/* Box 2: Category Rankwise Cutoff */}
-                          <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl px-3 sm:px-4 py-2.5 text-left sm:text-right min-w-0 sm:min-w-[155px]">
+                          <div className="bg-slate-50/80 border border-[#E2E8F0] rounded-xl px-3 sm:px-4 py-2.5 text-left sm:text-right min-w-0 sm:min-w-[155px]">
                             <div className="text-[10px] font-mono tabular-nums font-bold uppercase tracking-wider text-slate-500 truncate">
                               {form.category} Merit Rank
                             </div>
@@ -2831,7 +2827,7 @@ export default function Home() {
                             className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${
                               isSaved
                                 ? "text-electric-blue bg-electric-blue/10 border-electric-blue/30"
-                                : "text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border-slate-200"
+                                : "text-slate-500 hover:text-[#172554] bg-slate-50 hover:bg-slate-100 border-slate-200"
                             }`}
                             title={
                               isSaved
@@ -2866,8 +2862,8 @@ export default function Home() {
               </div>
 
               {!proActive && filteredPredictions.length > FREE_PREDICTION_LIMIT && (
-                <div className="mt-8 bg-gradient-to-br from-[#0B1120] to-slate-900 text-white rounded-3xl p-8 border border-slate-800 shadow-xl text-center space-y-4 print:hidden">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-teal-300 text-xs font-bold">
+                <div className="mt-8 bg-gradient-to-br from-[#172554] to-slate-900 text-white rounded-3xl p-8 border border-slate-800 shadow-xl text-center space-y-4 print:hidden">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[#C7D2FE] text-xs font-bold">
                     <Lock size={13} />{" "}
                     {filteredPredictions.length - FREE_PREDICTION_LIMIT} More
                     Matching Courses Ready for Your Score
@@ -2895,7 +2891,7 @@ export default function Home() {
                           `Unlock all ${filteredPredictions.length} matching courses for ${form.category}`
                         )
                       }
-                      className="bg-electric-blue hover:bg-blue-500 text-white font-bold text-sm px-7 py-3.5 rounded-xl shadow-lg shadow-electric-blue/30 inline-flex items-center gap-2 cursor-pointer"
+                      className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm px-7 py-3.5 rounded-xl shadow-lg shadow-electric-blue/30 inline-flex items-center gap-2 cursor-pointer"
                     >
                       <Crown size={16} /> Unlock CAP Pro Pass — ₹199 (GPay{" "}
                       {GPAY_NUMBER})
@@ -2921,7 +2917,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => setVisibleCount((prev) => prev + 40)}
-                    className="bg-white hover:bg-slate-50 text-slate-900 font-semibold px-6 py-3 rounded-xl border border-slate-200 shadow-2xs transition-all text-sm cursor-pointer"
+                    className="bg-white hover:bg-slate-50 text-[#172554] font-semibold px-6 py-3 rounded-xl border border-slate-200 shadow-2xs transition-all text-sm cursor-pointer"
                   >
                     Load More ({filteredPredictions.length - visibleCount}{" "}
                     remaining)
@@ -2935,7 +2931,7 @@ export default function Home() {
           <div className="mt-12 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl flex items-start gap-3 text-xs text-slate-600">
             <ShieldAlert size={16} className="text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-slate-900">
+              <span className="font-bold text-[#172554]">
                 Important Disclaimer:
               </span>{" "}
               This classification is strictly based on historical MHT-CET CAP

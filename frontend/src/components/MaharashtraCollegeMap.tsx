@@ -72,21 +72,21 @@ interface Props {
 
 function getPinColors(c: MapCollegeItem, scoreMode: boolean, isSelected: boolean) {
   if (isSelected) {
-    return { bg: "#0B1120", ring: "#2563EB", text: "#FFFFFF", size: 18 };
+    return { bg: "#172554", ring: "#4F46E5", text: "#FFFFFF", size: 18 };
   }
   if (scoreMode) {
     if (c.prediction_category === "Historically Within Range") {
-      return { bg: "#10B981", ring: "#FFFFFF", text: "#FFFFFF", size: 13 };
+      return { bg: "#16A34A", ring: "#FFFFFF", text: "#FFFFFF", size: 13 };
     }
     if (c.prediction_category === "Moderate") {
-      return { bg: "#F59E0B", ring: "#FFFFFF", text: "#FFFFFF", size: 13 };
+      return { bg: "#EA580C", ring: "#FFFFFF", text: "#FFFFFF", size: 13 };
     }
-    return { bg: "#F43F5E", ring: "#FFFFFF", text: "#FFFFFF", size: 12 };
+    return { bg: "#DC2626", ring: "#FFFFFF", text: "#FFFFFF", size: 12 };
   }
   if (c.nirf_median_lpa != null) {
-    return { bg: "#2563EB", ring: "#FFFFFF", text: "#FFFFFF", size: 14 };
+    return { bg: "#4F46E5", ring: "#FFFFFF", text: "#FFFFFF", size: 14 };
   }
-  return { bg: "#475569", ring: "#FFFFFF", text: "#FFFFFF", size: 10 };
+  return { bg: "#64748B", ring: "#FFFFFF", text: "#FFFFFF", size: 10 };
 }
 
 export default function MaharashtraCollegeMap({
@@ -171,7 +171,7 @@ export default function MaharashtraCollegeMap({
 
     const userIcon = L.divIcon({
       className: "cap-user-pin",
-      html: `<div style="width:18px;height:18px;border-radius:9999px;background:#2563EB;border:3px solid #FFFFFF;box-shadow:0 0 0 6px rgba(37,99,235,0.28);"></div>`,
+      html: `<div style="width:18px;height:18px;border-radius:9999px;background:#4F46E5;border:3px solid #FFFFFF;box-shadow:0 0 0 6px rgba(79,70,229,0.28);"></div>`,
       iconSize: [18, 18],
       iconAnchor: [9, 9],
     });
@@ -195,7 +195,7 @@ export default function MaharashtraCollegeMap({
       const { bg, ring, size } = getPinColors(c, scoreMode, isSelected);
       const borderW = isSelected ? 3 : 2;
       const shadow = isSelected
-        ? "0 0 0 6px rgba(37,99,235,0.35), 0 4px 12px rgba(15,23,42,0.45)"
+        ? "0 0 0 6px rgba(79,70,229,0.35), 0 4px 12px rgba(15,23,42,0.45)"
         : "0 2px 6px rgba(15,23,42,0.28)";
 
       const icon = L.divIcon({
@@ -225,19 +225,19 @@ export default function MaharashtraCollegeMap({
 
       const titleEl = document.createElement("div");
       titleEl.style.fontWeight = "700";
-      titleEl.style.color = "#0F172A";
+      titleEl.style.color = "#172554";
       titleEl.textContent = c.college_name || "";
       tooltipEl.appendChild(titleEl);
 
       const subEl = document.createElement("div");
-      subEl.style.color = "#475569";
+      subEl.style.color = "#64748B";
       subEl.style.marginTop = "2px";
       subEl.textContent = `DTE ${c.college_code} • ${c.city}${distLabel}`;
       tooltipEl.appendChild(subEl);
 
       if (pctLabel) {
         const pctEl = document.createElement("div");
-        pctEl.style.color = "#2563EB";
+        pctEl.style.color = "#4F46E5";
         pctEl.style.fontWeight = "700";
         pctEl.style.marginTop = "2px";
         pctEl.textContent = `${

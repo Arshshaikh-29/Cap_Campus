@@ -308,7 +308,7 @@ export default function BettermentRadarPage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold uppercase tracking-wider">
               <Radar size={13} /> Exclusive • CAP Round 1 → 2 → 3 → 4 Intelligence
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
               CAP Betterment &amp; Spot-Round Drop Radar
             </h1>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
@@ -327,7 +327,7 @@ export default function BettermentRadarPage() {
                   "Unlock ALL Betterment Gems, the complete Spot/ACAP Watchlist & CSV export with CAP Pro Pass"
                 )
               }
-              className="bg-gradient-to-r from-electric-blue to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold text-xs px-5 py-3 rounded-xl shadow-md flex items-center gap-2 cursor-pointer shrink-0"
+              className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold text-xs px-5 py-3 rounded-xl shadow-md flex items-center gap-2 cursor-pointer shrink-0"
             >
               <Crown size={15} /> Unlock Full Radar • ₹199 (GPay {GPAY_NUMBER})
             </button>
@@ -335,7 +335,7 @@ export default function BettermentRadarPage() {
         </div>
 
         {/* Config Card */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-sm p-6 sm:p-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
             <div className="md:col-span-4 space-y-2">
               <div className="flex items-center justify-between">
@@ -350,7 +350,7 @@ export default function BettermentRadarPage() {
                       onClick={() => setInputType(t)}
                       className={`px-2 py-0.5 rounded-md cursor-pointer ${
                         inputType === t
-                          ? "bg-white text-slate-900 shadow-2xs"
+                          ? "bg-white text-[#172554] shadow-2xs"
                           : "text-slate-500"
                       }`}
                     >
@@ -414,7 +414,7 @@ export default function BettermentRadarPage() {
                     ct: cities,
                   })
                 }
-                className="w-full bg-electric-blue hover:bg-blue-600 disabled:bg-slate-300 text-white font-bold text-sm py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                className="w-full bg-[#4F46E5] hover:bg-[#4338CA] disabled:bg-slate-300 text-white font-bold text-sm py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
               >
                 {loading ? (
                   <RefreshCw size={16} className="animate-spin" />
@@ -489,7 +489,7 @@ export default function BettermentRadarPage() {
         {!data && !loading && (
           <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center space-y-2">
             <Radar size={28} className="mx-auto text-electric-blue" />
-            <div className="text-sm font-bold text-slate-900">
+            <div className="text-sm font-bold text-[#172554]">
               Discover Hidden Round 2 &amp; Round 3 Betterment Upgrades
             </div>
             <p className="text-xs text-slate-500 max-w-xl mx-auto">
@@ -504,7 +504,7 @@ export default function BettermentRadarPage() {
           <>
             {/* KPI Strip */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
                   <Sparkles size={13} /> Betterment Gems Found
                 </div>
@@ -516,7 +516,7 @@ export default function BettermentRadarPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
                   <Flame size={13} /> Spot / ACAP Watchlist
                 </div>
@@ -528,7 +528,7 @@ export default function BettermentRadarPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
                   <TrendingDown size={13} /> Avg R1 → R4 Drop
                 </div>
@@ -540,8 +540,8 @@ export default function BettermentRadarPage() {
                 </div>
               </div>
 
-              <div className="bg-[#0B1120] text-white rounded-2xl p-5 flex flex-col justify-between">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-blue-300 flex items-center gap-1.5">
+              <div className="bg-[#172554] text-white rounded-2xl p-5 flex flex-col justify-between">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-[#C7D2FE] flex items-center gap-1.5">
                   <ShieldCheck size={13} /> Your Profile ({data.student.rank_scale_year})
                 </div>
                 <div className="text-xl font-extrabold font-mono tabular-nums mt-1">
@@ -558,7 +558,7 @@ export default function BettermentRadarPage() {
             </div>
 
             {/* Tabs & Actions */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden">
               <div className="px-5 pt-4 pb-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap gap-2">
                   {[
@@ -581,7 +581,7 @@ export default function BettermentRadarPage() {
                       onClick={() => setActiveTab(t.id)}
                       className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         activeTab === t.id
-                          ? "bg-[#0B1120] text-white shadow-xs"
+                          ? "bg-[#172554] text-white shadow-xs"
                           : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                       }`}
                     >
@@ -601,7 +601,7 @@ export default function BettermentRadarPage() {
                   </button>
                   <Link
                     href={`/option-form?p=${data.student.percentile}&cat=${data.student.category}`}
-                    className="px-3.5 py-2 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold inline-flex items-center gap-1.5"
+                    className="px-3.5 py-2 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold inline-flex items-center gap-1.5"
                   >
                     Build Option Form <ArrowRight size={13} />
                   </Link>
@@ -638,7 +638,7 @@ export default function BettermentRadarPage() {
 
                           <Link
                             href={`/college/${r.college_code}`}
-                            className="block text-base font-bold text-slate-900 hover:text-electric-blue transition-colors"
+                            className="block text-base font-bold text-[#172554] hover:text-electric-blue transition-colors"
                           >
                             {r.college_name}
                           </Link>
@@ -736,7 +736,7 @@ export default function BettermentRadarPage() {
                             className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${
                               saved
                                 ? "bg-electric-blue/10 border-electric-blue/30 text-electric-blue"
-                                : "bg-white border-slate-200 text-slate-500 hover:text-slate-900"
+                                : "bg-white border-slate-200 text-slate-500 hover:text-[#172554]"
                             }`}
                           >
                             <Bookmark size={15} className={saved ? "fill-electric-blue" : ""} />
@@ -750,7 +750,7 @@ export default function BettermentRadarPage() {
 
               {/* Server-Enforced Pro Paywall Card */}
               {!data.is_pro && lockedForCurrentTab > 0 && (
-                <div className="p-6 bg-gradient-to-r from-[#0B1120] via-slate-900 to-indigo-950 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="p-6 bg-gradient-to-r from-[#172554] via-slate-900 to-indigo-950 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wider">
                       <Lock size={13} /> {lockedForCurrentTab} More{" "}
@@ -771,7 +771,7 @@ export default function BettermentRadarPage() {
                         `Unlock all ${lockedForCurrentTab} remaining Betterment & Spot Round targets with CAP Pro Pass`
                       )
                     }
-                    className="px-5 py-3 rounded-xl bg-electric-blue hover:bg-blue-500 text-white text-xs font-bold inline-flex items-center gap-1.5 shrink-0 shadow-lg cursor-pointer"
+                    className="px-5 py-3 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold inline-flex items-center gap-1.5 shrink-0 shadow-lg cursor-pointer"
                   >
                     <Crown size={14} /> Unlock All Now • ₹199
                   </button>
@@ -779,7 +779,7 @@ export default function BettermentRadarPage() {
               )}
             </div>
 
-            <div className="flex items-start gap-2.5 p-4 rounded-2xl bg-blue-50/70 border border-blue-100 text-xs text-slate-700">
+            <div className="flex items-start gap-2.5 p-4 rounded-2xl bg-[#EEF2FF]/70 border border-blue-100 text-xs text-slate-700">
               <Info size={15} className="text-electric-blue shrink-0 mt-0.5" />
               <span>
                 Betterment drops are calculated directly from official State CET

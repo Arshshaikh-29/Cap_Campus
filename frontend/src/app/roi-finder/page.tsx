@@ -246,7 +246,7 @@ export default function ROIBudgetFinderPage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold uppercase tracking-wider">
               <Wallet size={13} /> Exclusive • Maharashtra Scholarship &amp; ROI Engine
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
               Smart Budget, Scholarship &amp; ROI Finder
             </h1>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
@@ -266,7 +266,7 @@ export default function ROIBudgetFinderPage() {
                   "Unlock unlimited ROI rankings, custom Max-Budget filter & Parent-Ready PDF/CSV Budget Reports"
                 )
               }
-              className="bg-gradient-to-r from-electric-blue to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold text-xs px-5 py-3 rounded-xl shadow-md flex items-center gap-2 cursor-pointer shrink-0 print:hidden"
+              className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold text-xs px-5 py-3 rounded-xl shadow-md flex items-center gap-2 cursor-pointer shrink-0 print:hidden"
             >
               <Crown size={15} /> Unlock Full ROI Finder • ₹199
             </button>
@@ -274,7 +274,7 @@ export default function ROIBudgetFinderPage() {
         </div>
 
         {/* Config Card */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6 print:hidden">
+        <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-sm p-6 sm:p-8 space-y-6 print:hidden">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
             {/* Score */}
             <div className="md:col-span-3 space-y-2">
@@ -290,7 +290,7 @@ export default function ROIBudgetFinderPage() {
                       onClick={() => setInputType(t)}
                       className={`px-2 py-0.5 rounded-md cursor-pointer ${
                         inputType === t
-                          ? "bg-white text-slate-900 shadow-2xs"
+                          ? "bg-white text-[#172554] shadow-2xs"
                           : "text-slate-500"
                       }`}
                     >
@@ -345,7 +345,7 @@ export default function ROIBudgetFinderPage() {
                     onClick={() => setGender(g)}
                     className={`py-2.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
                       gender === g
-                        ? "bg-white text-slate-900 shadow-xs"
+                        ? "bg-white text-[#172554] shadow-xs"
                         : "text-slate-500"
                     }`}
                   >
@@ -377,7 +377,7 @@ export default function ROIBudgetFinderPage() {
                   onClick={() => setIncomeBelow8L(false)}
                   className={`py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     !incomeBelow8L
-                      ? "bg-white text-slate-900 shadow-xs"
+                      ? "bg-white text-[#172554] shadow-xs"
                       : "text-slate-600"
                   }`}
                 >
@@ -388,7 +388,7 @@ export default function ROIBudgetFinderPage() {
           </div>
 
           {/* Pro Custom Budget Cap */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-[#E2E8F0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <input
                 id="budget-cap"
@@ -426,7 +426,7 @@ export default function ROIBudgetFinderPage() {
                 onChange={(e) => setMaxBudgetInr(Number(e.target.value))}
                 className="flex-1 accent-electric-blue disabled:opacity-40"
               />
-              <span className="font-mono text-xs font-extrabold text-slate-900 w-24 text-right">
+              <span className="font-mono text-xs font-extrabold text-[#172554] w-24 text-right">
                 ₹{(maxBudgetInr / 100000).toFixed(2)}L / yr
               </span>
             </div>
@@ -490,7 +490,7 @@ export default function ROIBudgetFinderPage() {
               type="button"
               disabled={loading}
               onClick={() => runFinder()}
-              className="px-7 py-3.5 rounded-xl bg-electric-blue hover:bg-blue-600 disabled:bg-slate-300 text-white font-bold text-sm inline-flex items-center gap-2 shadow-md cursor-pointer"
+              className="px-7 py-3.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] disabled:bg-slate-300 text-white font-bold text-sm inline-flex items-center gap-2 shadow-md cursor-pointer"
             >
               {loading ? (
                 <RefreshCw size={16} className="animate-spin" />
@@ -518,7 +518,7 @@ export default function ROIBudgetFinderPage() {
                   <div className="text-xs font-bold uppercase tracking-wider text-emerald-700">
                     Maharashtra Scholarship Scheme Applied
                   </div>
-                  <div className="text-base font-extrabold text-slate-900">
+                  <div className="text-base font-extrabold text-[#172554]">
                     {data.scheme_applied}
                   </div>
                 </div>
@@ -545,11 +545,11 @@ export default function ROIBudgetFinderPage() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   Verified ROI Matches
                 </div>
-                <div className="text-3xl font-extrabold font-mono tabular-nums text-slate-900 mt-1.5">
+                <div className="text-3xl font-extrabold font-mono tabular-nums text-[#172554] mt-1.5">
                   {data.summary.total_matches}
                 </div>
                 <div className="text-xs text-slate-500 mt-0.5">
@@ -557,7 +557,7 @@ export default function ROIBudgetFinderPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1">
                   <TrendingUp size={13} /> Best Net ROI Payback
                 </div>
@@ -571,7 +571,7 @@ export default function ROIBudgetFinderPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 flex items-center gap-1">
                   <IndianRupee size={13} /> Max 4-Yr Scholarship Savings
                 </div>
@@ -583,7 +583,7 @@ export default function ROIBudgetFinderPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-electric-blue flex items-center gap-1">
                   <Award size={13} /> Top NIRF Median Reachable
                 </div>
@@ -600,10 +600,10 @@ export default function ROIBudgetFinderPage() {
 
             {/* Visual ROI Chart */}
             {chartData.length > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-6">
                 <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900">
+                    <h2 className="text-lg font-bold text-[#172554]">
                       4-Year Net Fee vs. First-Year NIRF Median Package (₹ Lakhs)
                     </h2>
                     <p className="text-xs text-slate-500">
@@ -655,7 +655,7 @@ export default function ROIBudgetFinderPage() {
             )}
 
             {/* ROI Ranked Table */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[820px]">
                   <thead>
@@ -673,13 +673,13 @@ export default function ROIBudgetFinderPage() {
                       <tr key={`${r.college_code}-${r.branch}-${idx}`} className="hover:bg-slate-50/70">
                         <td className="py-3.5 px-4">
                           <div className="flex items-start gap-2.5">
-                            <span className="font-mono font-extrabold text-xs px-2 py-0.5 rounded bg-[#0B1120] text-white shrink-0">
+                            <span className="font-mono font-extrabold text-xs px-2 py-0.5 rounded bg-[#172554] text-white shrink-0">
                               #{idx + 1}
                             </span>
                             <div>
                               <Link
                                 href={`/college/${r.college_code}`}
-                                className="font-bold text-slate-900 hover:text-electric-blue leading-snug block"
+                                className="font-bold text-[#172554] hover:text-electric-blue leading-snug block"
                               >
                                 {r.college_name}
                               </Link>
@@ -717,7 +717,7 @@ export default function ROIBudgetFinderPage() {
                               ₹{Number(r.sticker_annual_fee_inr).toLocaleString()}
                             </div>
                           )}
-                          <div className="font-extrabold text-slate-900">
+                          <div className="font-extrabold text-[#172554]">
                             ₹{Number(r.net_annual_fee_inr).toLocaleString()}/yr
                           </div>
                         </td>
@@ -751,7 +751,7 @@ export default function ROIBudgetFinderPage() {
               </div>
 
               {!data.is_pro && data.summary.locked_count > 0 && (
-                <div className="p-6 bg-gradient-to-r from-[#0B1120] via-slate-900 to-indigo-950 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
+                <div className="p-6 bg-gradient-to-r from-[#172554] via-slate-900 to-indigo-950 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
                   <div className="space-y-1">
                     <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wider">
                       <Lock size={13} /> {data.summary.locked_count} More ROI-Ranked
@@ -771,7 +771,7 @@ export default function ROIBudgetFinderPage() {
                         `Unlock all ${data.summary.locked_count} remaining ROI-ranked colleges + Max-Budget filter`
                       )
                     }
-                    className="px-5 py-3 rounded-xl bg-electric-blue hover:bg-blue-500 text-white text-xs font-bold inline-flex items-center gap-1.5 shrink-0 shadow-lg cursor-pointer"
+                    className="px-5 py-3 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold inline-flex items-center gap-1.5 shrink-0 shadow-lg cursor-pointer"
                   >
                     <Crown size={14} /> Unlock CAP Pro • ₹199
                   </button>

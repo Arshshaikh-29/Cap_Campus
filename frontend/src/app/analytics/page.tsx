@@ -463,12 +463,12 @@ export default function Analytics() {
                           >
                             <stop
                               offset="5%"
-                              stopColor="#2563EB"
+                              stopColor="#4F46E5"
                               stopOpacity={0.3}
                             />
                             <stop
                               offset="95%"
-                              stopColor="#2563EB"
+                              stopColor="#4F46E5"
                               stopOpacity={0}
                             />
                           </linearGradient>
@@ -501,7 +501,7 @@ export default function Analytics() {
                         <Area
                           type="monotone"
                           dataKey="percentile"
-                          stroke="#2563EB"
+                          stroke="#4F46E5"
                           strokeWidth={3}
                           fill="url(#colorPct)"
                         />

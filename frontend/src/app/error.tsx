@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function GlobalError({
   reset,
@@ -12,30 +13,33 @@ export default function GlobalError({
 }) {
   return (
     <div className="flex-1 bg-[#F8FAFC] flex items-center justify-center p-6">
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-lg max-w-md w-full p-8 text-center space-y-5">
-        <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center">
-          <AlertTriangle size={24} />
+      <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm max-w-md w-full p-8 text-center space-y-5">
+        <div className="flex justify-center">
+          <BrandLogo variant="compact" theme="light" size="sm" />
+        </div>
+        <div className="w-12 h-12 mx-auto rounded-xl bg-orange-50 text-orange-600 border border-orange-200 flex items-center justify-center">
+          <AlertTriangle size={22} />
         </div>
         <div className="space-y-1.5">
-          <h1 className="text-xl font-extrabold text-slate-900">
+          <h1 className="text-xl font-bold text-[#172554]">
             Something went wrong
           </h1>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <p className="text-xs text-[#64748B] leading-relaxed">
             An unexpected display error occurred. Your shortlist and saved
-            settings are safe — click retry to reload cleanly.
+            settings are safe — retry to reload cleanly.
           </p>
         </div>
         <div className="flex gap-2.5 justify-center">
           <button
             type="button"
             onClick={() => reset()}
-            className="px-5 py-2.5 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
           >
             <RefreshCw size={14} /> Try Again
           </button>
           <Link
             href="/"
-            className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1.5"
+            className="px-4 py-2.5 rounded-xl bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] text-[#1E293B] text-xs font-semibold flex items-center gap-1.5 transition-colors"
           >
             <Home size={14} /> Home
           </Link>

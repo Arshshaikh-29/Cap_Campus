@@ -221,7 +221,7 @@ export default function WhatIfSimulatorPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-bold uppercase tracking-wider">
             <Activity size={13} /> New • Score Impact Simulator
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
             What-If Score Simulator
           </h1>
           <p className="text-sm sm:text-base text-slate-500">
@@ -233,7 +233,7 @@ export default function WhatIfSimulatorPage() {
         </div>
 
         {/* Config Card */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-sm p-6 sm:p-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
             <div className="md:col-span-4 space-y-2">
               <div className="flex items-center justify-between">
@@ -247,7 +247,7 @@ export default function WhatIfSimulatorPage() {
                       type="button"
                       onClick={() => setInputType(t)}
                       className={`px-2 py-0.5 rounded-md cursor-pointer ${
-                        inputType === t ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500"
+                        inputType === t ? "bg-white text-[#172554] shadow-2xs" : "text-slate-500"
                       }`}
                     >
                       {t === "percentile" ? "%ile" : "Rank"}
@@ -291,7 +291,7 @@ export default function WhatIfSimulatorPage() {
                 type="button"
                 onClick={runSimulation}
                 disabled={loading}
-                className="w-full bg-electric-blue hover:bg-blue-600 disabled:bg-slate-300 text-white font-bold text-sm py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                className="w-full bg-[#4F46E5] hover:bg-[#4338CA] disabled:bg-slate-300 text-white font-bold text-sm py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
               >
                 {loading ? (
                   <RefreshCw size={16} className="animate-spin" />
@@ -372,11 +372,11 @@ export default function WhatIfSimulatorPage() {
           <>
             {/* KPI strip */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   Your Profile ({data.rank_scale_year} scale)
                 </div>
-                <div className="text-2xl font-extrabold font-mono tabular-nums text-slate-900 mt-1.5">
+                <div className="text-2xl font-extrabold font-mono tabular-nums text-[#172554] mt-1.5">
                   {data.base_percentile.toFixed(2)}
                   <span className="text-sm text-slate-400"> %ile</span>
                 </div>
@@ -384,7 +384,7 @@ export default function WhatIfSimulatorPage() {
                   ≈ State Merit Rank #{Math.round(data.base_rank).toLocaleString()}
                 </div>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   Within Range Today
                 </div>
@@ -395,7 +395,7 @@ export default function WhatIfSimulatorPage() {
                   of {data.total_courses} matching course seats
                 </div>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   Unlocked with +1 %ile
                 </div>
@@ -409,8 +409,8 @@ export default function WhatIfSimulatorPage() {
             </div>
 
             {/* Chart */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-1">
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-6">
+              <h2 className="text-lg font-bold text-[#172554] mb-1">
                 Options by Simulated Score
               </h2>
               <p className="text-xs text-slate-500 mb-5">
@@ -431,7 +431,7 @@ export default function WhatIfSimulatorPage() {
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748B" }} />
                     <YAxis tick={{ fontSize: 11, fill: "#64748B" }} allowDecimals={false} />
                     <Tooltip
-                      cursor={{ fill: "rgba(37,99,235,0.06)" }}
+                      cursor={{ fill: "rgba(79,70,229,0.06)" }}
                       contentStyle={{ borderRadius: 12, fontSize: 12, borderColor: "#E2E8F0" }}
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -451,7 +451,7 @@ export default function WhatIfSimulatorPage() {
             </div>
 
             {/* Delta selector + changed list */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden">
               <div className="p-5 border-b border-slate-200 flex flex-wrap gap-2">
                 {data.points
                   .filter((p) => p.delta !== 0)
@@ -526,7 +526,7 @@ export default function WhatIfSimulatorPage() {
                               <td className="py-2.5 px-3">
                                 <Link
                                   href={`/college/${c.college_code}`}
-                                  className="font-semibold text-slate-900 hover:text-electric-blue"
+                                  className="font-semibold text-[#172554] hover:text-electric-blue"
                                 >
                                   {c.college_name}
                                 </Link>
@@ -577,7 +577,7 @@ export default function WhatIfSimulatorPage() {
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-4 rounded-2xl bg-blue-50/70 border border-blue-100">
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-4 rounded-2xl bg-[#EEF2FF]/70 border border-blue-100">
               <div className="flex items-start gap-2.5 text-xs text-slate-700">
                 <Info size={15} className="text-electric-blue shrink-0 mt-0.5" />
                 Simulations re-score the same historical CAP cutoffs (2023–2025)
@@ -585,7 +585,7 @@ export default function WhatIfSimulatorPage() {
               </div>
               <Link
                 href="/option-form"
-                className="shrink-0 px-4 py-2 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold flex items-center gap-1.5"
+                className="shrink-0 px-4 py-2 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold flex items-center gap-1.5"
               >
                 Build Option Form <ArrowRight size={13} />
               </Link>

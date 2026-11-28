@@ -11,18 +11,18 @@ import {
   Building2,
   Calculator,
   Compass,
-  Crown,
+  CreditCard,
   GitCompare,
   ListOrdered,
   LogIn,
   MapPin,
   Radar,
   Search,
-  Sparkles,
   User,
   Wallet,
   X,
 } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -132,7 +132,7 @@ const STATIC_COMMANDS: QuickItem[] = [
     label: "Pricing & CAP Pro Pass (₹199)",
     sublabel: "Unlock full predictions, 60-choice Option Form & CSV/PDF exports",
     href: "/pricing",
-    icon: Crown,
+    icon: CreditCard,
   },
   {
     id: "about",
@@ -254,7 +254,7 @@ export default function CommandPalette({
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-2xl rounded-2xl border border-slate-200/90 shadow-2xl overflow-hidden"
+        className="bg-white w-full max-w-2xl rounded-2xl border border-[#E2E8F0] shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
@@ -267,7 +267,7 @@ export default function CommandPalette({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search colleges by name or DTE code (e.g. VJTI, 6006, PICT) or jump to any tool..."
-            className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-[#172554] placeholder:text-slate-400 focus:outline-none"
           />
           {query && (
             <button
@@ -390,20 +390,18 @@ export default function CommandPalette({
         </div>
 
         {/* Footer bar */}
-        <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200/80 flex items-center justify-between text-[11px] text-slate-400">
+        <div className="px-4 py-2.5 bg-[#F8FAFC] border-t border-[#E2E8F0] flex items-center justify-between text-[11px] text-[#64748B]">
           <div className="flex items-center gap-3">
             <span>
-              <kbd className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">↑↓</kbd>{" "}
+              <kbd className="font-mono bg-white px-1.5 py-0.5 rounded border border-[#E2E8F0] text-[#172554]">↑↓</kbd>{" "}
               navigate
             </span>
             <span>
-              <kbd className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">↵</kbd>{" "}
+              <kbd className="font-mono bg-white px-1.5 py-0.5 rounded border border-[#E2E8F0] text-[#172554]">↵</kbd>{" "}
               open
             </span>
           </div>
-          <span className="flex items-center gap-1 font-medium text-slate-500">
-            <Sparkles size={11} className="text-electric-blue" /> CAP Compass by Arsh Shaikh
-          </span>
+          <BrandLogo variant="compact" theme="light" size="sm" />
         </div>
       </div>
     </div>

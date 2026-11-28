@@ -48,10 +48,10 @@ export default function AboutPage() {
     <div className="flex-1 bg-[#F8FAFC] py-12 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto space-y-10">
         {/* Creator hero */}
-        <div className="relative overflow-hidden bg-[#0B1120] text-white rounded-3xl p-8 sm:p-12">
+        <div className="relative overflow-hidden bg-[#172554] text-white rounded-3xl p-8 sm:p-12">
           <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-electric-blue/30 blur-3xl" aria-hidden />
           <div className="relative flex flex-col sm:flex-row gap-8 items-start sm:items-center">
-            <div className="w-24 h-24 shrink-0 rounded-3xl bg-gradient-to-br from-electric-blue to-indigo-600 flex items-center justify-center text-3xl font-extrabold tracking-tight shadow-xl ring-4 ring-white/10">
+            <div className="w-24 h-24 shrink-0 rounded-3xl bg-[#4F46E5] flex items-center justify-center text-3xl font-extrabold tracking-tight shadow-xl ring-4 ring-white/10">
               AS
             </div>
             <div className="space-y-3">
@@ -82,7 +82,7 @@ export default function AboutPage() {
                 </a>
                 <Link
                   href="/?start=1"
-                  className="px-4 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-xs font-bold flex items-center gap-1.5"
+                  className="px-4 py-2.5 rounded-xl bg-white text-[#172554] hover:bg-slate-100 text-xs font-bold flex items-center gap-1.5"
                 >
                   Try the Predictor <ArrowRight size={14} />
                 </Link>
@@ -92,8 +92,8 @@ export default function AboutPage() {
         </div>
 
         {/* Mission */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 space-y-3">
-          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 sm:p-8 space-y-3">
+          <h2 className="text-xl font-bold text-[#172554] flex items-center gap-2">
             <Compass size={20} className="text-electric-blue" /> Why CAP Compass?
           </h2>
           <p className="text-sm text-slate-600 leading-relaxed">
@@ -109,11 +109,11 @@ export default function AboutPage() {
         {/* Highlights */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {HIGHLIGHTS.map((h) => (
-            <div key={h.title} className="bg-white rounded-2xl border border-slate-200/90 p-6 space-y-2">
+            <div key={h.title} className="bg-white rounded-2xl border border-[#E2E8F0] p-6 space-y-2">
               <div className="w-10 h-10 rounded-xl bg-electric-blue/10 text-electric-blue flex items-center justify-center">
                 <h.icon size={20} />
               </div>
-              <h3 className="font-bold text-slate-900">{h.title}</h3>
+              <h3 className="font-bold text-[#172554]">{h.title}</h3>
               <p className="text-xs text-slate-600 leading-relaxed">{h.body}</p>
             </div>
           ))}
@@ -122,7 +122,7 @@ export default function AboutPage() {
         {/* Support */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-6 rounded-2xl bg-gradient-to-r from-electric-blue/10 to-indigo-500/10 border border-electric-blue/20">
           <div className="space-y-1">
-            <div className="font-bold text-slate-900 flex items-center gap-2">
+            <div className="font-bold text-[#172554] flex items-center gap-2">
               <Heart size={16} className="text-rose-500" /> Support the project
             </div>
             <p className="text-xs text-slate-600">
@@ -132,7 +132,7 @@ export default function AboutPage() {
           </div>
           <Link
             href="/pricing"
-            className="shrink-0 px-5 py-2.5 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold flex items-center gap-1.5"
+            className="shrink-0 px-5 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold flex items-center gap-1.5"
           >
             <Sparkles size={14} /> View Plans
           </Link>

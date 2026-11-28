@@ -43,7 +43,7 @@ export default function CollegeMiniMap({
 
     const pin = L.divIcon({
       className: "cap-mini-pin",
-      html: `<div style="width:18px;height:18px;border-radius:9999px;background:#2563EB;border:3px solid #FFFFFF;box-shadow:0 0 0 6px rgba(37,99,235,0.28),0 3px 10px rgba(15,23,42,0.35);"></div>`,
+      html: `<div style="width:18px;height:18px;border-radius:9999px;background:#4F46E5;border:3px solid #FFFFFF;box-shadow:0 0 0 6px rgba(79,70,229,0.25),0 3px 10px rgba(23,37,84,0.35);"></div>`,
       iconSize: [18, 18],
       iconAnchor: [9, 9],
     });
@@ -76,7 +76,7 @@ export default function CollegeMiniMap({
   return (
     <div
       ref={ref}
-      className="w-full h-[250px] rounded-2xl overflow-hidden border border-slate-200/90 z-0"
+      className="w-full h-[250px] rounded-2xl overflow-hidden border border-[#E2E8F0] z-0"
       aria-label={`Campus map for ${collegeName}`}
     />
   );

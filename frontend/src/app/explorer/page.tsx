@@ -328,7 +328,7 @@ export default function ExplorerPage() {
                             href={c.official_website || c.cet_portal_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-600 hover:text-electric-blue bg-slate-50 hover:bg-electric-blue/5 border border-slate-200/80 hover:border-electric-blue/30 px-2.5 py-1 rounded-lg transition-colors max-w-full truncate"
+                            className="inline-flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-600 hover:text-electric-blue bg-slate-50 hover:bg-electric-blue/5 border border-[#E2E8F0] hover:border-electric-blue/30 px-2.5 py-1 rounded-lg transition-colors max-w-full truncate"
                           >
                             <Globe size={11} className="text-electric-blue shrink-0" />
                             <span className="truncate">

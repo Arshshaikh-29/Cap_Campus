@@ -32,6 +32,7 @@ import {
   isProActive,
 } from "@/lib/plan";
 import { getStoredAuth } from "@/lib/auth";
+import BrandLogo from "@/components/BrandLogo";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -223,7 +224,7 @@ export default function UpgradeModal({
           contact: phone.replace(/\D+/g, "").slice(-10),
         },
         theme: {
-          color: "#2563EB",
+          color: "#4F46E5",
         },
         modal: {
           ondismiss: () => {
@@ -388,20 +389,18 @@ export default function UpgradeModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-3xl border border-slate-200/90 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="sticky top-0 bg-white/95 backdrop-blur-md z-10 px-6 py-5 border-b border-slate-200/80 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-electric-blue to-indigo-600 text-white flex items-center justify-center shadow-sm">
-              <Crown size={18} />
-            </div>
+        <div className="sticky top-0 bg-white/95 backdrop-blur-md z-10 px-6 py-5 border-b border-[#E2E8F0] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <BrandLogo variant="icon" theme="light" size="md" />
             <div>
-              <h3 className="text-lg font-bold text-slate-900 leading-tight">
+              <h3 className="text-base sm:text-lg font-bold text-[#172554] leading-tight">
                 Upgrade to CAP Compass Pro
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#64748B]">
                 {reason || "Pay directly via UPI / GPay / Cards — unlocks automatically!"}
               </p>
             </div>
@@ -418,7 +417,7 @@ export default function UpgradeModal({
 
         {/* 3-Tab Switcher */}
         <div className="px-6 pt-5">
-          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
+          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl border border-[#E2E8F0]">
             <button
               type="button"
               onClick={() => {
@@ -427,8 +426,8 @@ export default function UpgradeModal({
               }}
               className={`py-2 px-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 tab === "instant"
-                  ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/5"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-[#172554] shadow-xs ring-1 ring-slate-900/5"
+                  : "text-slate-600 hover:text-[#172554]"
               }`}
             >
               <Zap size={13} className="text-electric-blue" /> Instant Pay
@@ -441,8 +440,8 @@ export default function UpgradeModal({
               }}
               className={`py-2 px-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 tab === "manual"
-                  ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/5"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-[#172554] shadow-xs ring-1 ring-slate-900/5"
+                  : "text-slate-600 hover:text-[#172554]"
               }`}
             >
               <Smartphone size={13} className="text-indigo-600" /> GPay UTR
@@ -455,8 +454,8 @@ export default function UpgradeModal({
               }}
               className={`py-2 px-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 tab === "activate"
-                  ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/5"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-[#172554] shadow-xs ring-1 ring-slate-900/5"
+                  : "text-slate-600 hover:text-[#172554]"
               }`}
             >
               <KeyRound size={13} className="text-emerald-600" /> Access Key
@@ -486,18 +485,18 @@ export default function UpgradeModal({
                       <span
                         className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full absolute top-3 right-3 ${
                           pid === "pro"
-                            ? "bg-electric-blue text-white"
-                            : "bg-amber-500/15 text-amber-700 border border-amber-500/25"
+                            ? "bg-[#4F46E5] text-white"
+                            : "bg-[#172554] text-white"
                         }`}
                       >
                         {p.badge}
                       </span>
                     )}
-                    <div className="text-sm font-bold text-slate-900 pr-20">
+                    <div className="text-sm font-bold text-[#172554] pr-20">
                       {p.name}
                     </div>
                     <div className="mt-1.5 flex items-baseline gap-1">
-                      <span className="text-2xl font-extrabold font-mono tabular-nums text-slate-900">
+                      <span className="text-2xl font-extrabold font-mono tabular-nums text-[#172554]">
                         ₹{p.priceInr}
                       </span>
                       <span className="text-[11px] text-slate-500">
@@ -522,7 +521,7 @@ export default function UpgradeModal({
                     <CheckCircle2 size={30} />
                   </div>
                   <div className="space-y-1.5">
-                    <h4 className="text-xl font-extrabold text-slate-900">
+                    <h4 className="text-xl font-extrabold text-[#172554]">
                       {PLAN_DEFINITIONS[instantSuccess.plan as "pro" | "vip"]?.name ||
                         "CAP Pro"}{" "}
                       Unlocked Instantly!
@@ -538,7 +537,7 @@ export default function UpgradeModal({
                       <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Saved Backup Access Key
                       </div>
-                      <div className="text-sm font-extrabold font-mono text-slate-900">
+                      <div className="text-sm font-extrabold font-mono text-[#172554]">
                         {instantSuccess.access_key}
                       </div>
                     </div>
@@ -570,10 +569,9 @@ export default function UpgradeModal({
               ) : (
                 <>
                   {/* Instant Checkout Banner */}
-                  <div className="bg-[#0B1120] text-white rounded-2xl p-5 border border-slate-800 relative overflow-hidden">
-                    <div className="absolute -top-16 -right-16 w-48 h-48 bg-electric-blue/25 rounded-full blur-2xl pointer-events-none" />
-                    <div className="relative z-10 space-y-2">
-                      <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+                  <div className="bg-[#172554] text-white rounded-2xl p-5 border border-[#172554]">
+                    <div className="space-y-2">
+                      <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#C7D2FE]">
                         <Zap size={13} /> Zero-Wait Instant Auto-Unlock
                       </div>
                       <div className="text-sm sm:text-base font-extrabold">
@@ -678,7 +676,7 @@ export default function UpgradeModal({
                       <button
                         type="submit"
                         disabled={submitting || !configLoaded}
-                        className="w-full bg-gradient-to-r from-electric-blue to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 text-white font-bold text-sm py-3.5 rounded-xl shadow-md shadow-electric-blue/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full bg-[#4F46E5] hover:bg-[#4338CA] disabled:opacity-50 text-white font-semibold text-sm py-3.5 rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                       >
                         {submitting ? (
                           <RefreshCw size={16} className="animate-spin" />
@@ -714,11 +712,10 @@ export default function UpgradeModal({
           {/* TAB 2: MANUAL GPAY UTR FALLBACK */}
           {tab === "manual" && (
             <>
-              <div className="bg-[#0B1120] text-white rounded-2xl p-5 border border-slate-800 relative overflow-hidden">
-                <div className="absolute -top-16 -right-16 w-48 h-48 bg-electric-blue/25 rounded-full blur-2xl pointer-events-none" />
-                <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="bg-[#172554] text-white rounded-2xl p-5 border border-[#172554]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
-                    <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+                    <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#C7D2FE]">
                       <ShieldCheck size={13} /> Manual Backup Google Pay / UPI Number
                     </div>
                     <div className="flex items-center gap-3">
@@ -764,7 +761,7 @@ export default function UpgradeModal({
                       className="text-emerald-600 shrink-0 mt-0.5"
                     />
                     <div className="space-y-1 flex-1">
-                      <h4 className="font-bold text-slate-900 text-sm">
+                      <h4 className="font-bold text-[#172554] text-sm">
                         {receipt.status === "approved"
                           ? "Payment Verified — Pro Unlocked!"
                           : "GPay Payment Recorded! Verification Pending"}
@@ -780,7 +777,7 @@ export default function UpgradeModal({
                       <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Your Personal Access Key
                       </div>
-                      <div className="text-lg font-extrabold font-mono tabular-nums text-slate-900">
+                      <div className="text-lg font-extrabold font-mono tabular-nums text-[#172554]">
                         {receipt.access_key}
                       </div>
                     </div>
@@ -945,12 +942,12 @@ export default function UpgradeModal({
                       <Crown size={20} />
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-slate-900">
+                      <div className="text-sm font-bold text-[#172554]">
                         {PLAN_DEFINITIONS[session.plan].name} is Active!
                       </div>
                       <div className="text-xs text-slate-600 mt-0.5">
                         Key:{" "}
-                        <span className="font-mono font-bold text-slate-900">
+                        <span className="font-mono font-bold text-[#172554]">
                           {session.accessKey}
                         </span>
                         {session.fullName ? ` • ${session.fullName}` : ""}

@@ -5,9 +5,7 @@ import Link from "next/link";
 import axios from "axios";
 import {
   ShieldCheck,
-  Sparkles,
   Bookmark,
-  Crown,
   Cloud,
   CheckCircle2,
   LogOut,
@@ -20,8 +18,15 @@ import {
   AlertCircle,
   Lock,
   ExternalLink,
-  UserCheck,
+  Sparkles,
+  GitCompare,
+  BarChart3,
+  BookOpenCheck,
+  ShieldAlert,
 } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
+import { Card, StatCard, Badge } from "@/components/ui/Primitives";
+import { showToast } from "@/components/ui/ToastProvider";
 import {
   AuthSession,
   clearStoredAuth,
@@ -101,7 +106,6 @@ export default function GoogleLoginPortalPage() {
   const [statusMsg, setStatusMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Quick Profile Save state
   const [inputType, setInputType] = useState<"percentile" | "rank">("percentile");
   const [scoreVal, setScoreVal] = useState("");
   const [savedCategory, setSavedCategory] = useState("GOPENS");
@@ -124,7 +128,6 @@ export default function GoogleLoginPortalPage() {
     };
     syncLocal();
 
-    // Discover Google Client ID from backend /api/auth/config (so setting GOOGLE_CLIENT_ID in Render works automatically)
     axios
       .get(`${API_BASE}/auth/config`)
       .then((res) => {
@@ -135,7 +138,6 @@ export default function GoogleLoginPortalPage() {
       .catch(() => undefined)
       .finally(() => setConfigLoaded(true));
 
-    // Refresh current session from server if already logged in
     const existing = getStoredAuth();
     if (existing?.token) {
       axios
@@ -175,7 +177,6 @@ export default function GoogleLoginPortalPage() {
     };
   }, []);
 
-  // Dynamically load official Google Identity Services script
   useEffect(() => {
     if (!clientId || auth) return;
     const existingScript = document.getElementById("google-gsi-client");
@@ -211,11 +212,9 @@ export default function GoogleLoginPortalPage() {
 
       saveStoredAuth({ token, user });
 
-      // Merge cloud shortlist + local shortlist seamlessly
       const merged = mergeBookmarks(getStoredBookmarks(), user.bookmarks || []);
       saveStoredBookmarks(merged);
 
-      // Push merged shortlist back to cloud if local had additional items
       if (merged.length > (user.bookmarks?.length || 0)) {
         try {
           await syncProfileToCloud({ bookmarks: merged });
@@ -224,7 +223,6 @@ export default function GoogleLoginPortalPage() {
         }
       }
 
-      // Auto-restore Pro/VIP pass linked to this Google email!
       if (entitlement?.entitlement_token) {
         saveStoredPlan({
           plan: entitlement.plan,
@@ -234,23 +232,25 @@ export default function GoogleLoginPortalPage() {
           status: "approved",
           utrNumber: entitlement.utr_number,
         });
-        setStatusMsg(
-          `Signed in as ${user.full_name} — Your ${String(entitlement.plan).toUpperCase()} Pass was automatically restored!`
-        );
+        const msg = `Signed in as ${user.full_name} — ${String(entitlement.plan).toUpperCase()} Pass restored!`;
+        setStatusMsg(msg);
+        showToast("Welcome back!", "success", msg);
       } else {
-        setStatusMsg(`Welcome, ${user.full_name}! Your shortlist is now cloud-synced.`);
+        const msg = `Welcome, ${user.full_name}! Cloud shortlist sync is active.`;
+        setStatusMsg(msg);
+        showToast("Signed in successfully", "success", msg);
       }
     } catch (err: any) {
-      setErrorMsg(
+      const detail =
         err?.response?.data?.detail ||
-          "Google Sign-In verification failed. Please try again."
-      );
+        "Google Sign-In verification failed. Please try again.";
+      setErrorMsg(detail);
+      showToast("Sign-In failed", "error", detail);
     } finally {
       setSigningIn(false);
     }
   };
 
-  // Render official Google Identity Services button once ready
   useEffect(() => {
     if (!gisReady || !clientId || auth || !googleBtnRef.current) return;
     if (!window.google?.accounts?.id) return;
@@ -269,7 +269,7 @@ export default function GoogleLoginPortalPage() {
         size: "large",
         width: 310,
         text: "continue_with",
-        shape: "pill",
+        shape: "rectangular",
         logo_alignment: "left",
       });
     } catch {
@@ -280,6 +280,7 @@ export default function GoogleLoginPortalPage() {
 
   const handleSaveCloudProfile = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (syncing) return;
     setSyncing(true);
     setErrorMsg("");
     setStatusMsg("");
@@ -293,7 +294,7 @@ export default function GoogleLoginPortalPage() {
       ) {
         setErrorMsg(
           inputType === "percentile"
-            ? "Percentile must be between 0 and 100."
+            ? "Percentile must be between 0.01 and 100."
             : "State Merit Rank must be at least 1."
         );
         setSyncing(false);
@@ -307,14 +308,15 @@ export default function GoogleLoginPortalPage() {
         bookmarks: getStoredBookmarks(),
       });
       if (updated) {
-        setStatusMsg(
-          `Synced ${updated.bookmarks.length} shortlisted colleges & your ${savedCategory} profile to your Google account!`
-        );
+        const msg = `Synced ${updated.bookmarks.length} shortlisted colleges & ${savedCategory} profile to cloud.`;
+        setStatusMsg(msg);
+        showToast("Cloud profile saved", "success", msg);
       }
     } catch (err: any) {
-      setErrorMsg(
-        err?.response?.data?.detail || "Could not sync profile right now. Try again."
-      );
+      const detail =
+        err?.response?.data?.detail || "Could not sync profile right now. Try again.";
+      setErrorMsg(detail);
+      showToast("Sync error", "error", detail);
     } finally {
       setSyncing(false);
     }
@@ -323,10 +325,14 @@ export default function GoogleLoginPortalPage() {
   const handleSignOut = async () => {
     window.google?.accounts?.id?.disableAutoSelect?.();
     await logoutFromServer();
-    setStatusMsg("Signed out & session revoked on server. Local shortlist remains on this device.");
+    setStatusMsg("Signed out & session revoked on server.");
+    showToast("Signed out safely", "info", "Your server session has been revoked.");
   };
 
   const proActive = isProActive(planSession);
+  const role = auth?.user?.role || "student";
+  const isAdminRole = role === "admin" || role === "super_admin";
+  const isCounsellorRole = role === "counsellor";
 
   const buildProfileQuery = () => {
     const qs = new URLSearchParams();
@@ -337,473 +343,519 @@ export default function GoogleLoginPortalPage() {
     return qs.toString();
   };
 
-  return (
-    <div className="flex-1 bg-[#F8FAFC] py-12 px-4 sm:px-6">
-      <div className="max-w-5xl mx-auto space-y-8">
-        {/* Top Portal Header */}
-        <div className="text-center max-w-2xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-bold uppercase tracking-wider">
-            <ShieldCheck size={14} /> Official Google OAuth 2.0 Student Portal
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
-            {auth
-              ? `Welcome back, ${auth.user.full_name.split(" ")[0]}`
-              : "Sign in to CAP Compass with Google"}
-          </h1>
-          <p className="text-sm sm:text-base text-slate-600">
-            Sync your shortlisted Maharashtra engineering colleges, saved MHT-CET
-            percentile/rank, and automatically restore your CAP Pro / VIP Pass
-            across mobile and laptop.
-          </p>
-        </div>
+  if (!auth) {
+    /* COMMERCIAL SAAS SPLIT-SCREEN AUTHENTICATION EXPERIENCE */
+    return (
+      <div className="flex-1 bg-[#F8FAFC] py-8 sm:py-12 px-4 sm:px-6 flex items-center justify-center">
+        <div className="max-w-5xl w-full bg-white rounded-3xl border border-[#E2E8F0] shadow-[0_12px_40px_-16px_rgba(23,37,84,0.12)] overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+          {/* Left Deep Navy Brand Identity Panel */}
+          <div className="lg:col-span-5 bg-[#172554] text-white p-8 sm:p-10 flex flex-col justify-between gap-8">
+            <div className="space-y-6">
+              <BrandLogo variant="primary" theme="dark" size="lg" showTagline />
+              <div className="space-y-2.5">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
+                  Your 2026 CAP Admission Workspace
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  One verified account across mobile, tablet, and desktop — backed
+                  by encrypted Cloud PostgreSQL storage and 198,336 official CAP
+                  cutoffs.
+                </p>
+              </div>
 
+              <div className="space-y-3 pt-2">
+                {[
+                  {
+                    icon: Cloud,
+                    title: "Cross-Device Cloud Shortlist",
+                    desc: "Shortlist on mobile and finalize your DTE Option Form on laptop.",
+                  },
+                  {
+                    icon: Sparkles,
+                    title: "Automatic CAP Pro / VIP Sync",
+                    desc: "Paid passes linked to your Gmail unlock automatically on sign-in.",
+                  },
+                  {
+                    icon: ShieldCheck,
+                    title: "Role-Based Access & Security",
+                    desc: "Server-verified Google OAuth 2.0 with JTI revocation & RBAC.",
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={item.title}
+                      className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.05] border border-white/10"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-[#4F46E5] text-white flex items-center justify-center shrink-0">
+                        <Icon size={15} />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white">
+                          {item.title}
+                        </div>
+                        <div className="text-[11px] text-slate-300 mt-0.5 leading-snug">
+                          {item.desc}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-white/10 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>OWASP-Hardened Auth</span>
+              <span className="font-mono text-slate-300">v2.7</span>
+            </div>
+          </div>
+
+          {/* Right Pure White Sign-In Surface */}
+          <div className="lg:col-span-7 p-8 sm:p-10 lg:p-12 flex flex-col justify-between gap-8">
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Badge tone="indigo">Google OAuth 2.0 Single Sign-On</Badge>
+                <h2 className="text-2xl font-extrabold text-[#172554]">
+                  Sign in to CAP Compass
+                </h2>
+                <p className="text-sm text-[#64748B] leading-relaxed">
+                  Zero passwords to manage. Your Google identity token is verified
+                  server-side and mapped to your saved student, counsellor, or
+                  administrator role.
+                </p>
+              </div>
+
+              {statusMsg && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                  <span>{statusMsg}</span>
+                </div>
+              )}
+
+              {errorMsg && (
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle size={16} className="shrink-0 text-red-600" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              <div className="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-4">
+                {signingIn ? (
+                  <div className="py-3.5 px-4 rounded-xl bg-[#EEF2FF] border border-[#4F46E5]/20 flex items-center justify-center gap-2.5 text-sm font-semibold text-[#4F46E5]">
+                    <RefreshCw size={16} className="animate-spin" />
+                    Verifying Google identity token...
+                  </div>
+                ) : clientId ? (
+                  <div className="space-y-3">
+                    <div
+                      ref={googleBtnRef}
+                      className="min-h-[44px] flex items-center justify-start"
+                    />
+                    {!gisReady && (
+                      <div className="text-xs text-[#64748B] flex items-center gap-2">
+                        <RefreshCw size={12} className="animate-spin text-[#4F46E5]" />
+                        Loading Google Sign-In...
+                      </div>
+                    )}
+                  </div>
+                ) : configLoaded ? (
+                  <div className="p-4 rounded-xl bg-orange-50 border border-orange-200 space-y-2 text-xs text-orange-950">
+                    <div className="font-bold flex items-center gap-1.5">
+                      <Lock size={14} /> Google OAuth Client ID Setup Required
+                    </div>
+                    <p className="text-orange-900/90 leading-relaxed">
+                      Set <code className="font-mono font-bold bg-white px-1 py-0.5 rounded">GOOGLE_CLIENT_ID</code> in
+                      your Render environment to activate one-click Google Sign-In.
+                    </p>
+                    <a
+                      href="https://console.cloud.google.com/apis/credentials"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-semibold underline"
+                    >
+                      Open Google Cloud Console <ExternalLink size={11} />
+                    </a>
+                  </div>
+                ) : (
+                  <div className="py-3 text-xs text-[#64748B] flex items-center gap-2">
+                    <RefreshCw size={13} className="animate-spin text-[#4F46E5]" />
+                    Connecting to authentication service...
+                  </div>
+                )}
+
+                <p className="text-[11px] text-[#64748B] leading-relaxed">
+                  We only read your verified name, email, and Google profile photo.
+                  We never access your password, Drive, or contacts.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-5 border-t border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3 text-xs">
+              <Link
+                href="/admin"
+                className="font-semibold text-[#64748B] hover:text-[#172554] inline-flex items-center gap-1.5"
+              >
+                <ShieldCheck size={14} className="text-[#4F46E5]" /> Administrator Console
+              </Link>
+              <Link
+                href="/?start=1"
+                className="font-semibold text-[#4F46E5] hover:text-[#4338CA] inline-flex items-center gap-1"
+              >
+                Continue as Guest <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* SIGNED-IN ROLE-AWARE WORKSPACE PORTAL */
+  return (
+    <div className="flex-1 bg-[#F8FAFC] py-8 px-4 sm:px-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Status / Error Alerts */}
         {statusMsg && (
-          <div className="max-w-3xl mx-auto p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-semibold flex items-center gap-2.5">
-            <CheckCircle2 size={17} className="shrink-0 text-emerald-600" />
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+            <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
             <span>{statusMsg}</span>
           </div>
         )}
         {errorMsg && (
-          <div className="max-w-3xl mx-auto p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm font-semibold flex items-center gap-2.5">
-            <AlertCircle size={17} className="shrink-0 text-rose-600" />
+          <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0 text-red-600" />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        {!auth ? (
-          /* SIGNED-OUT PORTAL VIEW */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* Left Sign-In Card */}
-            <div className="lg:col-span-6 bg-white rounded-3xl border border-slate-200/90 shadow-sm p-8 flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-electric-blue/10 border border-electric-blue/20 flex items-center justify-center text-electric-blue">
-                  <UserCheck size={24} />
+        {/* Role-Based Administrator Banner (Shown ONLY for admin / super_admin DB roles) */}
+        {isAdminRole && (
+          <div className="rounded-2xl bg-[#172554] text-white p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#4F46E5] flex items-center justify-center shrink-0">
+                <ShieldAlert size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold">
+                    {role === "super_admin" ? "Super Administrator" : "Administrator"} Access Enabled
+                  </span>
+                  <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-[#4F46E5] text-white">
+                    {role}
+                  </span>
                 </div>
-                <h2 className="text-xl font-extrabold text-slate-900">
-                  One-Click Student Sign-In
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Zero passwords to remember. CAP Compass verifies your official
-                  Google Identity Token server-side and issues a signed session
-                  token — we never see your Google password.
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Manage payment approvals, counselling leads, user RBAC permissions, and live security audit logs.
                 </p>
-
-                <div className="pt-3">
-                  {signingIn ? (
-                    <div className="py-4 px-5 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center gap-2.5 text-sm font-bold text-electric-blue">
-                      <RefreshCw size={16} className="animate-spin" />
-                      Verifying Google ID Token...
-                    </div>
-                  ) : clientId ? (
-                    <div className="space-y-3">
-                      <div
-                        ref={googleBtnRef}
-                        className="min-h-[44px] flex items-center justify-start"
-                      />
-                      {!gisReady && (
-                        <div className="text-xs text-slate-400 flex items-center gap-2">
-                          <RefreshCw size={12} className="animate-spin" />
-                          Loading Google Identity button...
-                        </div>
-                      )}
-                    </div>
-                  ) : configLoaded ? (
-                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/90 space-y-2.5 text-xs text-amber-950">
-                      <div className="font-bold flex items-center gap-1.5 text-amber-900">
-                        <Lock size={14} /> Google OAuth Client ID Setup Required
-                      </div>
-                      <p className="leading-relaxed text-amber-900/90">
-                        The Google Login Portal backend &amp; security verification
-                        are live and ready! To enable the live{" "}
-                        <strong>Sign in with Google</strong> button, add your free
-                        Google Cloud OAuth Client ID:
-                      </p>
-                      <ol className="list-decimal list-inside space-y-1 text-[11px] text-amber-900/90">
-                        <li>
-                          Open{" "}
-                          <a
-                            href="https://console.cloud.google.com/apis/credentials"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-bold underline inline-flex items-center gap-0.5"
-                          >
-                            Google Cloud Console <ExternalLink size={10} />
-                          </a>{" "}
-                          → <strong>Create Credentials → OAuth client ID → Web application</strong>.
-                        </li>
-                        <li>
-                          Add Authorized JavaScript Origins:{" "}
-                          <code className="bg-white/80 px-1.5 py-0.5 rounded font-mono">
-                            https://cap-campus.vercel.app
-                          </code>{" "}
-                          and{" "}
-                          <code className="bg-white/80 px-1.5 py-0.5 rounded font-mono">
-                            http://localhost:3000
-                          </code>
-                          .
-                        </li>
-                        <li>
-                          Set{" "}
-                          <code className="bg-white/80 px-1.5 py-0.5 rounded font-mono font-bold">
-                            GOOGLE_CLIENT_ID
-                          </code>{" "}
-                          in your Render Environment Variables (frontend picks it up
-                          automatically via <code>/api/auth/config</code>!).
-                        </li>
-                      </ol>
-                    </div>
-                  ) : (
-                    <div className="py-4 text-xs text-slate-400 flex items-center gap-2">
-                      <RefreshCw size={13} className="animate-spin" /> Checking
-                      portal auth configuration...
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                <span className="inline-flex items-center gap-1">
-                  <ShieldCheck size={13} className="text-emerald-600" />
-                  HMAC-SHA256 Signed Sessions
-                </span>
-                <Link
-                  href="/?start=1"
-                  className="font-semibold text-electric-blue hover:underline"
-                >
-                  Continue as Guest &rarr;
-                </Link>
               </div>
             </div>
-
-            {/* Right Benefits Card */}
-            <div className="lg:col-span-6 bg-[#0B1120] text-white rounded-3xl p-8 border border-slate-800 shadow-lg flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-white/15 text-teal-300 text-[11px] font-bold uppercase tracking-wider">
-                  <Sparkles size={12} /> Why Sign In With Google?
-                </div>
-                <h3 className="text-xl font-extrabold leading-snug">
-                  Keep Your 2026 CAP Counselling Plan Synced Everywhere
-                </h3>
-                <div className="space-y-3.5 pt-1">
-                  {[
-                    {
-                      icon: Cloud,
-                      title: "Cloud-Synced Shortlist Across Devices",
-                      desc: "Shortlist colleges on your phone and instantly open them on your laptop during live CAP Option Form filling.",
-                    },
-                    {
-                      icon: Crown,
-                      title: "Automatic CAP Pro / VIP Pass Restoration",
-                      desc: "Bought CAP Pro (₹199) or VIP (₹499) with your Gmail? Signing in automatically restores your paid pass with zero keys to re-enter.",
-                    },
-                    {
-                      icon: Compass,
-                      title: "Saved MHT-CET Score & Category Profile",
-                      desc: "Store your percentile/rank and reservation quota once and jump straight into Predictor, Option Form & Betterment Radar.",
-                    },
-                  ].map((b) => {
-                    const Icon = b.icon;
-                    return (
-                      <div
-                        key={b.title}
-                        className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/[0.04] border border-white/10"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-electric-blue/20 text-blue-300 flex items-center justify-center shrink-0">
-                          <Icon size={16} />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-white">
-                            {b.title}
-                          </div>
-                          <div className="text-[11px] text-slate-300 leading-relaxed mt-0.5">
-                            {b.desc}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="text-[11px] text-slate-400 pt-3 border-t border-white/10">
-                Built with OWASP-hardened server-side token verification by{" "}
-                <strong className="text-white">Arsh Shaikh</strong>.
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* SIGNED-IN STUDENT PORTAL DASHBOARD */
-          <div className="space-y-6">
-            {/* Profile Hero Card */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                {auth.user.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={auth.user.avatar_url}
-                    alt={auth.user.full_name}
-                    referrerPolicy="no-referrer"
-                    className="w-16 h-16 rounded-2xl border-2 border-electric-blue/30 object-cover shadow-xs"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-electric-blue text-white flex items-center justify-center font-extrabold text-2xl">
-                    {auth.user.full_name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-xl font-extrabold text-slate-900">
-                      {auth.user.full_name}
-                    </h2>
-                    <span
-                      className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
-                        proActive
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-slate-100 text-slate-600 border-slate-200"
-                      }`}
-                    >
-                      {proActive
-                        ? `${planSession.plan.toUpperCase()} PASS ACTIVE`
-                        : "STARTER FREE"}
-                    </span>
-                    {(auth.user.role === "admin" || auth.user.role === "super_admin") && (
-                      <Link
-                        href="/admin"
-                        className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 transition-colors"
-                      >
-                        {auth.user.role.toUpperCase()} &rarr; Admin Panel
-                      </Link>
-                    )}
-                  </div>
-                  <div className="text-xs text-slate-500 font-mono">
-                    {auth.user.email}
-                  </div>
-                  <div className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
-                    <Cloud size={12} /> Cloud sync active • {bookmarks.length}{" "}
-                    shortlisted colleges
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-                {!proActive && (
-                  <button
-                    type="button"
-                    onClick={() => openUpgradeModal("pro")}
-                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-electric-blue to-indigo-600 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
-                  >
-                    <Crown size={14} /> Upgrade Pro • ₹199
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleSaveCloudProfile()}
-                  disabled={syncing}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                >
-                  <RefreshCw
-                    size={13}
-                    className={syncing ? "animate-spin text-electric-blue" : ""}
-                  />
-                  {syncing ? "Syncing..." : "Sync Shortlist Now"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                >
-                  <LogOut size={13} /> Sign Out
-                </button>
-              </div>
-            </div>
-
-            {/* Two-Column Dashboard: Saved Score Profile + Quick Tools */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Saved MHT-CET Score & Category Cloud Form */}
-              <form
-                onSubmit={handleSaveCloudProfile}
-                className="lg:col-span-6 bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6 sm:p-7 space-y-5"
-              >
-                <div className="space-y-1">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-electric-blue">
-                    Cloud-Saved Aspirant Profile
-                  </div>
-                  <h3 className="text-lg font-extrabold text-slate-900">
-                    Your MHT-CET Score &amp; Reservation Quota
-                  </h3>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold">
-                    {(["percentile", "rank"] as const).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setInputType(t)}
-                        className={`py-2 rounded-lg cursor-pointer transition-all ${
-                          inputType === t
-                            ? "bg-white text-slate-900 shadow-2xs"
-                            : "text-slate-500"
-                        }`}
-                      >
-                        {t === "percentile"
-                          ? "MHT-CET Percentile"
-                          : "State Merit Rank"}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                      {inputType === "percentile"
-                        ? "Saved Percentile (0 – 100)"
-                        : "Saved State Merit Rank"}
-                    </label>
-                    <input
-                      type="number"
-                      step={inputType === "percentile" ? "0.01" : "1"}
-                      placeholder={inputType === "percentile" ? "96.85" : "11500"}
-                      value={scoreVal}
-                      onChange={(e) => setScoreVal(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-300 font-mono tabular-nums font-bold text-base focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                      Saved Reservation Category
-                    </label>
-                    <select
-                      value={savedCategory}
-                      onChange={(e) => setSavedCategory(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-semibold bg-white focus:outline-none focus:border-electric-blue"
-                    >
-                      {QUICK_CATEGORIES.map((c) => (
-                        <option key={c} value={c}>
-                          {formatCategory(c)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={syncing}
-                  className="w-full py-3.5 rounded-xl bg-electric-blue hover:bg-blue-600 disabled:bg-slate-300 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-                >
-                  <Cloud size={16} />
-                  {syncing
-                    ? "Saving to Cloud..."
-                    : "Save Profile & Sync Shortlist"}
-                </button>
-              </form>
-
-              {/* Quick-Launch Counselling Workspace */}
-              <div className="lg:col-span-6 bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6 sm:p-7 space-y-4">
-                <div className="space-y-1">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
-                    One-Click Launchers (2023–2026 Rounds 1–4)
-                  </div>
-                  <h3 className="text-lg font-extrabold text-slate-900">
-                    Run Tools With Your Saved Profile
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    {
-                      icon: Compass,
-                      title: "College Predictor",
-                      desc: "2026 CAP Rounds 1–4 matches",
-                      href: `/?${buildProfileQuery() || "start=1"}`,
-                    },
-                    {
-                      icon: ListOrdered,
-                      title: "Smart Option Form",
-                      desc: "Auto-ordered DTE choices",
-                      href: `/option-form?${buildProfileQuery()}`,
-                    },
-                    {
-                      icon: Radar,
-                      title: "Betterment Radar",
-                      desc: "R1 → R4 cutoff drops",
-                      href: `/betterment?${buildProfileQuery()}`,
-                    },
-                    {
-                      icon: Wallet,
-                      title: "ROI & Fee Finder",
-                      desc: "Girls/OBC/TFWS net fees",
-                      href: `/roi-finder?${buildProfileQuery()}`,
-                    },
-                  ].map((tool) => {
-                    const Icon = tool.icon;
-                    return (
-                      <Link
-                        key={tool.title}
-                        href={tool.href}
-                        className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/70 hover:bg-white hover:border-electric-blue/40 hover:shadow-xs transition-all flex flex-col justify-between gap-3"
-                      >
-                        <div className="w-9 h-9 rounded-xl bg-electric-blue/10 text-electric-blue flex items-center justify-center">
-                          <Icon size={18} />
-                        </div>
-                        <div>
-                          <div className="text-sm font-bold text-slate-900 flex items-center justify-between">
-                            {tool.title}
-                            <ArrowRight size={13} className="text-electric-blue" />
-                          </div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">
-                            {tool.desc}
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-
-                {/* Shortlist Preview */}
-                <div className="pt-3 border-t border-slate-100">
-                  <div className="flex items-center justify-between text-xs mb-2">
-                    <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                      <Bookmark size={13} className="text-electric-blue" />
-                      Cloud Shortlist ({bookmarks.length})
-                    </span>
-                    <Link
-                      href="/compare"
-                      className="text-electric-blue font-semibold hover:underline"
-                    >
-                      Compare Shortlisted &rarr;
-                    </Link>
-                  </div>
-                  {bookmarks.length === 0 ? (
-                    <p className="text-xs text-slate-400">
-                      No colleges shortlisted yet. Bookmark colleges in the
-                      Predictor or Explorer and click Sync!
-                    </p>
-                  ) : (
-                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                      {bookmarks.slice(0, 6).map((b) => (
-                        <Link
-                          key={b.key}
-                          href={`/college/${b.college_code}`}
-                          className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-slate-50 hover:bg-electric-blue/5 border border-slate-200/70 transition-colors"
-                        >
-                          <span className="font-semibold text-slate-800 truncate pr-2">
-                            {b.college_code} • {b.college_name}
-                          </span>
-                          <span className="text-[11px] text-electric-blue font-medium shrink-0">
-                            {b.branch}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <Link
+              href="/admin"
+              className="px-4 py-2.5 rounded-xl bg-white hover:bg-[#EEF2FF] text-[#172554] text-xs font-bold inline-flex items-center gap-1.5 shrink-0 transition-colors"
+            >
+              Open Admin Console <ArrowRight size={14} />
+            </Link>
           </div>
         )}
+
+        {/* Profile Hero Card */}
+        <Card className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            {auth.user.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={auth.user.avatar_url}
+                alt={auth.user.full_name}
+                referrerPolicy="no-referrer"
+                className="w-14 h-14 rounded-2xl border border-[#E2E8F0] object-cover"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-[#172554] text-white flex items-center justify-center font-extrabold text-xl">
+                {auth.user.full_name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-extrabold text-[#172554]">
+                  {auth.user.full_name}
+                </h1>
+                <Badge tone={isAdminRole ? "navy" : "indigo"} className="font-mono uppercase">
+                  {role}
+                </Badge>
+                <Badge tone={proActive ? "success" : "neutral"} className="font-mono uppercase">
+                  {proActive ? `${planSession.plan} PASS` : "FREE TIER"}
+                </Badge>
+              </div>
+              <div className="text-xs font-mono text-[#64748B]">
+                {auth.user.email}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            {!proActive && (
+              <button
+                type="button"
+                onClick={() => openUpgradeModal("pro")}
+                className="px-4 py-2 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Sparkles size={14} /> Upgrade Pro • ₹199
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => handleSaveCloudProfile()}
+              disabled={syncing}
+              className="px-4 py-2 rounded-xl bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] text-[#172554] text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <RefreshCw
+                size={13}
+                className={syncing ? "animate-spin text-[#4F46E5]" : "text-[#4F46E5]"}
+              />
+              {syncing ? "Syncing..." : "Sync Cloud"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="px-4 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <LogOut size={13} /> Sign Out
+            </button>
+          </div>
+        </Card>
+
+        {/* Real Account Metrics Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Shortlisted Colleges"
+            value={bookmarks.length}
+            sublabel="Synced with Neon PostgreSQL"
+            icon={<Bookmark size={18} />}
+            accent="indigo"
+          />
+          <StatCard
+            label="Saved Score"
+            value={scoreVal ? (inputType === "percentile" ? `${scoreVal}%` : `#${scoreVal}`) : "Not set"}
+            sublabel={inputType === "percentile" ? "MHT-CET Percentile" : "State Merit Rank"}
+            icon={<Compass size={18} />}
+            accent="navy"
+          />
+          <StatCard
+            label="Saved Category"
+            value={savedCategory}
+            sublabel="Reservation quota filter"
+            icon={<ShieldCheck size={18} />}
+            accent="indigo"
+          />
+          <StatCard
+            label="Subscription"
+            value={proActive ? planSession.plan.toUpperCase() : "FREE"}
+            sublabel={proActive ? "Full 2026 season active" : "Upgrade for 60 choices"}
+            icon={<Sparkles size={18} />}
+            accent={proActive ? "success" : "navy"}
+          />
+        </div>
+
+        {/* Role-Specific Counsellor Quick Strip */}
+        {isCounsellorRole && (
+          <Card className="p-5 bg-[#EEF2FF]/60 border-[#4F46E5]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-[#4F46E5]">
+                Counsellor Workspace Tools
+              </div>
+              <p className="text-xs text-[#64748B] mt-0.5">
+                Quick access to multi-college comparisons, multi-year cutoff analytics, and CAP documentation checklists.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/compare" className="px-3 py-2 rounded-xl bg-white border border-[#E2E8F0] text-xs font-semibold text-[#172554] inline-flex items-center gap-1.5 hover:border-[#4F46E5]">
+                <GitCompare size={13} className="text-[#4F46E5]" /> Compare 4
+              </Link>
+              <Link href="/analytics" className="px-3 py-2 rounded-xl bg-white border border-[#E2E8F0] text-xs font-semibold text-[#172554] inline-flex items-center gap-1.5 hover:border-[#4F46E5]">
+                <BarChart3 size={13} className="text-[#4F46E5]" /> Analytics
+              </Link>
+              <Link href="/cap-guide" className="px-3 py-2 rounded-xl bg-white border border-[#E2E8F0] text-xs font-semibold text-[#172554] inline-flex items-center gap-1.5 hover:border-[#4F46E5]">
+                <BookOpenCheck size={13} className="text-[#4F46E5]" /> CAP Guide
+              </Link>
+            </div>
+          </Card>
+        )}
+
+        {/* Two-Column Dashboard: Saved Profile Form + Quick Launchers */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <Card className="lg:col-span-6 p-6 sm:p-7">
+            <form onSubmit={handleSaveCloudProfile} className="space-y-5">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-[#4F46E5]">
+                  Cloud-Saved Profile
+                </div>
+                <h2 className="text-lg font-bold text-[#172554] mt-0.5">
+                  MHT-CET Score &amp; Reservation Quota
+                </h2>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-1 p-1 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] text-xs font-semibold">
+                  {(["percentile", "rank"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setInputType(t)}
+                      className={`py-2 rounded-lg cursor-pointer transition-all ${
+                        inputType === t
+                          ? "bg-white text-[#172554] shadow-2xs border border-[#E2E8F0]"
+                          : "text-[#64748B]"
+                      }`}
+                    >
+                      {t === "percentile" ? "MHT-CET Percentile" : "State Merit Rank"}
+                    </button>
+                  ))}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#1E293B] mb-1.5">
+                    {inputType === "percentile"
+                      ? "Saved Percentile (0.01 – 100)"
+                      : "Saved State Merit Rank"}
+                  </label>
+                  <input
+                    type="number"
+                    step={inputType === "percentile" ? "0.01" : "1"}
+                    placeholder={inputType === "percentile" ? "96.85" : "11500"}
+                    value={scoreVal}
+                    onChange={(e) => setScoreVal(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] bg-white font-mono font-bold text-sm text-[#172554] focus:outline-none focus:border-[#4F46E5] focus:ring-3 focus:ring-[#4F46E5]/15"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#1E293B] mb-1.5">
+                    Saved Reservation Category
+                  </label>
+                  <select
+                    value={savedCategory}
+                    onChange={(e) => setSavedCategory(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] text-sm font-medium bg-white text-[#1E293B] focus:outline-none focus:border-[#4F46E5]"
+                  >
+                    {QUICK_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>
+                        {formatCategory(c)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={syncing}
+                className="w-full py-3 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] disabled:opacity-50 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                <Cloud size={16} />
+                {syncing ? "Saving to Cloud..." : "Save Profile & Sync Shortlist"}
+              </button>
+            </form>
+          </Card>
+
+          <Card className="lg:col-span-6 p-6 sm:p-7 space-y-5">
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[#4F46E5]">
+                Quick Launchers
+              </div>
+              <h2 className="text-lg font-bold text-[#172554] mt-0.5">
+                Run Tools With Your Profile
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                {
+                  icon: Compass,
+                  title: "College Predictor",
+                  desc: "2026 CAP Rounds 1–4 matches",
+                  href: `/?${buildProfileQuery() || "start=1"}`,
+                },
+                {
+                  icon: ListOrdered,
+                  title: "Smart Option Form",
+                  desc: "Auto-ordered DTE choices",
+                  href: `/option-form?${buildProfileQuery()}`,
+                },
+                {
+                  icon: Radar,
+                  title: "Betterment Radar",
+                  desc: "R1 → R4 cutoff drops",
+                  href: `/betterment?${buildProfileQuery()}`,
+                },
+                {
+                  icon: Wallet,
+                  title: "ROI & Net Fees",
+                  desc: "Girls/OBC/TFWS fee waivers",
+                  href: `/roi-finder?${buildProfileQuery()}`,
+                },
+              ].map((tool) => {
+                const Icon = tool.icon;
+                return (
+                  <Link
+                    key={tool.title}
+                    href={tool.href}
+                    className="p-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] hover:bg-white hover:border-[#4F46E5]/50 transition-all flex flex-col justify-between gap-3 group"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-[#EEF2FF] text-[#4F46E5] flex items-center justify-center group-hover:bg-[#4F46E5] group-hover:text-white transition-colors">
+                      <Icon size={17} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-[#172554] flex items-center justify-between">
+                        {tool.title}
+                        <ArrowRight size={13} className="text-[#4F46E5]" />
+                      </div>
+                      <div className="text-[11px] text-[#64748B] mt-0.5">
+                        {tool.desc}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="pt-4 border-t border-[#E2E8F0]">
+              <div className="flex items-center justify-between text-xs mb-2.5">
+                <span className="font-bold text-[#172554] flex items-center gap-1.5">
+                  <Bookmark size={13} className="text-[#4F46E5]" />
+                  Cloud Shortlist ({bookmarks.length})
+                </span>
+                <Link
+                  href="/compare"
+                  className="text-[#4F46E5] font-semibold hover:underline"
+                >
+                  Compare Shortlisted &rarr;
+                </Link>
+              </div>
+              {bookmarks.length === 0 ? (
+                <p className="text-xs text-[#64748B]">
+                  No colleges shortlisted yet. Bookmark colleges in the Predictor, Map, or Explorer and click Sync.
+                </p>
+              ) : (
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  {bookmarks.slice(0, 6).map((b) => (
+                    <Link
+                      key={b.key}
+                      href={`/college/${b.college_code}`}
+                      className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-[#F8FAFC] hover:bg-[#EEF2FF]/60 border border-[#E2E8F0] transition-colors"
+                    >
+                      <span className="font-semibold text-[#172554] truncate pr-2">
+                        {b.college_code} • {b.college_name}
+                      </span>
+                      <span className="text-[11px] text-[#4F46E5] font-medium shrink-0">
+                        {b.branch}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );

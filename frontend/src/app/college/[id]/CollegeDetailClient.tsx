@@ -35,7 +35,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 const CollegeMiniMap = dynamic(() => import("@/components/CollegeMiniMap"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-[250px] rounded-2xl bg-slate-100 animate-pulse border border-slate-200/90" />
+    <div className="w-full h-[250px] rounded-2xl bg-slate-100 animate-pulse border border-[#E2E8F0]" />
   ),
 });
 
@@ -278,7 +278,7 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                 href={directWebsiteUrl || cetPortalUrl || officialSearchUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2.5 bg-electric-blue hover:bg-blue-700 text-white rounded-xl font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5"
+                className="px-4 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5"
               >
                 <Globe size={14} />
                 {directWebsiteUrl ? "Official Website" : "Official CET Profile"}
@@ -325,19 +325,19 @@ export default function CollegeDetailClient({ id }: { id: string }) {
         {college.has_verified_insights && college.placements && college.fees ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Placement Report Card */}
-            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-5">
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#E2E8F0] shadow-xs flex flex-col justify-between space-y-5">
               <div className="space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
                       <Briefcase size={12} /> Official Placement Report
                     </div>
-                    <h2 className="text-lg font-extrabold text-slate-900 mt-1.5">
+                    <h2 className="text-lg font-extrabold text-[#172554] mt-1.5">
                       Placements &amp; Career Outcomes
                     </h2>
                   </div>
                   {college.roi?.roi_tier && (
-                    <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg bg-[#0B1120] text-emerald-300">
+                    <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg bg-[#172554] text-emerald-300">
                       {college.roi.roi_tier} ({college.roi.payback_years} yr payback)
                     </span>
                   )}
@@ -354,11 +354,11 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                       <span className="text-xs font-semibold"> LPA</span>
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-[#E2E8F0]">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       Avg. Package
                     </div>
-                    <div className="text-xl font-extrabold font-mono tabular-nums text-slate-900 mt-1">
+                    <div className="text-xl font-extrabold font-mono tabular-nums text-[#172554] mt-1">
                       {college.placements.average_lpa
                         ? `₹${Number(college.placements.average_lpa).toFixed(1)}`
                         : "N/A"}
@@ -367,7 +367,7 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                       )}
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80">
+                  <div className="p-3.5 rounded-2xl bg-[#EEF2FF]/70 border border-[#4F46E5]/20/80">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-electric-blue">
                       Highest CTC
                     </div>
@@ -382,7 +382,7 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                   <span className="inline-flex items-center gap-1 font-semibold bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
                     <CheckCircle2 size={13} className="text-emerald-600" />
                     Placement Rate:{" "}
-                    <strong className="text-slate-900">
+                    <strong className="text-[#172554]">
                       {college.placements.placement_rate}
                     </strong>
                   </span>
@@ -400,7 +400,7 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                       {college.placements.top_recruiters.map((rec: string) => (
                         <span
                           key={rec}
-                          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/90 text-slate-700"
+                          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-50 border border-[#E2E8F0] text-slate-700"
                         >
                           {rec}
                         </span>
@@ -452,14 +452,14 @@ export default function CollegeDetailClient({ id }: { id: string }) {
             </div>
 
             {/* Official Fee Structure Card */}
-            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-5">
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#E2E8F0] shadow-xs flex flex-col justify-between space-y-5">
               <div className="space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">
                       <IndianRupee size={12} /> Authentic Fee Structure
                     </div>
-                    <h2 className="text-lg font-extrabold text-slate-900 mt-1.5">
+                    <h2 className="text-lg font-extrabold text-[#172554] mt-1.5">
                       Annual B.E./B.Tech Fees &amp; Waivers
                     </h2>
                   </div>
@@ -473,18 +473,18 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                     <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">
                       Annual Open / CAP Fee
                     </div>
-                    <div className="text-lg font-extrabold font-mono tabular-nums text-slate-900 mt-1">
+                    <div className="text-lg font-extrabold font-mono tabular-nums text-[#172554] mt-1">
                       {college.fees.fee_range_label}
                     </div>
                     <div className="text-[11px] text-slate-500 mt-0.5">
                       {college.fees.academic_cycle}
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-[#E2E8F0]">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       Est. 4-Year Total (Open)
                     </div>
-                    <div className="text-lg font-extrabold font-mono tabular-nums text-slate-900 mt-1">
+                    <div className="text-lg font-extrabold font-mono tabular-nums text-[#172554] mt-1">
                       ₹{(college.fees.four_year_estimate_inr / 100000).toFixed(2)} Lakh
                     </div>
                     <div className="text-[11px] text-slate-500 mt-0.5">
@@ -503,9 +503,9 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                       {college.concessions.map((c: any) => (
                         <div
                           key={c.category}
-                          className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-[11px]"
+                          className="p-2.5 rounded-xl bg-slate-50/80 border border-[#E2E8F0] text-[11px]"
                         >
-                          <div className="font-bold text-slate-900">{c.category}</div>
+                          <div className="font-bold text-[#172554]">{c.category}</div>
                           <div className="text-slate-600 mt-0.5 leading-snug">
                             {c.benefit}
                           </div>
@@ -547,12 +547,12 @@ export default function CollegeDetailClient({ id }: { id: string }) {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#E2E8F0] shadow-xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
             <div className="space-y-1.5 max-w-2xl">
               <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-electric-blue bg-electric-blue/10 border border-electric-blue/20 px-2.5 py-0.5 rounded-full">
                 <Building2 size={12} /> Official Placements &amp; Fee Sources
               </div>
-              <h2 className="text-lg font-extrabold text-slate-900">
+              <h2 className="text-lg font-extrabold text-[#172554]">
                 Verify Approved Fees &amp; Placement Reports Directly
               </h2>
               <p className="text-xs text-slate-500 leading-relaxed">
@@ -567,7 +567,7 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                   href={directWebsiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold inline-flex items-center gap-1.5"
+                  className="px-3.5 py-2 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold inline-flex items-center gap-1.5"
                 >
                   <Globe size={13} /> Institute Website <ExternalLink size={11} />
                 </a>
@@ -657,7 +657,7 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                     ? `&category=${encodeURIComponent(selectedCategory)}`
                     : ""
                 }`}
-                className="block text-center bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold py-3 rounded-xl transition-colors"
+                className="block text-center bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold py-3 rounded-xl transition-colors"
               >
                 Run Cutoff Analytics
               </Link>
@@ -697,7 +697,7 @@ export default function CollegeDetailClient({ id }: { id: string }) {
                     href={college.location.google_maps_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 px-3 py-2.5 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5"
+                    className="flex-1 px-3 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold inline-flex items-center justify-center gap-1.5"
                   >
                     <Navigation size={13} /> Google Maps Directions
                     <ExternalLink size={11} />

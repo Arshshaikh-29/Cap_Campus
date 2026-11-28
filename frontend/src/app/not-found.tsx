@@ -1,42 +1,43 @@
 import Link from "next/link";
-import { Compass, ArrowRight, Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function NotFound() {
   return (
     <div className="flex-1 bg-[#F8FAFC] flex items-center justify-center p-6">
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-lg max-w-lg w-full p-8 sm:p-10 text-center space-y-5">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-electric-blue/10 text-electric-blue flex items-center justify-center">
-          <Compass size={28} />
+      <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm max-w-lg w-full p-8 sm:p-10 text-center space-y-5">
+        <div className="flex justify-center">
+          <BrandLogo variant="icon" theme="light" size="xl" />
         </div>
         <div className="space-y-2">
-          <div className="text-xs font-mono font-bold uppercase tracking-widest text-electric-blue">
+          <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#EEF2FF] text-[#4F46E5] text-[11px] font-mono font-bold uppercase tracking-wider">
             404 • Route Not Found
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-            This CAP page doesn&apos;t exist
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#172554]">
+            This page doesn&apos;t exist
           </h1>
-          <p className="text-sm text-slate-500 leading-relaxed">
-            The college code or page link you followed may have moved. Jump right
-            back into predicting colleges or exploring verified cutoffs.
+          <p className="text-sm text-[#64748B] leading-relaxed">
+            The college code or route you followed may have moved. Jump back into
+            predicting colleges or browsing all 400 verified DTE institutes.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
           <Link
             href="/?start=1"
-            className="px-5 py-3 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+            className="px-5 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
           >
             Launch College Predictor <ArrowRight size={14} />
           </Link>
           <Link
             href="/explorer"
-            className="px-5 py-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5"
+            className="px-5 py-2.5 rounded-xl bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] text-[#1E293B] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
           >
-            <Search size={14} /> Browse 380 Colleges
+            <Search size={14} /> Browse 400 Colleges
           </Link>
         </div>
-        <p className="text-[11px] text-slate-400 pt-2">
-          CAP Compass • Built by Arsh Shaikh
-        </p>
+        <div className="pt-3 border-t border-[#E2E8F0] flex justify-center">
+          <BrandLogo variant="compact" theme="light" size="sm" />
+        </div>
       </div>
     </div>
   );

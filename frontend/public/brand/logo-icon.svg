@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none" role="img" aria-label="CAP Compass Brand Mark">
+  <rect width="40" height="40" rx="10" fill="#172554"/>
+  <rect x="0.75" y="0.75" width="38.5" height="38.5" rx="9.25" stroke="#4F46E5" stroke-opacity="0.5" stroke-width="1.5"/>
+  <path d="M27.6 12.4A10.8 10.8 0 1 0 27.6 27.6" stroke="#FFFFFF" stroke-width="3.7" stroke-linecap="round"/>
+  <path d="M16.6 20L31.2 20L20.2 14.2L16.6 20Z" fill="#EEF2FF"/>
+  <path d="M16.6 20L31.2 20L20.2 25.8L16.6 20Z" fill="#4F46E5"/>
+  <circle cx="19.5" cy="20" r="2" fill="#FFFFFF"/>
+</svg>

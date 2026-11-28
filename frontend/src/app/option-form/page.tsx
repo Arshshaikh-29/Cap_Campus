@@ -331,7 +331,7 @@ export default function OptionFormBuilderPage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-bold uppercase tracking-wider">
               <ListOrdered size={13} /> Flagship CAP Counselling Engine
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
               Smart CAP Option Form Builder
             </h1>
             <p className="text-sm sm:text-base text-slate-500">
@@ -349,7 +349,7 @@ export default function OptionFormBuilderPage() {
                   "Unlock all 60 Option Form choices + CET-ready CSV & PDF export"
                 )
               }
-              className="bg-gradient-to-r from-electric-blue to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold text-xs px-5 py-3 rounded-xl shadow-md flex items-center gap-2 cursor-pointer"
+              className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold text-xs px-5 py-3 rounded-xl shadow-md flex items-center gap-2 cursor-pointer"
             >
               <Crown size={15} /> Unlock Full Option Form (₹199 via GPay)
             </button>
@@ -357,7 +357,7 @@ export default function OptionFormBuilderPage() {
         </div>
 
         {/* Builder Config Card */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6 print:hidden">
+        <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-sm p-6 sm:p-8 space-y-6 print:hidden">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
             {/* Score Mode & Value */}
             <div className="md:col-span-4 space-y-2">
@@ -370,7 +370,7 @@ export default function OptionFormBuilderPage() {
                     type="button"
                     onClick={() => setInputType("percentile")}
                     className={`px-2 py-0.5 rounded-md cursor-pointer ${inputType === "percentile"
-                      ? "bg-white text-slate-900 shadow-2xs"
+                      ? "bg-white text-[#172554] shadow-2xs"
                       : "text-slate-500"
                       }`}
                   >
@@ -380,7 +380,7 @@ export default function OptionFormBuilderPage() {
                     type="button"
                     onClick={() => setInputType("rank")}
                     className={`px-2 py-0.5 rounded-md cursor-pointer ${inputType === "rank"
-                      ? "bg-white text-slate-900 shadow-2xs"
+                      ? "bg-white text-[#172554] shadow-2xs"
                       : "text-slate-500"
                       }`}
                   >
@@ -521,7 +521,7 @@ export default function OptionFormBuilderPage() {
           </div>
 
           {/* Strategy Cards + Generate CTA */}
-          <div className="pt-4 border-t border-slate-200/80 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+          <div className="pt-4 border-t border-[#E2E8F0] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 flex-1">
               {[
                 {
@@ -549,7 +549,7 @@ export default function OptionFormBuilderPage() {
                     : "bg-slate-50/70 border-slate-200 hover:border-slate-300"
                     }`}
                 >
-                  <div className="text-xs font-bold text-slate-900">
+                  <div className="text-xs font-bold text-[#172554]">
                     {s.title}
                   </div>
                   <div className="text-[11px] text-slate-500 mt-0.5">
@@ -563,7 +563,7 @@ export default function OptionFormBuilderPage() {
               type="button"
               onClick={() => generateForm()}
               disabled={loading}
-              className="bg-electric-blue hover:bg-blue-600 text-white font-bold text-sm px-7 py-4 rounded-xl shadow-lg shadow-electric-blue/25 transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+              className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm px-7 py-4 rounded-xl shadow-lg shadow-electric-blue/25 transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
             >
               {loading ? (
                 <RefreshCw size={17} className="animate-spin" />
@@ -580,9 +580,9 @@ export default function OptionFormBuilderPage() {
           <div className="space-y-6">
             {/* Health Score & Summary Strip */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-4 bg-[#0B1120] text-white rounded-2xl p-6 flex items-center justify-between">
+              <div className="lg:col-span-4 bg-[#172554] text-white rounded-2xl p-6 flex items-center justify-between">
                 <div>
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-blue-400">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#C7D2FE]">
                     Option Form Health Score
                   </div>
                   <div className="text-4xl font-extrabold font-mono tabular-nums mt-1">
@@ -609,13 +609,13 @@ export default function OptionFormBuilderPage() {
                 />
               </div>
 
-              <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/90 p-5 flex flex-col justify-between gap-4">
+              <div className="lg:col-span-8 bg-white rounded-2xl border border-[#E2E8F0] p-5 flex flex-col justify-between gap-4">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="p-3 rounded-xl bg-rose-50/70 border border-rose-200/70">
                     <div className="text-[11px] font-bold text-rose-700 uppercase">
                       Dream Choices
                     </div>
-                    <div className="text-2xl font-extrabold font-mono tabular-nums text-slate-900">
+                    <div className="text-2xl font-extrabold font-mono tabular-nums text-[#172554]">
                       {tierCounts.dream}
                     </div>
                   </div>
@@ -623,7 +623,7 @@ export default function OptionFormBuilderPage() {
                     <div className="text-[11px] font-bold text-amber-700 uppercase">
                       Target Choices
                     </div>
-                    <div className="text-2xl font-extrabold font-mono tabular-nums text-slate-900">
+                    <div className="text-2xl font-extrabold font-mono tabular-nums text-[#172554]">
                       {tierCounts.target}
                     </div>
                   </div>
@@ -631,7 +631,7 @@ export default function OptionFormBuilderPage() {
                     <div className="text-[11px] font-bold text-emerald-700 uppercase">
                       Safe Backups
                     </div>
-                    <div className="text-2xl font-extrabold font-mono tabular-nums text-slate-900">
+                    <div className="text-2xl font-extrabold font-mono tabular-nums text-[#172554]">
                       {tierCounts.safe}
                     </div>
                   </div>
@@ -666,10 +666,10 @@ export default function OptionFormBuilderPage() {
             </div>
 
             {/* Table Actions */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-              <div className="p-5 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden">
+              <div className="p-5 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">
+                  <h2 className="text-base font-bold text-[#172554]">
                     Ordered CAP Option Form ({choices.length} Preferences)
                   </h2>
                   <p className="text-xs text-slate-500">
@@ -744,7 +744,7 @@ export default function OptionFormBuilderPage() {
                           key={`${c.college_code}-${c.branch}-${idx}`}
                           className="hover:bg-slate-50/70 transition-colors"
                         >
-                          <td className="py-3.5 px-4 font-mono tabular-nums font-extrabold text-slate-900 text-sm">
+                          <td className="py-3.5 px-4 font-mono tabular-nums font-extrabold text-[#172554] text-sm">
                             #{String(idx + 1).padStart(2, "0")}
                           </td>
                           <td className="py-3.5 px-4">
@@ -771,7 +771,7 @@ export default function OptionFormBuilderPage() {
                           <td className="py-3.5 px-4">
                             <Link
                               href={`/college/${c.college_code}`}
-                              className="font-bold text-slate-900 hover:text-electric-blue block leading-snug"
+                              className="font-bold text-[#172554] hover:text-electric-blue block leading-snug"
                             >
                               {c.college_name}
                             </Link>
@@ -806,7 +806,7 @@ export default function OptionFormBuilderPage() {
                             </span>
                           </td>
                           <td className="py-3.5 px-4 text-right font-mono tabular-nums">
-                            <div className="font-bold text-slate-900">
+                            <div className="font-bold text-[#172554]">
                               {c.historical_percentile != null
                                 ? `${Number(c.historical_percentile).toFixed(2)} %`
                                 : "N/A"}
@@ -855,19 +855,19 @@ export default function OptionFormBuilderPage() {
 
               {/* Pro Unlock Gate when Free */}
               {lockedCount > 0 && (
-                <div className="p-8 bg-gradient-to-b from-slate-50 to-blue-50/70 border-t border-slate-200 text-center space-y-4">
+                <div className="p-8 bg-gradient-to-b from-slate-50 to-[#EEF2FF]/70 border-t border-slate-200 text-center space-y-4">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 text-electric-blue text-xs font-bold">
                     <Lock size={13} /> {lockedCount} More Optimized Choices
                     Locked (Including Your Target &amp; Safe Backups)
                   </div>
-                  <h3 className="text-xl font-extrabold text-slate-900">
+                  <h3 className="text-xl font-extrabold text-[#172554]">
                     Unlock Your Complete {totalChoicePool}-Choice DTE Option Form
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto">
                     Get all {totalChoicePool} ordered colleges with official
                     9-digit Choice Codes, unlimited CSV/PDF export, and full
                     season access for just{" "}
-                    <strong className="text-slate-900">₹199</strong> via Google
+                    <strong className="text-[#172554]">₹199</strong> via Google
                     Pay (<strong className="font-mono">{GPAY_NUMBER}</strong>).
                   </p>
                   <button
@@ -878,7 +878,7 @@ export default function OptionFormBuilderPage() {
                         `Unlock all ${totalChoicePool} ordered CAP Option Form choices`
                       )
                     }
-                    className="bg-electric-blue hover:bg-blue-600 text-white font-bold text-sm px-7 py-3.5 rounded-xl shadow-lg shadow-electric-blue/25 inline-flex items-center gap-2 cursor-pointer"
+                    className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm px-7 py-3.5 rounded-xl shadow-lg shadow-electric-blue/25 inline-flex items-center gap-2 cursor-pointer"
                   >
                     <Crown size={16} /> Unlock CAP Pro Pass — ₹199
                   </button>

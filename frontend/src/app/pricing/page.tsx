@@ -96,7 +96,7 @@ export default function PricingPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-bold uppercase tracking-wider">
             <Crown size={13} /> Transparent One-Time CAP Season Plans
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#172554]">
             Maximize Your Engineering Seat Allotment.
           </h1>
           <p className="text-base sm:text-lg text-slate-500 leading-relaxed">
@@ -118,16 +118,16 @@ export default function PricingPage() {
                 key={tierId}
                 className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all relative ${
                   isPopular
-                    ? "bg-[#0B1120] text-white border-2 border-electric-blue shadow-[0_24px_60px_-15px_rgba(37,99,235,0.28)]"
-                    : "bg-white text-slate-900 border border-slate-200/90 shadow-xs"
+                    ? "bg-[#172554] text-white border-2 border-[#4F46E5] shadow-[0_20px_50px_-16px_rgba(23,37,84,0.32)]"
+                    : "bg-white text-[#1E293B] border border-[#E2E8F0] shadow-xs"
                 }`}
               >
                 {p.badge && (
                   <span
                     className={`absolute -top-3.5 right-6 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-xs ${
                       isPopular
-                        ? "bg-electric-blue text-white"
-                        : "bg-amber-500 text-white"
+                        ? "bg-[#4F46E5] text-white"
+                        : "bg-[#172554] text-white"
                     }`}
                   >
                     {p.badge}
@@ -138,7 +138,7 @@ export default function PricingPage() {
                   <div>
                     <h2
                       className={`text-xl font-bold ${
-                        isPopular ? "text-white" : "text-slate-900"
+                        isPopular ? "text-white" : "text-[#172554]"
                       }`}
                     >
                       {p.name}
@@ -171,7 +171,7 @@ export default function PricingPage() {
                         <CheckCircle2
                           size={16}
                           className={`shrink-0 mt-0.5 ${
-                            isPopular ? "text-teal-400" : "text-emerald-600"
+                            isPopular ? "text-[#C7D2FE]" : "text-emerald-600"
                           }`}
                         />
                         <span
@@ -190,7 +190,7 @@ export default function PricingPage() {
                   {tierId === "free" ? (
                     <Link
                       href="/?start=1"
-                      className="w-full py-3.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-900 font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                      className="w-full py-3.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[#172554] font-bold text-sm flex items-center justify-center gap-2 transition-colors"
                     >
                       Start Free Predictor <ArrowRight size={15} />
                     </Link>
@@ -202,10 +202,10 @@ export default function PricingPage() {
                     <button
                       type="button"
                       onClick={() => openUpgradeModal(tierId)}
-                      className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer ${
                         isPopular
-                          ? "bg-electric-blue hover:bg-blue-500 text-white shadow-lg shadow-electric-blue/30"
-                          : "bg-slate-900 hover:bg-slate-800 text-white"
+                          ? "bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-sm"
+                          : "bg-[#172554] hover:bg-[#1E3A8A] text-white"
                       }`}
                     >
                       <Sparkles size={15} /> Pay ₹{p.priceInr} &amp; Unlock
@@ -219,12 +219,12 @@ export default function PricingPage() {
         </div>
 
         {/* Official Google Pay Verification Strip */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6 sm:p-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-xs p-6 sm:p-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
               <ShieldCheck size={14} /> Direct Google Pay / UPI Checkout
             </div>
-            <h3 className="text-xl font-extrabold text-slate-900">
+            <h3 className="text-xl font-extrabold text-[#172554]">
               Official Google Pay Number:{" "}
               <span className="font-mono tabular-nums text-electric-blue">
                 {GPAY_NUMBER}
@@ -233,7 +233,7 @@ export default function PricingPage() {
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
               Pay directly via <strong>Google Pay</strong>,{" "}
               <strong>PhonePe</strong>, or <strong>Paytm</strong> to phone number{" "}
-              <strong className="font-mono text-slate-900">{GPAY_NUMBER}</strong>,
+              <strong className="font-mono text-[#172554]">{GPAY_NUMBER}</strong>,
               submit your 12-digit UTR to receive your Access Key, or ping us on
               WhatsApp for fast activation.
             </p>
@@ -242,7 +242,7 @@ export default function PricingPage() {
             <button
               type="button"
               onClick={copyNumber}
-              className="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs flex items-center gap-2 cursor-pointer"
+              className="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#172554] font-bold text-xs flex items-center gap-2 cursor-pointer"
             >
               {copied ? (
                 <>
@@ -258,7 +258,7 @@ export default function PricingPage() {
             <button
               type="button"
               onClick={() => openUpgradeModal("pro")}
-              className="px-4 py-3 rounded-xl bg-electric-blue hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-sm cursor-pointer"
+              className="px-4 py-3 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-xs flex items-center gap-2 shadow-sm cursor-pointer"
             >
               <KeyRound size={14} />{" "}
               {proActive ? "Manage Access Key" : "Submit UTR / Activate Key"}
@@ -282,7 +282,7 @@ export default function PricingPage() {
             <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-electric-blue">
               <PhoneCall size={14} /> Personal CAP Counselling
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#172554]">
               Need 1-on-1 Help With Your Option Form?
             </h2>
             <p className="text-sm text-slate-600 leading-relaxed">
@@ -290,14 +290,14 @@ export default function PricingPage() {
               or whether to freeze vs go for Round 2 betterment? Leave your
               details and our CAP counsellor will call or WhatsApp you.
             </p>
-            <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/70 space-y-1.5 text-xs text-slate-700">
-              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+            <div className="p-4 rounded-2xl bg-[#EEF2FF]/70 border border-[#4F46E5]/20/70 space-y-1.5 text-xs text-slate-700">
+              <div className="font-bold text-[#172554] flex items-center gap-1.5">
                 <Smartphone size={14} className="text-electric-blue" /> Direct
                 Helpline &amp; GPay
               </div>
               <div>
                 WhatsApp / GPay:{" "}
-                <strong className="font-mono text-slate-900">
+                <strong className="font-mono text-[#172554]">
                   +91 {GPAY_NUMBER}
                 </strong>
               </div>
@@ -307,7 +307,7 @@ export default function PricingPage() {
 
           <form
             onSubmit={handleLeadSubmit}
-            className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6 sm:p-8 space-y-4"
+            className="lg:col-span-7 bg-white rounded-3xl border border-[#E2E8F0] shadow-xs p-6 sm:p-8 space-y-4"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

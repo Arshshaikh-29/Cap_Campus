@@ -77,7 +77,7 @@ export default function RankCalculatorPage() {
       ? {
           label: "Premier Pune / Mumbai Institutes",
           colleges: "DJ Sanghvi, VIT Pune, PCCOE Pune, Cummins (Ladies), Thadomal, KJSCE",
-          color: "bg-blue-50 border-blue-200 text-blue-900",
+          color: "bg-[#EEF2FF] border-[#4F46E5]/20 text-blue-900",
         }
       : estPct >= 88.0
       ? {
@@ -100,7 +100,7 @@ export default function RankCalculatorPage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-bold uppercase tracking-wider">
               <Calculator size={13} /> Empirical 66,108-Record CAP Model
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
               MHT-CET Marks, Percentile &harr; State Merit Rank Calculator
             </h1>
             <p className="text-sm sm:text-base text-slate-500">
@@ -112,13 +112,13 @@ export default function RankCalculatorPage() {
           <div className="flex flex-wrap gap-2.5">
             <Link
               href="/?start=1"
-              className="px-4 py-2.5 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
+              className="px-4 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
             >
               <Sparkles size={14} /> Predict Colleges
             </Link>
             <Link
               href="/option-form"
-              className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold flex items-center gap-1.5"
+              className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#172554] text-xs font-bold flex items-center gap-1.5"
             >
               <ListOrdered size={14} className="text-electric-blue" /> Build
               Option Form
@@ -128,12 +128,12 @@ export default function RankCalculatorPage() {
 
         {/* Interactive Calculator Card */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-7 space-y-6">
+          <div className="lg:col-span-5 bg-white rounded-3xl border border-[#E2E8F0] shadow-sm p-6 sm:p-7 space-y-6">
             <div>
               <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
                 Select Input Mode
               </span>
-              <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
+              <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl border border-[#E2E8F0]">
                 {[
                   { id: "percentile", label: "Percentile", icon: Percent },
                   { id: "marks", label: "Marks / 200", icon: Calculator },
@@ -148,8 +148,8 @@ export default function RankCalculatorPage() {
                       onClick={() => setMode(m.id as any)}
                       className={`py-2.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         active
-                          ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/5"
-                          : "text-slate-600 hover:text-slate-900"
+                          ? "bg-white text-[#172554] shadow-xs ring-1 ring-slate-900/5"
+                          : "text-slate-600 hover:text-[#172554]"
                       }`}
                     >
                       <Icon
@@ -176,7 +176,7 @@ export default function RankCalculatorPage() {
                     max="100"
                     value={percentile}
                     onChange={(e) => setPercentile(e.target.value)}
-                    className="w-full text-2xl font-mono tabular-nums font-bold text-slate-900 pl-4 pr-20 py-3.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15"
+                    className="w-full text-2xl font-mono tabular-nums font-bold text-[#172554] pl-4 pr-20 py-3.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-100 border border-slate-200 text-slate-600 font-mono text-xs font-bold px-2.5 py-1 rounded-lg">
                     %ile
@@ -209,7 +209,7 @@ export default function RankCalculatorPage() {
                     max="200"
                     value={marks}
                     onChange={(e) => setMarks(e.target.value)}
-                    className="w-full text-2xl font-mono tabular-nums font-bold text-slate-900 pl-4 pr-24 py-3.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15"
+                    className="w-full text-2xl font-mono tabular-nums font-bold text-[#172554] pl-4 pr-24 py-3.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-100 border border-slate-200 text-slate-600 font-mono text-xs font-bold px-2.5 py-1 rounded-lg">
                     / 200
@@ -241,7 +241,7 @@ export default function RankCalculatorPage() {
                     min="1"
                     value={rank}
                     onChange={(e) => setRank(e.target.value)}
-                    className="w-full text-2xl font-mono tabular-nums font-bold text-slate-900 pl-4 pr-24 py-3.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15"
+                    className="w-full text-2xl font-mono tabular-nums font-bold text-[#172554] pl-4 pr-24 py-3.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-electric-blue focus:ring-4 focus:ring-electric-blue/15"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-100 border border-slate-200 text-slate-600 font-mono text-xs font-bold px-2.5 py-1 rounded-lg">
                     Rank #
@@ -277,11 +277,11 @@ export default function RankCalculatorPage() {
 
           {/* Right: Live Result Dashboard */}
           <div className="lg:col-span-7 space-y-5">
-            <div className="bg-[#0B1120] text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden">
+            <div className="bg-[#172554] text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden">
               <div className="absolute -top-24 -right-24 w-72 h-72 bg-electric-blue/25 rounded-full blur-3xl pointer-events-none" />
               <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
                 <div>
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-blue-400">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#C7D2FE]">
                     2025 CAP State Merit Rank
                   </div>
                   <div className="text-4xl sm:text-5xl font-extrabold font-mono tabular-nums mt-1 text-white">
@@ -296,7 +296,7 @@ export default function RankCalculatorPage() {
                 <div className="bg-white/[0.05] border border-white/10 rounded-2xl p-4 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400">Equivalent Percentile</span>
-                    <span className="font-mono font-bold text-teal-300 text-base">
+                    <span className="font-mono font-bold text-[#C7D2FE] text-base">
                       {est ? `${Number(estPct).toFixed(2)} %ile` : "..."}
                     </span>
                   </div>
@@ -329,10 +329,10 @@ export default function RankCalculatorPage() {
             </div>
 
             {/* Multi-Year Curve Chart */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6">
+            <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-xs p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[#172554] flex items-center gap-2">
                     <TrendingUp size={16} className="text-electric-blue" />{" "}
                     Percentile vs State Merit Rank Curve (2023–2025)
                   </h3>
@@ -373,8 +373,8 @@ export default function RankCalculatorPage() {
                       <Area
                         type="monotone"
                         dataKey="rank_2025"
-                        stroke="#2563EB"
-                        fill="#2563EB"
+                        stroke="#4F46E5"
+                        fill="#4F46E5"
                         fillOpacity={0.12}
                         strokeWidth={2.5}
                       />
@@ -396,10 +396,10 @@ export default function RankCalculatorPage() {
 
         {/* Marks vs Percentile vs Rank Table */}
         {data?.marks_table && (
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6 sm:p-8">
+          <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-xs p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
               <div>
-                <h2 className="text-lg font-bold text-slate-900">
+                <h2 className="text-lg font-bold text-[#172554]">
                   MHT-CET PCM Marks vs Percentile vs 2025 State Merit Rank Table
                 </h2>
                 <p className="text-xs text-slate-500">
@@ -418,12 +418,12 @@ export default function RankCalculatorPage() {
               {data.marks_table.map((row: any) => (
                 <div
                   key={row.marks}
-                  className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-center space-y-1"
+                  className="p-3 rounded-xl bg-slate-50 border border-[#E2E8F0] text-center space-y-1"
                 >
                   <div className="text-[11px] font-bold text-slate-500">
                     {row.marks} / 200
                   </div>
-                  <div className="text-base font-extrabold font-mono tabular-nums text-slate-900">
+                  <div className="text-base font-extrabold font-mono tabular-nums text-[#172554]">
                     {Number(row.percentile).toFixed(1)}%
                   </div>
                   <div className="text-[11px] font-mono font-semibold text-electric-blue">

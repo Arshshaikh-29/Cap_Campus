@@ -168,7 +168,7 @@ export default function CapGuidePage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-bold uppercase tracking-wider">
               <BookOpenCheck size={13} /> Free CAP Admission Toolkit
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
               CAP Guide &amp; Document Checklist
             </h1>
             <p className="text-sm text-slate-600 leading-relaxed">
@@ -187,7 +187,7 @@ export default function CapGuidePage() {
             </button>
             <Link
               href="/?start=1"
-              className="px-4 py-2.5 rounded-xl bg-electric-blue hover:bg-blue-600 text-white text-xs font-bold flex items-center gap-1.5"
+              className="px-4 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold flex items-center gap-1.5"
             >
               Predict Colleges <ArrowRight size={14} />
             </Link>
@@ -196,16 +196,16 @@ export default function CapGuidePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Document Checklist */}
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-5">
+          <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-6 space-y-5">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-[#172554] flex items-center gap-2">
                 <ClipboardList size={18} className="text-electric-blue" />
                 Document Checklist
               </h2>
               <button
                 type="button"
                 onClick={resetAll}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1 cursor-pointer print:hidden"
+                className="text-xs font-semibold text-slate-500 hover:text-[#172554] flex items-center gap-1 cursor-pointer print:hidden"
               >
                 <RotateCcw size={12} /> Reset
               </button>
@@ -270,7 +270,7 @@ export default function CapGuidePage() {
                       <span className="space-y-0.5">
                         <span
                           className={`block text-sm font-semibold ${
-                            isDone ? "text-slate-400 line-through" : "text-slate-900"
+                            isDone ? "text-slate-400 line-through" : "text-[#172554]"
                           }`}
                         >
                           {d.title}
@@ -285,7 +285,7 @@ export default function CapGuidePage() {
               })}
             </ul>
 
-            <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-blue-50/70 border border-blue-100 text-xs text-slate-700">
+            <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-[#EEF2FF]/70 border border-blue-100 text-xs text-slate-700">
               <Info size={15} className="text-electric-blue shrink-0 mt-0.5" />
               <span>
                 Keep originals plus 2 self-attested photocopies of every document.
@@ -298,8 +298,8 @@ export default function CapGuidePage() {
 
           {/* CAP Process Timeline */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-5">
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-6">
+              <h2 className="text-lg font-bold text-[#172554] flex items-center gap-2 mb-5">
                 <ListOrdered size={18} className="text-electric-blue" />
                 CAP Process — Step by Step
               </h2>
@@ -307,11 +307,11 @@ export default function CapGuidePage() {
                 <span className="absolute left-[13px] top-2 bottom-2 w-px bg-slate-200" aria-hidden />
                 {CAP_STEPS.map((s, i) => (
                   <li key={s.title} className="relative flex gap-3.5">
-                    <span className="relative z-10 w-7 h-7 shrink-0 rounded-full bg-[#0B1120] text-white text-xs font-bold font-mono flex items-center justify-center ring-4 ring-white">
+                    <span className="relative z-10 w-7 h-7 shrink-0 rounded-full bg-[#172554] text-white text-xs font-bold font-mono flex items-center justify-center ring-4 ring-white">
                       {i + 1}
                     </span>
                     <div className="space-y-0.5 pt-0.5">
-                      <div className="text-sm font-bold text-slate-900">{s.title}</div>
+                      <div className="text-sm font-bold text-[#172554]">{s.title}</div>
                       <p className="text-xs text-slate-600 leading-relaxed">{s.body}</p>
                     </div>
                   </li>
@@ -319,8 +319,8 @@ export default function CapGuidePage() {
               </ol>
             </div>
 
-            <div className="bg-[#0B1120] text-white rounded-2xl p-6 space-y-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-blue-300">
+            <div className="bg-[#172554] text-white rounded-2xl p-6 space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#C7D2FE]">
                 Freeze vs Betterment — Quick Explainer
               </h3>
               <div className="flex gap-3">
@@ -349,8 +349,8 @@ export default function CapGuidePage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-3">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-6 space-y-3">
+              <h3 className="text-sm font-bold text-[#172554] flex items-center gap-2">
                 <FileText size={16} className="text-electric-blue" /> Next steps in CAP Compass
               </h3>
               <div className="grid grid-cols-1 gap-2 text-xs font-semibold">
