@@ -130,14 +130,12 @@ export default function ExplorerPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header & Search */}
         <div className="bg-white rounded-3xl p-8 border border-border shadow-xs space-y-6">
-          <div className="max-w-2xl">
-            <h1 className="text-3xl font-extrabold text-primary tracking-tight">
-              Explore Engineering Colleges
+          <div className="max-w-xl">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#172554] tracking-tight">
+              College Explorer
             </h1>
-            <p className="text-sm text-text-secondary mt-2">
-              Browse 400 Maharashtra engineering institutes across all DTE
-              regions (2023–2026 CAP Rounds 1–4), inspect disambiguated branch
-              cutoffs, and compare colleges side-by-side.
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1">
+              400 Maharashtra engineering colleges • 2023–2026 CAP cutoffs.
             </p>
           </div>
 

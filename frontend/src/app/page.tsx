@@ -640,435 +640,256 @@ export default function Home() {
   return (
     <div className="flex-1 flex flex-col justify-center bg-[#F8FAFC]">
       {step === 1 && (
-        <section className="relative py-10 sm:py-14 lg:py-20 flex-1 flex flex-col">
+        <section className="py-10 sm:py-14 lg:py-16 flex-1 flex flex-col">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            <div className="lg:col-span-7 space-y-6 sm:space-y-7">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EEF2FF] border border-[#4F46E5]/20 text-[#4F46E5] text-[11px] sm:text-xs font-semibold tracking-wide uppercase">
-                  <Sparkles size={13} /> MHT-CET Engineering Admissions 2023–2026
-                </div>
-                <Link
-                  href="/about"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#172554] hover:bg-[#1E3A8A] text-white text-[11px] sm:text-xs font-semibold transition-colors"
-                >
-                  <Code2 size={13} className="text-[#C7D2FE]" />
-                  Engineered by Arsh Shaikh
-                </Link>
+            <div className="lg:col-span-7 space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EEF2FF] border border-[#4F46E5]/20 text-[#4F46E5] text-xs font-semibold">
+                MHT-CET 2023–2026 • Rounds 1–4
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight text-[#172554] leading-[1.08]">
+              <h1 className="text-4xl sm:text-5xl lg:text-[52px] font-extrabold tracking-tight text-[#172554] leading-[1.08]">
                 Navigate CAP Admissions with{" "}
                 <span className="text-[#4F46E5]">Clarity.</span>
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-600 max-w-2xl leading-relaxed">
-                Explore 400 Maharashtra engineering colleges with{" "}
-                <strong className="text-[#172554] font-semibold">
-                  category-wise rank & percentile cutoffs
-                </strong>{" "}
-                across 2023–2026 CAP Rounds 1–4, live Percentile &harr; Merit
-                Rank conversion, and calibrated seat-pool insights.
+              <p className="text-base sm:text-lg text-[#64748B] max-w-xl leading-relaxed">
+                Predict Maharashtra engineering colleges by category rank,
+                percentile, branch, and city.
               </p>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-1">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
                 <button
                   onClick={() => setStep(2)}
-                  className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl shadow-lg shadow-electric-blue/25 hover:shadow-electric-blue/35 transition-all flex items-center justify-center gap-2 text-sm sm:text-base group cursor-pointer"
+                  className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-6 py-3.5 rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 text-sm sm:text-base group cursor-pointer"
                 >
                   Predict My Colleges
                   <ArrowRight
-                    size={18}
+                    size={17}
                     className="group-hover:translate-x-1 transition-transform"
                   />
                 </button>
                 <Link
                   href="/map"
-                  className="bg-white hover:bg-slate-50 text-[#172554] border border-[#E2E8F0] font-semibold px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+                  className="bg-white hover:bg-[#F8FAFC] text-[#172554] border border-[#E2E8F0] font-semibold px-6 py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
-                  <MapPin size={17} className="text-electric-blue" />
-                  Explore College Map
+                  <MapPin size={16} className="text-[#4F46E5]" />
+                  College Map
                 </Link>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 sm:gap-6 pt-6 sm:pt-8 border-t border-[#E2E8F0]">
+              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-[#E2E8F0]">
                 <div>
                   <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-[#172554]">
-                    198,300+
+                    198k+
                   </div>
-                  <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
-                    Verified Cutoff Records
+                  <div className="text-xs text-[#64748B] mt-0.5">
+                    Cutoff Records
                   </div>
                 </div>
                 <div>
                   <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-[#172554]">
                     400
                   </div>
-                  <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
-                    Engineering Institutes
+                  <div className="text-xs text-[#64748B] mt-0.5">
+                    Colleges
                   </div>
                 </div>
                 <div>
                   <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-[#172554]">
-                    Rounds 1–4
+                    R1 – R4
                   </div>
-                  <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
-                    2023–2026 CAP Data
+                  <div className="text-xs text-[#64748B] mt-0.5">
+                    2023–2026 Data
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="lg:col-span-5 relative">
-              <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-[0_20px_50px_-15px_rgba(15,23,42,0.08)] p-6 relative z-10">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-                  <div>
-                    <div className="text-[11px] font-bold text-electric-blue uppercase tracking-wider">
-                      Live 2026 CAP Benchmark (GOPENS)
-                    </div>
-                    <div className="text-base font-bold text-[#172554] mt-0.5">
-                      Top Autonomous Cutoffs (Rank & %ile)
-                    </div>
+            <div className="lg:col-span-5">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-5 sm:p-6">
+                <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3.5 mb-4">
+                  <div className="text-sm font-bold text-[#172554]">
+                    Top 2026 Cutoffs (GOPENS)
                   </div>
-                  <div className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 text-xs font-bold px-2.5 py-1 rounded-md flex items-center gap-1">
-                    <TrendingUp size={12} /> Verified
-                  </div>
+                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    Verified
+                  </span>
                 </div>
 
-                <div className="space-y-3.5">
+                <div className="space-y-2.5">
                   {[
                     {
                       name: "VJTI Mumbai",
                       code: "3012",
                       branch: "Computer Engineering",
-                      cutoff: "99.99 %ile",
-                      rank: "Rank #71",
-                      status: "Top Tier",
-                      color:
-                        "text-electric-blue bg-electric-blue/10 border-electric-blue/20",
+                      cutoff: "99.99%",
+                      rank: "#71",
                     },
                     {
                       name: "COEP Tech University, Pune",
                       code: "6006",
                       branch: "Computer Science & Engg",
-                      cutoff: "99.98 %ile",
-                      rank: "Rank #150",
-                      status: "Top Tier",
-                      color:
-                        "text-electric-blue bg-electric-blue/10 border-electric-blue/20",
+                      cutoff: "99.98%",
+                      rank: "#150",
                     },
                     {
                       name: "SPIT Andheri, Mumbai",
                       code: "3215",
                       branch: "Computer Science & Engg",
-                      cutoff: "99.88 %ile",
-                      rank: "Rank #537",
-                      status: "High Demand",
-                      color:
-                        "text-emerald-700 bg-emerald-500/10 border-emerald-500/20",
+                      cutoff: "99.88%",
+                      rank: "#537",
                     },
                     {
                       name: "PICT Pune",
                       code: "6271",
                       branch: "Computer Engineering",
-                      cutoff: "99.79 %ile",
-                      rank: "Rank #929",
-                      status: "High Demand",
-                      color:
-                        "text-emerald-700 bg-emerald-500/10 border-emerald-500/20",
+                      cutoff: "99.79%",
+                      rank: "#929",
                     },
                   ].map((item, i) => (
                     <Link
                       key={i}
                       href={`/college/${item.code}`}
-                      className="p-3.5 rounded-xl border border-[#E2E8F0] bg-slate-50/60 flex flex-col gap-1.5 hover:border-electric-blue/40 hover:bg-white transition-all block"
+                      className="p-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#4F46E5]/40 hover:bg-white transition-all flex items-center justify-between gap-3"
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="font-bold text-[#172554] text-sm">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[#172554] text-sm truncate">
                           {item.name}
                         </div>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.color}`}
-                        >
-                          {item.status}
-                        </span>
+                        <div className="text-xs text-[#64748B] truncate">
+                          {item.branch}
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center text-xs text-slate-500">
-                        <span>{item.branch}</span>
-                        <span className="font-mono tabular-nums font-semibold text-[#172554]">
-                          {item.cutoff} • {item.rank}
-                        </span>
+                      <div className="text-right font-mono text-xs shrink-0">
+                        <div className="font-bold text-[#172554]">{item.cutoff}</div>
+                        <div className="text-[#4F46E5] font-semibold">{item.rank}</div>
                       </div>
                     </Link>
                   ))}
                 </div>
 
-                <div className="mt-5 pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
-                  <span>Based on official DTE / CET Cell data</span>
+                <div className="mt-4 pt-3.5 border-t border-[#E2E8F0] flex justify-between items-center text-xs text-[#64748B]">
+                  <span>DTE Maharashtra Cutoffs</span>
                   <button
                     onClick={() => setStep(2)}
-                    className="text-electric-blue font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-[#4F46E5] font-semibold hover:underline inline-flex items-center gap-0.5 cursor-pointer"
                   >
-                    Try with your score <ChevronRight size={14} />
+                    Check your score <ChevronRight size={14} />
                   </button>
                 </div>
               </div>
-
-              <div className="absolute -bottom-6 -right-6 w-full h-full bg-gradient-to-br from-slate-800 to-slate-950 rounded-2xl -z-10 opacity-10 transform rotate-2" />
             </div>
           </div>
 
-          {/* BELOW THE FOLD: INDUSTRY CAPABILITIES, PRICING PREVIEW & FAQ */}
-          <div className="max-w-7xl mx-auto px-6 mt-24 space-y-24 w-full">
-            {/* 4-Card Platform Suite Showcase */}
-            <div className="space-y-8">
-              <div className="text-center max-w-2xl mx-auto space-y-2">
-                <div className="text-xs font-bold uppercase tracking-widest text-electric-blue">
-                  Built for Maharashtra CAP Admissions
-                </div>
-                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
-                  Everything You Need to Lock Your Best Engineering Seat
-                </h2>
-                <p className="text-sm sm:text-base text-slate-500">
-                  From raw MHT-CET score estimation to a DTE-verified 60-choice
-                  preference sheet ready for the State CET Cell portal.
-                </p>
-              </div>
+          {/* Clean Quick Tools Grid */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-14 space-y-6 w-full">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#172554]">Counselling Tools</h2>
+              <Link
+                href="/explorer"
+                className="text-xs font-semibold text-[#4F46E5] hover:underline inline-flex items-center gap-1"
+              >
+                All 400 Colleges <ArrowRight size={13} />
+              </Link>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[
-                  {
-                    icon: Compass,
-                    badge: "Dual Cutoff Engine",
-                    title: "Category Rank & %ile Predictor",
-                    desc: "Multi-branch & multi-city predictor calibrated across 95 CAP categories (S/H/O pools, Ladies 30%, EWS, TFWS, Minority) with dual Rank & Percentile margins.",
-                    cta: "Launch Wizard",
-                    action: () => setStep(2),
-                    href: null,
-                  },
-                  {
-                    icon: ListOrdered,
-                    badge: "PRO Flagship",
-                    title: "Smart CAP Option Form Builder",
-                    desc: "Auto-generates an optimal Dream → Target → Safe preference list with official 9-digit DTE Choice Codes and live order-safety checks.",
-                    cta: "Build Option Form",
-                    action: null,
-                    href: "/option-form",
-                  },
-                  {
-                    icon: Radar,
-                    badge: "EXCLUSIVE • PRO",
-                    title: "Betterment & Spot-Round Drop Radar",
-                    desc: "Uncover hidden colleges you miss in Round 1 that historically drop into reach by Round 2/3 — plus Spot/ACAP Round targets so you never freeze too early.",
-                    cta: "Scan Betterment Gems",
-                    action: null,
-                    href: "/betterment",
-                  },
-                  {
-                    icon: Wallet,
-                    badge: "EXCLUSIVE • PRO",
-                    title: "Scholarship, Budget & ROI Finder",
-                    desc: "Applies Maharashtra Girls 100% Tuition Waiver (< ₹8L), OBC/EWS 50% MahaDBT & TFWS to compute real 4-Year Net Fees vs. verified NIRF Median Salary.",
-                    cta: "Calculate Net ROI",
-                    action: null,
-                    href: "/roi-finder",
-                  },
-                  {
-                    icon: Activity,
-                    badge: "NEW",
-                    title: "What-If Score Impact Simulator",
-                    desc: "Test how ±0.5, ±1 or ±2 percentile shifts unlock top institutes or put current seats at risk — with an interactive stacked chart and exact seat diffs.",
-                    cta: "Simulate Score Impact",
-                    action: null,
-                    href: "/what-if",
-                  },
-                  {
-                    icon: BookOpenCheck,
-                    badge: "Free Toolkit",
-                    title: "CAP Guide & Document Checklist",
-                    desc: "Personalized Maharashtra CAP document checklist by category (OBC/SEBC/SC/ST/EWS/TFWS/Minority) with progress saving, print mode & Freeze vs Betterment guide.",
-                    cta: "Open CAP Guide",
-                    action: null,
-                    href: "/cap-guide",
-                  },
-                ].map((card, i) => {
-                  const Icon = card.icon;
-                  return (
-                    <div
-                      key={i}
-                      className="bg-white rounded-2xl border border-[#E2E8F0] p-6 shadow-2xs hover:shadow-md hover:border-electric-blue/35 transition-all flex flex-col justify-between gap-5"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="w-10 h-10 rounded-xl bg-electric-blue/10 text-electric-blue flex items-center justify-center">
-                            <Icon size={20} />
-                          </div>
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-[#E2E8F0]">
-                            {card.badge}
-                          </span>
-                        </div>
-                        <h3 className="text-base font-bold text-[#172554]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                {
+                  icon: ListOrdered,
+                  badge: "PRO",
+                  title: "Option Form Builder",
+                  desc: "Auto-ordered Dream → Target → Safe list.",
+                  href: "/option-form",
+                },
+                {
+                  icon: Radar,
+                  badge: "PRO",
+                  title: "Betterment Radar",
+                  desc: "Round 1 to Round 4 cutoff drops.",
+                  href: "/betterment",
+                },
+                {
+                  icon: Wallet,
+                  badge: "PRO",
+                  title: "ROI & Net Fees",
+                  desc: "MahaDBT fee waivers vs NIRF salary.",
+                  href: "/roi-finder",
+                },
+                {
+                  icon: Activity,
+                  badge: null,
+                  title: "What-If Simulator",
+                  desc: "Check ±2%ile impact on reachability.",
+                  href: "/what-if",
+                },
+                {
+                  icon: BarChart3,
+                  badge: null,
+                  title: "Cutoff Analytics",
+                  desc: "Multi-year 2023–2026 trend charts.",
+                  href: "/analytics",
+                },
+                {
+                  icon: BookOpenCheck,
+                  badge: null,
+                  title: "CAP Guide",
+                  desc: "Category documents & CAP steps.",
+                  href: "/cap-guide",
+                },
+              ].map((card) => {
+                const Icon = card.icon;
+                return (
+                  <Link
+                    key={card.href}
+                    href={card.href}
+                    className="bg-white rounded-2xl border border-[#E2E8F0] p-5 hover:border-[#4F46E5]/40 transition-all flex items-start gap-3.5 group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-[#EEF2FF] text-[#4F46E5] flex items-center justify-center shrink-0 group-hover:bg-[#4F46E5] group-hover:text-white transition-colors">
+                      <Icon size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-sm font-bold text-[#172554]">
                           {card.title}
                         </h3>
-                        <p className="text-xs text-slate-500 leading-relaxed">
-                          {card.desc}
-                        </p>
+                        {card.badge && (
+                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5]">
+                            {card.badge}
+                          </span>
+                        )}
                       </div>
-                      {card.href ? (
-                        <Link
-                          href={card.href}
-                          className="text-xs font-bold text-electric-blue hover:underline inline-flex items-center gap-1"
-                        >
-                          {card.cta} <ArrowRight size={13} />
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={card.action!}
-                          className="text-xs font-bold text-electric-blue hover:underline inline-flex items-center gap-1 cursor-pointer w-fit"
-                        >
-                          {card.cta} <ArrowRight size={13} />
-                        </button>
-                      )}
+                      <p className="text-xs text-[#64748B] mt-1">{card.desc}</p>
                     </div>
-                  );
-                })}
-              </div>
+                  </Link>
+                );
+              })}
             </div>
 
-            {/* Monetization Banner — Direct GPay 9920627188 */}
-            <div className="bg-[#172554] text-white rounded-3xl p-8 sm:p-10 border border-slate-800 shadow-xl relative overflow-hidden">
-              <div className="absolute -top-28 -right-28 w-96 h-96 bg-electric-blue/25 rounded-full blur-3xl pointer-events-none" />
-              <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                <div className="lg:col-span-7 space-y-4">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[#C7D2FE] text-xs font-bold uppercase tracking-wider">
-                    <Crown size={13} /> CAP Compass Pro &amp; 1-on-1 VIP Plans
-                  </div>
-                  <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-                    Unlock Unlimited Predictions &amp; Your Complete 60-Choice
-                    DTE Option Form
-                  </h2>
-                  <p className="text-sm text-slate-300 leading-relaxed max-w-xl">
-                    One-time season pass with zero recurring subscription. Pay
-                    instantly via Google Pay / UPI to{" "}
-                    <strong className="font-mono text-white">
-                      {GPAY_NUMBER}
-                    </strong>{" "}
-                    and activate with your personal Access Key.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => openUpgradeModal("pro")}
-                      className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm px-6 py-3.5 rounded-xl shadow-lg shadow-electric-blue/30 flex items-center gap-2 cursor-pointer"
-                    >
-                      <Sparkles size={16} /> Unlock CAP Pro — ₹199
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openUpgradeModal("vip")}
-                      className="bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-sm px-6 py-3.5 rounded-xl flex items-center gap-2 cursor-pointer"
-                    >
-                      1-on-1 VIP Counselling — ₹499
-                    </button>
-                    <Link
-                      href="/pricing"
-                      className="text-xs font-semibold text-slate-300 hover:text-white underline underline-offset-4 px-2"
-                    >
-                      Compare All Plans &rarr;
-                    </Link>
-                  </div>
+            {/* Compact Pro Strip */}
+            <div className="bg-[#172554] text-white rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="text-base font-bold">
+                  Unlock CAP Pro — ₹199 one-time
                 </div>
-
-                <div className="lg:col-span-5 bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-2xl p-6 space-y-4">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
-                      <Smartphone size={15} /> Official Google Pay / UPI
-                    </div>
-                    <span className="font-mono font-extrabold text-base text-white">
-                      {GPAY_NUMBER}
-                    </span>
-                  </div>
-                  <ul className="space-y-2.5 text-xs text-slate-300">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 size={15} className="text-[#C7D2FE] shrink-0" />
-                      Unlock all 300+ matching colleges &amp; 3-year cutoff history
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 size={15} className="text-[#C7D2FE] shrink-0" />
-                      Generate 60-choice DTE Option Form with 9-digit Choice Codes
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 size={15} className="text-[#C7D2FE] shrink-0" />
-                      Unlimited CET-Ready CSV &amp; Printable PDF Exports
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 size={15} className="text-[#C7D2FE] shrink-0" />
-                      VIP includes personal WhatsApp/Call review on {GPAY_NUMBER}
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Interactive CAP Counselling FAQ Accordion */}
-            <div className="max-w-3xl mx-auto space-y-6 pb-8">
-              <div className="text-center space-y-2">
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#172554]">
-                  Frequently Asked CAP Counselling Questions
-                </h2>
-                <p className="text-sm text-slate-500">
-                  Clear answers on DTE seat pools, rank calibration, and CAP Pro
-                  activation.
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Full 60-choice Option Form, Betterment Radar, ROI Finder &amp; CSV/PDF exports.
                 </p>
               </div>
-              <div className="space-y-3">
-                {[
-                  {
-                    q: "How accurate are the Category Rankwise and Percentile cutoffs?",
-                    a: "CAP Compass uses 198,300+ official State CET Cell CAP Round 1–4 records across 2023, 2024, 2025, and 2026. Our data-driven RankScale maps Percentile ↔ State Merit Rank per year with <0.3% median error, and directly reports official closing ranks for exact category seats.",
-                  },
-                  {
-                    q: "Why does Option Form ordering (Dream → Target → Safe) matter in DTE CAP?",
-                    a: "The Maharashtra CET Cell allotment engine checks your Option #1 first, then #2, and stops at the first seat where your merit rank clears the cutoff. Placing a Safe college at #1 locks you out of Dream/Target colleges below it. Our Smart CAP Option Form Builder automatically enforces optimal DTE ordering.",
-                  },
-                  {
-                    q: "What do S, H, and O mean at the end of category codes like GOPENS / GOPENH?",
-                    a: "S = State Level seats (autonomous & minority institutes + state quota), H = Home University seats (70% seats in non-autonomous colleges within your 12th board university jurisdiction), and O = Other Than Home University seats (30% seats outside your home university).",
-                  },
-                  {
-                    q: `How do I unlock CAP Pro (₹199) or VIP (₹499) via Google Pay (${GPAY_NUMBER})?`,
-                    a: `Click Upgrade Pro, pay ₹199 (Pro) or ₹499 (VIP) via Google Pay / PhonePe / Paytm to mobile number ${GPAY_NUMBER}, and submit your 12-digit UPI UTR ID. You immediately receive a personal Access Key (e.g. CAP-PRO-XXXXXX) and can ping WhatsApp ${GPAY_NUMBER} for fast activation.`,
-                  },
-                ].map((item, idx) => {
-                  const isOpen = openFaq === idx;
-                  return (
-                    <div
-                      key={idx}
-                      className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setOpenFaq(isOpen ? null : idx)}
-                        className="w-full px-6 py-4 text-left flex items-center justify-between gap-4 cursor-pointer"
-                      >
-                        <span className="text-sm font-bold text-[#172554]">
-                          {item.q}
-                        </span>
-                        <ChevronDown
-                          size={16}
-                          className={`text-slate-400 shrink-0 transition-transform ${
-                            isOpen ? "rotate-180 text-electric-blue" : ""
-                          }`}
-                        />
-                      </button>
-                      {isOpen && (
-                        <div className="px-6 pb-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                          {item.a}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="flex items-center gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => openUpgradeModal("pro")}
+                  className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition-colors"
+                >
+                  Unlock Pro
+                </button>
+                <Link
+                  href="/pricing"
+                  className="bg-white/10 hover:bg-white/15 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition-colors"
+                >
+                  View Plans
+                </Link>
               </div>
             </div>
           </div>
@@ -1080,17 +901,13 @@ export default function Home() {
         <section className="py-10 px-4 sm:px-6 max-w-5xl mx-auto w-full flex-1 flex flex-col justify-center">
           <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-3xl border border-[#E2E8F0] shadow-[0_24px_60px_-15px_rgba(15,23,42,0.08),0_4px_16px_-4px_rgba(15,23,42,0.04)] overflow-hidden min-h-[620px]">
             {/* Left Stepper Panel */}
-            <div className="md:col-span-4 bg-[#172554] text-white p-7 lg:p-8 flex flex-col justify-between relative overflow-hidden">
-              {/* Top-left subtle radial mesh glow */}
-              <div className="absolute -top-24 -left-24 w-80 h-80 bg-[radial-gradient(circle_at_top_left,rgba(79,70,229,0.35),rgba(20,184,166,0.12)_55%,transparent_75%)] blur-2xl pointer-events-none" />
-              <div className="absolute -bottom-28 -right-28 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="relative z-10">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[#C7D2FE] font-bold tracking-wider uppercase text-[11px] mb-6">
-                  <Compass size={13} /> Admission Wizard
+            <div className="md:col-span-4 bg-[#172554] text-white p-7 flex flex-col justify-between">
+              <div>
+                <div className="text-[11px] font-bold tracking-wider uppercase text-[#C7D2FE] mb-3">
+                  Predictor Wizard
                 </div>
-                <h2 className="text-xl lg:text-2xl font-bold tracking-tight text-white leading-snug">
-                  Find colleges matching your Category Rank & Percentile.
+                <h2 className="text-xl font-bold tracking-tight text-white leading-snug">
+                  Enter your score &amp; preferences
                 </h2>
 
                 {/* Connected Vertical Stepper */}
@@ -1250,14 +1067,9 @@ export default function Home() {
                     <div className="space-y-6">
                       {/* Header */}
                       <div>
-                        <h3 className="text-2xl font-bold tracking-tight text-[#172554]">
-                          Enter Your Score & Category
+                        <h3 className="text-xl font-bold tracking-tight text-[#172554]">
+                          Score &amp; Category
                         </h3>
-                        <p className="text-sm text-slate-500 mt-1">
-                          Enter either your MHT-CET Percentile or State Merit
-                          Rank — we automatically compute both and display
-                          side-by-side category cutoffs.
-                        </p>
                       </div>
 
                       {/* Score Input Mode Segmented Toggle */}
@@ -1625,26 +1437,6 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* Clean Soft-Blue Callout Box */}
-                        <div className="p-3.5 rounded-xl bg-blue-50/60 border border-[#4F46E5]/20/70 flex items-start gap-2.5 text-xs text-slate-700 leading-relaxed">
-                          <Info
-                            size={15}
-                            className="text-electric-blue shrink-0 mt-0.5"
-                          />
-                          <div>
-                            Matches official CAP category cutoffs directly, and
-                            calibrates both{" "}
-                            <strong className="font-semibold text-[#172554]">
-                              Percentile
-                            </strong>{" "}
-                            and{" "}
-                            <strong className="font-semibold text-[#172554]">
-                              State Merit Rank
-                            </strong>{" "}
-                            when a course only lists State-Level Open, TFWS, or
-                            EWS seats.
-                          </div>
-                        </div>
                       </div>
                     </div>
 
@@ -1693,14 +1485,11 @@ export default function Home() {
                   >
                     <div className="space-y-6">
                       <div>
-                        <h3 className="text-2xl font-bold tracking-tight text-[#172554]">
-                          Multi-Branch, Multi-City &amp; Round Preferences
+                        <h3 className="text-xl font-bold tracking-tight text-[#172554]">
+                          Branch, City &amp; Round
                         </h3>
-                        <p className="text-sm text-slate-500 mt-1">
-                          Select one or multiple engineering branches and cities
-                          below — or leave empty to evaluate{" "}
-                          <strong className="text-slate-800">All</strong>{" "}
-                          matching colleges across Maharashtra.
+                        <p className="text-xs text-[#64748B] mt-0.5">
+                          Leave empty to search all Maharashtra.
                         </p>
                       </div>
 

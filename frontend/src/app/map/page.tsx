@@ -389,15 +389,14 @@ export default function CollegeMapPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-lg sm:text-xl font-extrabold text-[#172554] tracking-tight">
-                    Maharashtra Engineering College Map
+                    College Map
                   </h1>
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    {enrichedColleges.length} Pins Live
+                    {enrichedColleges.length} Pins
                   </span>
                 </div>
-                <p className="text-xs text-slate-500">
-                  Explore 400 DTE colleges geographically, check distance from
-                  home, or color-code every campus by your MHT-CET score.
+                <p className="text-xs text-[#64748B]">
+                  Browse 400 campuses or switch to Score Match mode.
                 </p>
               </div>
             </div>

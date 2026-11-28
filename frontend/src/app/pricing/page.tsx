@@ -92,17 +92,12 @@ export default function PricingPage() {
     <div className="flex-1 bg-[#F8FAFC] py-12 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto space-y-14">
         {/* Hero Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-bold uppercase tracking-wider">
-            <Crown size={13} /> Transparent One-Time CAP Season Plans
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#172554]">
-            Maximize Your Engineering Seat Allotment.
+        <div className="text-center max-w-xl mx-auto space-y-2">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
+            Simple Season Plans
           </h1>
-          <p className="text-base sm:text-lg text-slate-500 leading-relaxed">
-            One small mistake in your CAP Option Form order can cost you a top
-            autonomous seat. Unlock unlimited predictions, DTE Choice Code
-            exports, and personal mentor support via instant Google Pay.
+          <p className="text-sm text-[#64748B]">
+            One-time pass for the 2026 CAP season. No subscription.
           </p>
         </div>
 
@@ -218,24 +213,15 @@ export default function PricingPage() {
           })}
         </div>
 
-        {/* Official Google Pay Verification Strip */}
-        <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-xs p-6 sm:p-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
-              <ShieldCheck size={14} /> Direct Google Pay / UPI Checkout
-            </div>
-            <h3 className="text-xl font-extrabold text-[#172554]">
-              Official Google Pay Number:{" "}
-              <span className="font-mono tabular-nums text-electric-blue">
-                {GPAY_NUMBER}
-              </span>
+        {/* Direct Google Pay Strip */}
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-[#172554]">
+              GPay / UPI:{" "}
+              <span className="font-mono text-[#4F46E5]">{GPAY_NUMBER}</span>
             </h3>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Pay directly via <strong>Google Pay</strong>,{" "}
-              <strong>PhonePe</strong>, or <strong>Paytm</strong> to phone number{" "}
-              <strong className="font-mono text-[#172554]">{GPAY_NUMBER}</strong>,
-              submit your 12-digit UTR to receive your Access Key, or ping us on
-              WhatsApp for fast activation.
+            <p className="text-xs text-[#64748B]">
+              Pay via GPay, PhonePe, or Paytm and submit your UTR, or use Instant Checkout.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 shrink-0">
@@ -278,30 +264,16 @@ export default function PricingPage() {
 
         {/* 1-on-1 Counselling Callback Request Section */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-5 space-y-4">
-            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-electric-blue">
-              <PhoneCall size={14} /> Personal CAP Counselling
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#172554]">
-              Need 1-on-1 Help With Your Option Form?
+          <div className="lg:col-span-5 space-y-3">
+            <h2 className="text-2xl font-extrabold text-[#172554]">
+              1-on-1 Counselling Callback
             </h2>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Unsure about TFWS vs EWS, Home University (H) vs State Level (S),
-              or whether to freeze vs go for Round 2 betterment? Leave your
-              details and our CAP counsellor will call or WhatsApp you.
+            <p className="text-xs sm:text-sm text-[#64748B] leading-relaxed">
+              Need help with your CAP Option Form? Leave your details for a callback.
             </p>
-            <div className="p-4 rounded-2xl bg-[#EEF2FF]/70 border border-[#4F46E5]/20/70 space-y-1.5 text-xs text-slate-700">
-              <div className="font-bold text-[#172554] flex items-center gap-1.5">
-                <Smartphone size={14} className="text-electric-blue" /> Direct
-                Helpline &amp; GPay
-              </div>
-              <div>
-                WhatsApp / GPay:{" "}
-                <strong className="font-mono text-[#172554]">
-                  +91 {GPAY_NUMBER}
-                </strong>
-              </div>
-              <div>Response time: Usually within 15–30 minutes (9 AM – 10 PM).</div>
+            <div className="p-4 rounded-xl bg-[#EEF2FF] border border-[#4F46E5]/15 text-xs text-[#1E293B]">
+              WhatsApp / GPay:{" "}
+              <strong className="font-mono text-[#172554]">+91 {GPAY_NUMBER}</strong>
             </div>
           </div>
 

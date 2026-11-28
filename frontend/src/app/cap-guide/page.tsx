@@ -164,17 +164,12 @@ export default function CapGuidePage() {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-bold uppercase tracking-wider">
-              <BookOpenCheck size={13} /> Free CAP Admission Toolkit
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
-              CAP Guide &amp; Document Checklist
+          <div className="space-y-1 max-w-xl">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#172554]">
+              CAP Guide &amp; Checklist
             </h1>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              A step-by-step walkthrough of the Maharashtra engineering CAP
-              process, plus a personalised document checklist for your category.
-              Your progress is saved on this device.
+            <p className="text-xs sm:text-sm text-[#64748B]">
+              Category document checklist and CAP counselling steps.
             </p>
           </div>
           <div className="flex gap-2.5 print:hidden">

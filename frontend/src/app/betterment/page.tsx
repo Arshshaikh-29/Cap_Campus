@@ -304,18 +304,12 @@ export default function BettermentRadarPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
-          <div className="space-y-2 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold uppercase tracking-wider">
-              <Radar size={13} /> Exclusive • CAP Round 1 → 2 → 3 → 4 Intelligence
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
-              CAP Betterment &amp; Spot-Round Drop Radar
+          <div className="space-y-1 max-w-xl">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#172554]">
+              Betterment &amp; Spot-Round Radar
             </h1>
-            <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-              Stop freezing too early after Round 1! Scan real 2023–2026 CAP
-              Round 1 → 2 → 3 → 4 cutoff drops to uncover{" "}
-              <strong>colleges you miss in Round 1 but unlock in Rounds 2–4</strong>{" "}
-              — plus high-probability <strong>Spot / ACAP Round targets</strong>.
+            <p className="text-xs sm:text-sm text-[#64748B]">
+              Colleges missed in Round 1 that historically drop into reach in Rounds 2–4.
             </p>
           </div>
           {!proActive && (

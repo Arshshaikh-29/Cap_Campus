@@ -166,13 +166,11 @@ export default function Compare() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-primary mb-3">
-              Compare Colleges Side-by-Side
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#172554]">
+              Compare Colleges
             </h1>
-            <p className="text-text-secondary max-w-2xl text-base">
-              Select up to 4 engineering colleges to compare branch-wise
-              historical cutoffs, merit ranks, and calibrated category
-              benchmarks.
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1">
+              Compare up to 4 colleges side-by-side by branch and category.
             </p>
           </div>
           <div className="flex flex-wrap gap-2.5">

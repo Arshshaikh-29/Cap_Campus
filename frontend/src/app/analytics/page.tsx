@@ -184,12 +184,11 @@ export default function Analytics() {
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-primary mb-2">
-              Cutoff Analytics & Projections
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#172554]">
+              Cutoff Analytics
             </h1>
-            <p className="text-text-secondary text-base">
-              Analyze multi-year percentile trajectories, merit rank shifts, and
-              branch/category benchmarks across 2023–2025 CAP rounds.
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1">
+              Multi-year percentile &amp; rank trends across 2023–2026 CAP rounds.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

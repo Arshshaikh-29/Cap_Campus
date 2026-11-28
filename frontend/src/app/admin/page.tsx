@@ -489,11 +489,10 @@ export default function AdminRevenuePage() {
 
           <div className="space-y-1">
             <h1 className="text-xl font-extrabold text-[#172554]">
-              Executive &amp; Security Console
+              Admin Console
             </h1>
-            <p className="text-xs text-[#64748B] leading-relaxed">
-              Manage GPay (<span className="font-mono font-semibold text-[#172554]">{GPAY_NUMBER}</span>)
-              orders, counselling leads, user RBAC roles, and real-time security audit logs.
+            <p className="text-xs text-[#64748B]">
+              Sign in with your Admin PIN or authorized Google account.
             </p>
           </div>
 
@@ -525,9 +524,6 @@ export default function AdminRevenuePage() {
                   {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <p className="text-[11px] text-[#64748B]">
-                Protected by PBKDF2-HMAC-SHA256 hashing, brute-force lockout &amp; JTI revocation.
-              </p>
             </div>
 
             {authError && (
@@ -595,8 +591,8 @@ export default function AdminRevenuePage() {
                 </Badge>
               )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#172554]">
-              Executive Revenue, Users &amp; Security Dashboard
+            <h1 className="text-2xl font-extrabold text-[#172554]">
+              Admin Console
             </h1>
           </div>
 

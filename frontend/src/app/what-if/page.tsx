@@ -217,18 +217,12 @@ export default function WhatIfSimulatorPage() {
     <div className="flex-1 bg-[#F8FAFC] py-10 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="space-y-2 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-bold uppercase tracking-wider">
-            <Activity size={13} /> New • Score Impact Simulator
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
+        <div className="space-y-1 max-w-xl">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#172554]">
             What-If Score Simulator
           </h1>
-          <p className="text-sm sm:text-base text-slate-500">
-            See exactly how many colleges you <strong>unlock</strong> with a
-            slightly higher score — and which seats are <strong>at risk</strong>{" "}
-            if your final merit rank comes in lower. Ideal while awaiting results
-            or comparing percentile vs. final State Merit Rank.
+          <p className="text-xs sm:text-sm text-[#64748B]">
+            Simulate ±0.5 to ±2 percentile shifts and see exact colleges gained or lost.
           </p>
         </div>
 

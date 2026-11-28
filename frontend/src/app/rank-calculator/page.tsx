@@ -96,17 +96,12 @@ export default function RankCalculatorPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-bold uppercase tracking-wider">
-              <Calculator size={13} /> Empirical 66,108-Record CAP Model
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
-              MHT-CET Marks, Percentile &harr; State Merit Rank Calculator
+          <div className="space-y-1 max-w-xl">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#172554]">
+              Rank Calculator
             </h1>
-            <p className="text-sm sm:text-base text-slate-500">
-              Trained directly on official 2023, 2024, and 2025 CAP merit lists
-              (&lt;0.3% median error) to show how Maharashtra&apos;s growing
-              candidate pool affects your State Merit Rank.
+            <p className="text-xs sm:text-sm text-[#64748B]">
+              Convert MHT-CET marks or percentile to 2023–2026 State Merit Rank.
             </p>
           </div>
           <div className="flex flex-wrap gap-2.5">

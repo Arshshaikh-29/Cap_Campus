@@ -351,77 +351,46 @@ export default function GoogleLoginPortalPage() {
           {/* Left Deep Navy Brand Identity Panel */}
           <div className="lg:col-span-5 bg-[#172554] text-white p-8 sm:p-10 flex flex-col justify-between gap-8">
             <div className="space-y-6">
-              <BrandLogo variant="primary" theme="dark" size="lg" showTagline />
-              <div className="space-y-2.5">
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
-                  Your 2026 CAP Admission Workspace
+              <BrandLogo variant="primary" theme="dark" size="lg" />
+              <div className="space-y-2">
+                <h1 className="text-2xl font-extrabold tracking-tight">
+                  Your CAP Workspace
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  One verified account across mobile, tablet, and desktop — backed
-                  by encrypted Cloud PostgreSQL storage and 198,336 official CAP
-                  cutoffs.
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Sync your shortlist, score profile, and CAP Pro pass across devices.
                 </p>
               </div>
 
-              <div className="space-y-3 pt-2">
-                {[
-                  {
-                    icon: Cloud,
-                    title: "Cross-Device Cloud Shortlist",
-                    desc: "Shortlist on mobile and finalize your DTE Option Form on laptop.",
-                  },
-                  {
-                    icon: Sparkles,
-                    title: "Automatic CAP Pro / VIP Sync",
-                    desc: "Paid passes linked to your Gmail unlock automatically on sign-in.",
-                  },
-                  {
-                    icon: ShieldCheck,
-                    title: "Role-Based Access & Security",
-                    desc: "Server-verified Google OAuth 2.0 with JTI revocation & RBAC.",
-                  },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={item.title}
-                      className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.05] border border-white/10"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-[#4F46E5] text-white flex items-center justify-center shrink-0">
-                        <Icon size={15} />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-white">
-                          {item.title}
-                        </div>
-                        <div className="text-[11px] text-slate-300 mt-0.5 leading-snug">
-                          {item.desc}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <ul className="space-y-2.5 text-xs text-slate-200 pt-1">
+                <li className="flex items-center gap-2.5">
+                  <Cloud size={15} className="text-[#C7D2FE] shrink-0" />
+                  Cloud-synced college shortlist
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Sparkles size={15} className="text-[#C7D2FE] shrink-0" />
+                  Automatic CAP Pro / VIP restore
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <ShieldCheck size={15} className="text-[#C7D2FE] shrink-0" />
+                  Verified Google OAuth 2.0 login
+                </li>
+              </ul>
             </div>
 
-            <div className="pt-4 border-t border-white/10 text-[11px] text-slate-400 flex items-center justify-between">
-              <span>OWASP-Hardened Auth</span>
-              <span className="font-mono text-slate-300">v2.7</span>
+            <div className="text-[11px] text-slate-400">
+              CAP Compass • MHT-CET 2026
             </div>
           </div>
 
           {/* Right Pure White Sign-In Surface */}
-          <div className="lg:col-span-7 p-8 sm:p-10 lg:p-12 flex flex-col justify-between gap-8">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Badge tone="indigo">Google OAuth 2.0 Single Sign-On</Badge>
+          <div className="lg:col-span-7 p-8 sm:p-10 flex flex-col justify-between gap-6">
+            <div className="space-y-5">
+              <div className="space-y-1">
                 <h2 className="text-2xl font-extrabold text-[#172554]">
-                  Sign in to CAP Compass
+                  Sign In
                 </h2>
-                <p className="text-sm text-[#64748B] leading-relaxed">
-                  Zero passwords to manage. Your Google identity token is verified
-                  server-side and mapped to your saved student, counsellor, or
-                  administrator role.
+                <p className="text-xs text-[#64748B]">
+                  Use your Google account to continue.
                 </p>
               </div>
 
@@ -479,14 +448,9 @@ export default function GoogleLoginPortalPage() {
                 ) : (
                   <div className="py-3 text-xs text-[#64748B] flex items-center gap-2">
                     <RefreshCw size={13} className="animate-spin text-[#4F46E5]" />
-                    Connecting to authentication service...
+                    Loading...
                   </div>
                 )}
-
-                <p className="text-[11px] text-[#64748B] leading-relaxed">
-                  We only read your verified name, email, and Google profile photo.
-                  We never access your password, Drive, or contacts.
-                </p>
               </div>
             </div>
 

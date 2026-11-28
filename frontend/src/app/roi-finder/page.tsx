@@ -242,19 +242,12 @@ export default function ROIBudgetFinderPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
-          <div className="space-y-2 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold uppercase tracking-wider">
-              <Wallet size={13} /> Exclusive • Maharashtra Scholarship &amp; ROI Engine
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
-              Smart Budget, Scholarship &amp; ROI Finder
+          <div className="space-y-1 max-w-xl">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#172554]">
+              Scholarship &amp; ROI Finder
             </h1>
-            <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-              Calculate your <strong>actual net payable B.Tech fee</strong> after
-              Maharashtra&apos;s <strong>Girls 100% Tuition Waiver (&lt; ₹8L)</strong>,{" "}
-              <strong>OBC/EWS/SEBC 50% MahaDBT</strong>, <strong>TFWS</strong>, or{" "}
-              <strong>SC/ST scholarships</strong> — and rank reachable colleges by{" "}
-              <strong>verified NIRF Median Salary vs. 4-Year Net Cost</strong>.
+            <p className="text-xs sm:text-sm text-[#64748B]">
+              Net B.Tech fees after MahaDBT/TFWS waivers vs. NIRF median salary.
             </p>
           </div>
           {!proActive && (

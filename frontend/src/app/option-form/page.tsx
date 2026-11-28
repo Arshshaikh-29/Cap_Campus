@@ -327,17 +327,12 @@ export default function OptionFormBuilderPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Page Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-bold uppercase tracking-wider">
-              <ListOrdered size={13} /> Flagship CAP Counselling Engine
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#172554]">
-              Smart CAP Option Form Builder
+          <div className="space-y-1 max-w-xl">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#172554]">
+              Smart Option Form Builder
             </h1>
-            <p className="text-sm sm:text-base text-slate-500">
-              Generate a scientifically ordered <strong>Dream &rarr; Target &rarr; Safe</strong>{" "}
-              DTE preference list with official 9-digit Choice Codes so you never
-              lose a better seat during CAP Round 1–3 betterment.
+            <p className="text-xs sm:text-sm text-[#64748B]">
+              Ordered Dream &rarr; Target &rarr; Safe DTE preference list with 9-digit choice codes.
             </p>
           </div>
           {!proActive && (

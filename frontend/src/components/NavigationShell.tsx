@@ -596,27 +596,17 @@ export default function NavigationShell({
               </div>
             </button>
           ) : (
-            <div className="p-3.5 rounded-xl bg-[#EEF2FF] border border-[#4F46E5]/15 space-y-2.5">
-              <div>
-                <div className="text-xs font-bold text-[#172554]">
-                  CAP Compass Pro
-                </div>
-                <div className="text-[11px] text-[#64748B] leading-snug mt-0.5">
-                  Unlock 60-choice Option Forms, Betterment Radar &amp; CSV export.
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setUpgradePlan("pro");
-                  setUpgradeReason(undefined);
-                  setUpgradeOpen(true);
-                }}
-                className="w-full py-2 rounded-lg bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-              >
-                <Sparkles size={13} /> Unlock Pro • ₹199
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setUpgradePlan("pro");
+                setUpgradeReason(undefined);
+                setUpgradeOpen(true);
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Sparkles size={13} /> Unlock Pro • ₹199
+            </button>
           )}
         </div>
       </aside>
@@ -984,145 +974,56 @@ export default function NavigationShell({
         {/* MAIN PAGE CONTENT */}
         <main className="flex-1 flex flex-col min-w-0">{children}</main>
 
-        {/* ENTERPRISE FOOTER */}
-        <footer className="bg-white border-t border-[#E2E8F0] pt-10 pb-24 md:pb-10 text-sm text-[#64748B] print:hidden">
-          <div className="max-w-7xl mx-auto px-5 sm:px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="col-span-1 md:col-span-2 space-y-4">
-              <BrandLogo variant="primary" theme="light" size="md" showTagline />
-              <p className="max-w-sm leading-relaxed text-xs sm:text-sm text-[#64748B]">
-                Enterprise-grade Maharashtra engineering admission intelligence
-                spanning 198,336 verified 2023–2026 CAP Rounds 1–4 cutoffs across
-                400 DTE colleges.
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs">
-                  <Smartphone size={14} className="text-[#4F46E5]" />
-                  <span>GPay / WhatsApp:</span>
-                  <strong className="font-mono tabular-nums text-[#172554]">
-                    {GPAY_NUMBER}
-                  </strong>
-                </div>
-                <Link
-                  href="/about"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#172554] hover:bg-[#1E3A8A] text-white text-xs font-semibold transition-colors"
-                >
-                  <Code2 size={13} className="text-[#C7D2FE]" />
-                  <span>Built by Arsh Shaikh</span>
+        {/* COMPACT ENTERPRISE FOOTER */}
+        <footer className="bg-white border-t border-[#E2E8F0] py-6 pb-24 md:pb-6 text-xs text-[#64748B] print:hidden">
+          <div className="max-w-7xl mx-auto px-5 sm:px-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <BrandLogo variant="compact" theme="light" size="sm" />
+              <span className="text-[#CBD5E1]">|</span>
+              <span>
+                &copy; {new Date().getFullYear()}{" "}
+                <Link href="/about" className="font-semibold text-[#172554] hover:text-[#4F46E5]">
+                  Arsh Shaikh
                 </Link>
-              </div>
+              </span>
+              <span className="hidden sm:inline text-[#CBD5E1]">•</span>
+              <span className="hidden sm:inline font-mono text-[#172554]">
+                GPay {GPAY_NUMBER}
+              </span>
             </div>
 
-            <div>
-              <h4 className="font-bold text-[#172554] text-xs uppercase tracking-wider mb-3.5">
-                Platform
-              </h4>
-              <ul className="space-y-2 text-xs">
-                {[
-                  { href: "/?start=1", label: "College Predictor" },
-                  { href: "/option-form", label: "Smart CAP Option Form" },
-                  { href: "/betterment", label: "Betterment & Spot Radar" },
-                  { href: "/roi-finder", label: "Scholarship & ROI Finder" },
-                  { href: "/map", label: "Interactive College Map" },
-                  { href: "/explorer", label: "College Explorer (400)" },
-                  { href: "/compare", label: "Side-by-Side Compare" },
-                  { href: "/analytics", label: "Multi-Year Analytics" },
-                ].map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="hover:text-[#4F46E5] transition-colors"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-[#172554] text-xs uppercase tracking-wider mb-3.5">
-                Governance &amp; Account
-              </h4>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <Link
-                    href="/login"
-                    className="hover:text-[#4F46E5] font-semibold text-[#172554] transition-colors"
-                  >
-                    Student Login Portal
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/pricing"
-                    className="hover:text-[#4F46E5] font-semibold text-[#4F46E5] transition-colors"
-                  >
-                    Plans &amp; CAP Pro Pass
-                  </Link>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => setModalType("how-it-works")}
-                    className="hover:text-[#4F46E5] transition-colors cursor-pointer"
-                  >
-                    Methodology
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => setModalType("terms")}
-                    className="hover:text-[#4F46E5] transition-colors cursor-pointer"
-                  >
-                    Terms of Service
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => setModalType("privacy")}
-                    className="hover:text-[#4F46E5] transition-colors cursor-pointer"
-                  >
-                    Privacy Policy
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => setModalType("disclaimer")}
-                    className="hover:text-[#4F46E5] transition-colors cursor-pointer"
-                  >
-                    Official Disclaimer
-                  </button>
-                </li>
-                <li className="pt-2 border-t border-[#E2E8F0]">
-                  <Link
-                    href="/admin"
-                    className="text-[11px] text-[#64748B] hover:text-[#172554] transition-colors"
-                  >
-                    Admin &amp; Security Console &rarr;
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="max-w-7xl mx-auto px-5 sm:px-6 mt-10 pt-6 border-t border-[#E2E8F0] flex flex-col md:flex-row justify-between items-center gap-3">
-            <p className="text-xs">
-              &copy; {new Date().getFullYear()} CAP Compass. Engineered by{" "}
-              <Link
-                href="/about"
-                className="font-semibold text-[#172554] hover:text-[#4F46E5]"
-              >
-                Arsh Shaikh
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <Link href="/pricing" className="hover:text-[#4F46E5] font-semibold text-[#4F46E5]">
+                Pricing
               </Link>
-              . All rights reserved.
-            </p>
-            <p className="text-[11px] text-[#64748B]">
-              Decision-support analytics based on historical DTE/CET Cell CAP
-              cutoffs. Not an official government portal.
-            </p>
+              <Link href="/cap-guide" className="hover:text-[#4F46E5]">
+                CAP Guide
+              </Link>
+              <button
+                type="button"
+                onClick={() => setModalType("privacy")}
+                className="hover:text-[#4F46E5] cursor-pointer"
+              >
+                Privacy
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalType("terms")}
+                className="hover:text-[#4F46E5] cursor-pointer"
+              >
+                Terms
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalType("disclaimer")}
+                className="hover:text-[#4F46E5] cursor-pointer"
+              >
+                Disclaimer
+              </button>
+              <Link href="/admin" className="hover:text-[#172554]">
+                Admin
+              </Link>
+            </div>
           </div>
         </footer>
       </div>
