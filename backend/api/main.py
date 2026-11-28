@@ -1466,6 +1466,8 @@ def compare_colleges(req: ComparisonRequest, db: Session = Depends(get_db)):
                 "city": r.city,
                 "choice_code": r.choice_code,
                 "branch_name": r.branch_name,
+                **get_college_links(r.college_code),
+                **get_college_insights_summary(r.college_code),
                 "category": req_cat,
                 "basis_category": r.category,
                 "is_estimate": is_est,
@@ -2075,11 +2077,29 @@ def generate_option_form(
     FREE_OPTION_FORM_LIMIT = 10
     returned_choices = ordered_choices if is_pro else ordered_choices[:FREE_OPTION_FORM_LIMIT]
     locked_choices_count = 0 if is_pro else max(0, len(ordered_choices) - len(returned_choices))
+    locked_teasers = (
+        []
+        if is_pro
+        else [
+            {
+                "preference_no": c["preference_no"],
+                "tier": c["tier"],
+                "city": c["city"],
+                "branch": c["branch"],
+                "historical_percentile": round(float(c["historical_percentile"]), 2)
+                if c.get("historical_percentile") is not None
+                else None,
+                "nirf_median_lpa": c.get("nirf_median_lpa"),
+            }
+            for c in ordered_choices[FREE_OPTION_FORM_LIMIT : FREE_OPTION_FORM_LIMIT + 3]
+        ]
+    )
 
     return {
         "tier": tier,
         "is_pro": is_pro,
         "locked_choices_count": locked_choices_count,
+        "locked_teasers": locked_teasers,
         "total_generated": len(ordered_choices),
         "student": pred_res["student"],
         "strategy": strategy,
@@ -2094,6 +2114,763 @@ def generate_option_form(
         "health_score": max(35, health),
         "advice": warnings,
         "choices": returned_choices,
+    }
+
+
+# =====================================================================
+# PRO CONVERSION FEATURES: MISTAKE AUDITOR & MULTI-QUOTA SEAT UNLOCKER
+# =====================================================================
+
+UNIVERSITY_REGION_CITIES: dict[str, set[str]] = {
+    "MU": {
+        "Mumbai",
+        "Navi Mumbai",
+        "Thane",
+        "Palghar",
+        "Panvel",
+        "Kalyan",
+        "Vasai",
+        "Virar",
+        "Ambernath",
+        "Badlapur",
+        "Karjat",
+        "Ratnagiri",
+        "Sindhudurg",
+        "Raigad",
+    },
+    "SPPU": {
+        "Pune",
+        "Nashik",
+        "Ahmednagar",
+        "Ahilyanagar",
+        "Baramati",
+        "Talegaon",
+        "Lonavala",
+        "Avasari",
+        "Sangamner",
+        "Kopargaon",
+    },
+    "RTMNU": {
+        "Nagpur",
+        "Wardha",
+        "Bhandara",
+        "Chandrapur",
+        "Gondia",
+        "Ramtek",
+    },
+    "SUK": {
+        "Kolhapur",
+        "Sangli",
+        "Satara",
+        "Karad",
+        "Ichalkaranji",
+        "Miraj",
+        "Jaysingpur",
+    },
+    "BAMU": {
+        "Chhatrapati Sambhajinagar",
+        "Aurangabad",
+        "Jalna",
+        "Beed",
+        "Dharashiv",
+        "Osmanabad",
+    },
+    "NMU": {"Jalgaon", "Dhule", "Nandurbar", "Shirpur", "Bhusawal"},
+    "SGBAU": {"Amravati", "Akola", "Buldhana", "Yavatmal", "Washim", "Shegaon"},
+    "SRTMU": {"Nanded", "Latur", "Parbhani", "Hingoli"},
+    "SOLU": {"Solapur", "Pandharpur", "Barshi"},
+}
+
+
+class AuditChoiceInput(BaseModel):
+    college_code: str = Field(..., min_length=1, max_length=12)
+    branch: str = Field(..., min_length=2, max_length=140)
+    choice_code: Optional[str] = Field(default=None, max_length=24)
+
+
+class OptionFormAuditRequest(BaseModel):
+    percentile: Optional[float] = Field(default=None, ge=0.0, le=100.0)
+    rank: Optional[float] = Field(default=None, ge=1.0, le=500000.0)
+    category: str = Field(default="GOPENS", min_length=1, max_length=24)
+    income_below_8l: bool = Field(default=True)
+    choices: List[AuditChoiceInput] = Field(..., min_length=1, max_length=80)
+
+
+@app.post("/api/option-form/audit")
+def audit_option_form(
+    req: OptionFormAuditRequest,
+    x_entitlement_token: Optional[str] = Header(default=None, alias="X-Entitlement-Token"),
+    db: Session = Depends(get_db),
+    app_db: Session = Depends(get_app_db),
+):
+    """
+    CAP Option Form Mistake Auditor & Zero-Tuition TFWS Enhancer.
+    Scans a student's preference list for fatal DTE ordering blunders (Safe/lower-cutoff
+    colleges placed above Dream/Target colleges, blocking betterment), non-allotment risk,
+    duplicate rows, and missed TFWS 100%-tuition-waiver choice codes.
+    Server-enforces Free diagnostic summary vs Paid Pro/VIP auto-fix & TFWS injection.
+    """
+    if req.percentile is None and req.rank is None:
+        raise HTTPException(status_code=400, detail="Provide percentile or rank")
+
+    scale = get_rank_scale(db)
+    latest_year = scale.latest_year
+    use_pct = req.percentile is not None
+    student_pct = (
+        float(req.percentile) if use_pct else float(scale.rank_to_pct(latest_year, req.rank))
+    )
+    student_rank = (
+        float(scale.pct_to_rank(latest_year, req.percentile)) if use_pct else float(req.rank)
+    )
+    if not (0 < student_pct <= 100):
+        raise HTTPException(status_code=400, detail="Percentile must be between 0 and 100")
+
+    req_cat = (req.category or "GOPENS").upper().strip()
+    pred_res = predict_colleges(
+        PredictionRequest(
+            percentile=student_pct,
+            category=req_cat,
+        ),
+        db,
+    )
+    pred_lookup: dict[tuple[str, str], dict] = {}
+    for p in pred_res.get("predictions", []):
+        k = (p["college_code"], p["branch"])
+        if k not in pred_lookup:
+            pred_lookup[k] = p
+
+    norm_codes = list({_norm_college_code(c.college_code) for c in req.choices if c.college_code})
+    raw_rows = (
+        db.query(CollegeRecord)
+        .filter(
+            CollegeRecord.college_code.in_(norm_codes),
+            CollegeRecord.percentile.isnot(None),
+        )
+        .all()
+        if norm_codes
+        else []
+    )
+
+    chain = build_category_chain(req_cat, include_open_fallback=True)
+    priority = {cat: i for i, grp in enumerate(chain) for cat in grp}
+    requested_family = set(chain[0]) if chain else set()
+    minority_colleges, _ = _get_college_sets(db)
+
+    # Best cutoff row + official TFWS row per (college_code, branch)
+    fallback_course: dict[tuple[str, str], tuple[tuple, Any]] = {}
+    tfws_by_course: dict[tuple[str, str], tuple[tuple, Any]] = {}
+    for r in raw_rows:
+        ckey = (r.college_code, r.branch_name)
+        st_prio = 0 if r.stage in ("I", "MH") else 1
+        if r.category == "TFWS":
+            t_score = (-int(r.year or 0), st_prio, float(r.percentile))
+            if ckey not in tfws_by_course or t_score < tfws_by_course[ckey][0]:
+                tfws_by_course[ckey] = (t_score, r)
+        if r.category in priority:
+            f_score = (priority[r.category], -int(r.year or 0), st_prio, float(r.percentile))
+            if ckey not in fallback_course or f_score < fallback_course[ckey][0]:
+                fallback_course[ckey] = (f_score, r)
+
+    evaluated: List[dict] = []
+    seen_pairs: set[tuple[str, str, str]] = set()
+    issues: List[dict] = []
+
+    for idx, item in enumerate(req.choices, start=1):
+        code = _norm_college_code(item.college_code)
+        branch = (sanitize_text(item.branch, max_len=140) or "").strip()
+        sub_choice = re.sub(r"[^0-9A-Za-z]", "", str(item.choice_code or "")).upper()[:20]
+
+        dup_key = (code, branch, sub_choice)
+        if dup_key in seen_pairs:
+            issues.append(
+                {
+                    "type": "duplicate_choice",
+                    "severity": "warning",
+                    "preference_no": idx,
+                    "title": f"Duplicate Preference at #{idx}",
+                    "detail": f"DTE {code} ({branch}) appears multiple times, wasting an Option Form slot.",
+                }
+            )
+            continue
+        seen_pairs.add(dup_key)
+
+        matched = pred_lookup.get((code, branch))
+        if matched:
+            eff_pct = float(matched["historical_percentile"])
+            eff_rank = float(matched["historical_rank"])
+            college_name = matched["college_name"]
+            city = matched["city"]
+            choice_code = sub_choice or (matched.get("choice_code") or "")
+            basis_cat = matched.get("basis_category") or req_cat
+            is_est = bool(matched.get("is_estimate"))
+        elif (code, branch) in fallback_course:
+            _, r = fallback_course[(code, branch)]
+            is_est = r.category not in requested_family
+            eff_pct = float(r.percentile)
+            if is_est:
+                cal_p, _ = _calibrate_cutoff_for_category(
+                    req_cat,
+                    r.category,
+                    eff_pct,
+                    None,
+                    r.year,
+                    is_minority_college=(code in minority_colleges),
+                )
+                if cal_p is not None:
+                    eff_pct = float(cal_p)
+            _, eff_rank = _cutoff_ranks(scale, r.year, eff_pct, r.percentile, r.merit_rank, is_est)
+            college_name = r.college_name
+            city = r.city
+            choice_code = sub_choice or (r.choice_code or "")
+            basis_cat = r.category
+        else:
+            continue
+
+        margin_pct = round(student_pct - eff_pct, 2)
+        if margin_pct >= 1.2:
+            c_tier = "Safe"
+        elif margin_pct >= -1.8:
+            c_tier = "Target"
+        elif margin_pct >= -8.0:
+            c_tier = "Dream"
+        else:
+            c_tier = "Out-of-Reach"
+
+        evaluated.append(
+            {
+                "submitted_pref": idx,
+                "preference_no": idx,
+                "college_code": code,
+                "college_name": college_name,
+                "city": city,
+                "branch": branch,
+                "choice_code": choice_code,
+                "tier": c_tier,
+                "historical_percentile": round(eff_pct, 2),
+                "historical_rank": int(round(eff_rank)),
+                "margin_percentile": margin_pct,
+                "basis_category": basis_cat,
+                "is_estimate": is_est,
+                **get_college_links(code),
+                **get_college_insights_summary(code),
+            }
+        )
+
+    # 1. Detect Ordering Blunders (lower-cutoff college placed ABOVE higher-cutoff college)
+    blunder_count = 0
+    for i in range(len(evaluated)):
+        cur = evaluated[i]
+        # Find the highest-prestige (lowest rank) choice placed anywhere BELOW cur
+        better_below = [
+            later
+            for later in evaluated[i + 1 :]
+            if later["historical_percentile"] - cur["historical_percentile"] >= 0.40
+            and cur["historical_rank"] > later["historical_rank"] * 1.08
+        ]
+        if better_below:
+            best_blocked = min(better_below, key=lambda x: x["historical_rank"])
+            blunder_count += 1
+            issues.append(
+                {
+                    "type": "ordering_blunder",
+                    "severity": "critical",
+                    "preference_no": cur["submitted_pref"],
+                    "title": (
+                        f"Pref #{cur['submitted_pref']} ({cur['historical_percentile']:.2f}%) "
+                        f"blocks higher-cutoff Pref #{best_blocked['submitted_pref']} ({best_blocked['historical_percentile']:.2f}%)"
+                    ),
+                    "detail": (
+                        f"{cur['college_name']} ({cur['branch']}) has a lower cutoff than "
+                        f"{best_blocked['college_name']} placed below it. If allotted #{cur['submitted_pref']}, "
+                        f"CET Cell permanently deletes #{best_blocked['submitted_pref']} from betterment!"
+                    ),
+                }
+            )
+
+    # 2. Detect Missing Official TFWS Zero-Tuition Choice Codes
+    tfws_injections: List[dict] = []
+    submitted_tfws_pairs = {
+        (e["college_code"], e["branch"])
+        for e in evaluated
+        if str(e.get("choice_code") or "").upper().endswith("T") or req_cat == "TFWS"
+    }
+    verified_tuition_at_stake = 0
+
+    if req.income_below_8l and req_cat != "TFWS":
+        for e in evaluated:
+            ckey = (e["college_code"], e["branch"])
+            if ckey in submitted_tfws_pairs or ckey not in tfws_by_course:
+                continue
+            _, tr = tfws_by_course[ckey]
+            tfws_pct = round(float(tr.percentile), 2)
+            # Reachable or realistic stretch TFWS seat (within 3.5 %ile of student's score)
+            if tfws_pct <= student_pct + 3.5:
+                _, tfws_rnk = _cutoff_ranks(
+                    scale, tr.year, tfws_pct, tr.percentile, tr.merit_rank, False
+                )
+                ins_raw = VERIFIED_COLLEGE_INSIGHTS.get(e["college_code"])
+                four_yr_tuition_saved = (
+                    int(round(ins_raw["annual_open_inr"] * 0.87 * 4)) if ins_raw else None
+                )
+                if four_yr_tuition_saved:
+                    verified_tuition_at_stake = max(verified_tuition_at_stake, four_yr_tuition_saved)
+                tfws_code = tr.choice_code or f"{e['choice_code']}T"
+                tfws_injections.append(
+                    {
+                        "college_code": e["college_code"],
+                        "college_name": e["college_name"],
+                        "city": e["city"],
+                        "branch": e["branch"],
+                        "choice_code": tfws_code,
+                        "tier": "Safe" if student_pct >= tfws_pct + 1.0 else ("Target" if student_pct >= tfws_pct - 1.5 else "Dream"),
+                        "historical_percentile": tfws_pct,
+                        "historical_rank": int(round(tfws_rnk)),
+                        "margin_percentile": round(student_pct - tfws_pct, 2),
+                        "basis_category": "TFWS",
+                        "is_estimate": False,
+                        "four_year_tuition_saved_inr": four_yr_tuition_saved,
+                        **get_college_links(e["college_code"]),
+                        **get_college_insights_summary(e["college_code"]),
+                    }
+                )
+                issues.append(
+                    {
+                        "type": "missing_tfws_code",
+                        "severity": "high",
+                        "preference_no": e["submitted_pref"],
+                        "title": f"Missing TFWS Zero-Tuition Code ({tfws_code}) above Pref #{e['submitted_pref']}",
+                        "detail": (
+                            f"{e['college_name']} ({e['branch']}) offers an official TFWS seat closing at "
+                            f"{tfws_pct:.2f}%ile"
+                            + (
+                                f" — saves ₹{four_yr_tuition_saved:,} in 4-year tuition!"
+                                if four_yr_tuition_saved
+                                else " — waives 100% of FRA Tuition Fees!"
+                            )
+                        ),
+                    }
+                )
+
+    # 3. Check Safe Backup Coverage & Unrealistic Top Slots
+    safe_backups = sum(1 for e in evaluated if e["tier"] in ("Safe",) or e["margin_percentile"] >= 0.5)
+    out_of_reach = [e for e in evaluated if e["tier"] == "Out-of-Reach"]
+
+    if safe_backups < 3:
+        issues.insert(
+            0,
+            {
+                "type": "insufficient_safe_backups",
+                "severity": "critical",
+                "preference_no": None,
+                "title": f"High Non-Allotment Risk: Only {safe_backups} Safe Backup(s)",
+                "detail": "Include at least 3–5 Safe backup courses where your score exceeds the historical cutoff by +0.5%ile or more.",
+            },
+        )
+    for oor in out_of_reach[:3]:
+        issues.append(
+            {
+                "type": "unrealistic_reach",
+                "severity": "medium",
+                "preference_no": oor["submitted_pref"],
+                "title": f"Pref #{oor['submitted_pref']} is {abs(oor['margin_percentile']):.2f}%ile above your score",
+                "detail": f"{oor['college_name']} ({oor['branch']}) closed at {oor['historical_percentile']:.2f}%ile.",
+            }
+        )
+
+    # Build Optimal Auto-Fixed + TFWS-Injected List
+    combined_for_optimal: List[dict] = []
+    tfws_map = {(t["college_code"], t["branch"]): t for t in tfws_injections}
+    for e in evaluated:
+        t_row = tfws_map.get((e["college_code"], e["branch"]))
+        if t_row:
+            combined_for_optimal.append({**t_row, "is_tfws_injected": True})
+        combined_for_optimal.append({**e, "is_tfws_injected": False})
+
+    # Sort strictly by prestige / cutoff rank ascending; for identical college+branch keep TFWS immediately above regular!
+    base_rank_by_pair = {
+        (e["college_code"], e["branch"]): e["historical_rank"] for e in evaluated
+    }
+    combined_for_optimal.sort(
+        key=lambda x: (
+            base_rank_by_pair.get((x["college_code"], x["branch"]), x["historical_rank"]),
+            0 if x.get("basis_category") == "TFWS" else 1,
+            x["historical_rank"],
+        )
+    )
+    optimized_choices = [
+        {**row, "preference_no": idx}
+        for idx, row in enumerate(combined_for_optimal[:80], start=1)
+    ]
+
+    penalty = (
+        blunder_count * 18
+        + len(tfws_injections) * 7
+        + (25 if safe_backups < 3 else 0)
+        + len(out_of_reach) * 5
+    )
+    safety_score = max(18, min(100, 100 - penalty))
+    risk_level = (
+        "Critical"
+        if safety_score < 55
+        else ("High" if safety_score < 75 else ("Moderate" if safety_score < 90 else "Optimal"))
+    )
+
+    tier = _resolve_entitlement_tier(x_entitlement_token, app_db)
+    is_pro = tier in ("pro", "vip")
+
+    return {
+        "tier": tier,
+        "is_pro": is_pro,
+        "student": {
+            "percentile": round(student_pct, 4),
+            "rank": int(round(student_rank)),
+            "category": req_cat,
+            "rank_scale_year": latest_year,
+        },
+        "safety_score": safety_score,
+        "risk_level": risk_level,
+        "summary": {
+            "submitted_count": len(evaluated),
+            "total_issues": len(issues),
+            "ordering_blunders": blunder_count,
+            "missing_tfws_codes": len(tfws_injections),
+            "safe_backups": safe_backups,
+            "out_of_reach_count": len(out_of_reach),
+            "verified_tuition_at_stake_inr": verified_tuition_at_stake,
+            "optimized_total_choices": len(optimized_choices),
+            "locked_issues_count": 0 if is_pro else max(0, len(issues) - 1),
+            "locked_tfws_count": 0 if is_pro else len(tfws_injections),
+        },
+        "issues": issues if is_pro else issues[:1],
+        "tfws_injections": tfws_injections if is_pro else [],
+        "optimized_choices": optimized_choices if is_pro else [],
+    }
+
+
+class QuotaOptimizerRequest(BaseModel):
+    percentile: Optional[float] = Field(default=None, ge=0.0, le=100.0)
+    rank: Optional[float] = Field(default=None, ge=1.0, le=500000.0)
+    base_category: str = Field(default="GOPENS", min_length=1, max_length=24)
+    gender: str = Field(default="male", max_length=12)
+    home_university: str = Field(default="SPPU", max_length=16)
+    income_below_8l: bool = Field(default=True)
+    is_minority: bool = Field(default=False)
+    branches: Optional[List[str]] = Field(default=None, max_length=50)
+    cities: Optional[List[str]] = Field(default=None, max_length=50)
+
+
+@app.post("/api/quota-optimizer")
+def quota_seat_optimizer(
+    req: QuotaOptimizerRequest,
+    x_entitlement_token: Optional[str] = Header(default=None, alias="X-Entitlement-Token"),
+    db: Session = Depends(get_db),
+    app_db: Session = Depends(get_app_db),
+):
+    """
+    Multi-Quota & Hidden Seat Pool Unlocker.
+    Simultaneously scans all CAP seat pools a student legally qualifies for
+    (Home University 70% 'H', Other Univ 'O', Ladies 30% Horizontal 'L',
+    TFWS 100% Tuition Waiver, EWS, and Minority 'MI') against standard State-Level
+    cutoffs to uncover newly reachable colleges and zero-tuition seats.
+    Server-enforces Free Top-3 preview + anonymized teasers vs Paid Pro/VIP full list.
+    """
+    if req.percentile is None and req.rank is None:
+        raise HTTPException(status_code=400, detail="Provide percentile or rank")
+
+    scale = get_rank_scale(db)
+    latest_year = scale.latest_year
+    use_pct = req.percentile is not None
+    student_pct = (
+        float(req.percentile) if use_pct else float(scale.rank_to_pct(latest_year, req.rank))
+    )
+    student_rank = (
+        float(scale.pct_to_rank(latest_year, req.percentile)) if use_pct else float(req.rank)
+    )
+    if not (0 < student_pct <= 100):
+        raise HTTPException(status_code=400, detail="Percentile must be between 0 and 100")
+
+    raw_cat = (req.base_category or "GOPENS").upper().strip()
+    is_female = (req.gender or "male").strip().lower() == "female" or raw_cat.startswith("L")
+    m_cat = _CAT_RE.match(raw_cat)
+    caste = m_cat.group(2) if m_cat else ("OPEN" if raw_cat in ("GOPENS", "EWS", "TFWS", "MI") else raw_cat)
+
+    home_univ = (req.home_university or "SPPU").upper().strip()
+    home_cities = UNIVERSITY_REGION_CITIES.get(home_univ, set())
+
+    # Build candidate category universe to query once from DB
+    query_cats: set[str] = {"GOPENS", "GOPENH", "GOPENO"}
+    if caste in ("OBC", "SEBC", "SC", "ST", "VJ", "NT1", "NT2", "NT3"):
+        query_cats.update({f"G{caste}S", f"G{caste}H", f"G{caste}O"})
+    if is_female:
+        query_cats.update({"LOPENS", "LOPENH", "LOPENO"})
+        if caste in ("OBC", "SEBC", "SC", "ST", "VJ", "NT1", "NT2", "NT3"):
+            query_cats.update({f"L{caste}S", f"L{caste}H", f"L{caste}O"})
+    if req.income_below_8l:
+        query_cats.add("TFWS")
+        if caste == "OPEN" or raw_cat == "EWS":
+            query_cats.add("EWS")
+    if req.is_minority or raw_cat == "MI":
+        query_cats.add("MI")
+
+    baseline_state_cat = f"G{caste}S" if caste in ("OBC", "SEBC", "SC", "ST", "VJ", "NT1", "NT2", "NT3") else "GOPENS"
+    query_cats.add(baseline_state_cat)
+
+    query = db.query(
+        CollegeRecord.choice_code,
+        CollegeRecord.college_code,
+        CollegeRecord.college_name,
+        CollegeRecord.city,
+        CollegeRecord.branch_name,
+        CollegeRecord.category,
+        CollegeRecord.stage,
+        CollegeRecord.percentile,
+        CollegeRecord.merit_rank,
+        CollegeRecord.year,
+        CollegeRecord.round_number,
+    ).filter(
+        CollegeRecord.category.in_(list(query_cats)),
+        CollegeRecord.percentile.isnot(None),
+    )
+
+    target_branches = [b.strip() for b in (req.branches or []) if b and b.strip()]
+    target_cities = [c.strip() for c in (req.cities or []) if c and c.strip()]
+    if target_branches:
+        query = query.filter(CollegeRecord.branch_name.in_(target_branches))
+    if target_cities:
+        query = query.filter(CollegeRecord.city.in_(target_cities))
+    if not is_female:
+        query = query.filter(~CollegeRecord.college_code.in_(list(WOMENS_ONLY_COLLEGES)))
+
+    # Group best closing cutoff per (college_code, branch_name, category), preferring latest year & Stage I/MH
+    course_pools: dict[tuple[str, str], dict[str, Any]] = {}
+    course_meta: dict[tuple[str, str], dict[str, str]] = {}
+    for r in query.all():
+        ckey = (r.college_code, r.branch_name)
+        st_prio = 0 if r.stage in ("I", "MH") else 1
+        score = (-int(r.year or 0), st_prio, float(r.percentile))
+        cat_map = course_pools.setdefault(ckey, {})
+        if r.category not in cat_map or score < cat_map[r.category][0]:
+            cat_map[r.category] = (score, r)
+        if ckey not in course_meta:
+            course_meta[ckey] = {
+                "college_code": r.college_code,
+                "college_name": r.college_name,
+                "city": r.city or "",
+                "branch": r.branch_name,
+            }
+
+    opportunities: List[dict] = []
+    for ckey, cat_map in course_pools.items():
+        meta = course_meta[ckey]
+        city = meta["city"]
+        code = meta["college_code"]
+        in_home_univ = (city in home_cities) if home_cities else False
+
+        # Determine baseline State-Level cutoff for comparison
+        base_entry = cat_map.get(baseline_state_cat) or cat_map.get("GOPENS")
+        base_pct = float(base_entry[1].percentile) if base_entry else None
+
+        # Determine which alternate pools are legally valid AT THIS SPECIFIC COLLEGE
+        eligible_alt_cats: List[tuple[str, str]] = []
+        if home_univ != "ALL":
+            if in_home_univ:
+                eligible_alt_cats.append(("GOPENH", "Home University (70% Quota)"))
+                if caste != "OPEN":
+                    eligible_alt_cats.append((f"G{caste}H", f"Home Univ {caste} Quota"))
+            else:
+                eligible_alt_cats.append(("GOPENO", "Other-Than-Home Univ Quota"))
+                if caste != "OPEN":
+                    eligible_alt_cats.append((f"G{caste}O", f"Other Univ {caste} Quota"))
+
+        if is_female:
+            eligible_alt_cats.append(("LOPENS", "Ladies 30% State Quota"))
+            if caste != "OPEN":
+                eligible_alt_cats.append((f"L{caste}S", f"Ladies 30% {caste} Quota"))
+            if home_univ != "ALL":
+                if in_home_univ:
+                    eligible_alt_cats.append(("LOPENH", "Ladies + Home Univ Quota"))
+                    if caste != "OPEN":
+                        eligible_alt_cats.append((f"L{caste}H", f"Ladies + Home Univ {caste}"))
+                else:
+                    eligible_alt_cats.append(("LOPENO", "Ladies + Other Univ Quota"))
+                    if caste != "OPEN":
+                        eligible_alt_cats.append((f"L{caste}O", f"Ladies + Other Univ {caste}"))
+
+        if req.income_below_8l and (caste == "OPEN" or raw_cat == "EWS"):
+            eligible_alt_cats.append(("EWS", "EWS 10% Economically Weaker Quota"))
+        if req.is_minority or raw_cat == "MI":
+            eligible_alt_cats.append(("MI", "Minority 51% Institute Quota"))
+
+        # 1. Check best cutoff-lowering seat pool (H / L / EWS / MI / Women's College)
+        best_alt = None
+        for alt_cat, pool_label in eligible_alt_cats:
+            if alt_cat == baseline_state_cat or alt_cat not in cat_map:
+                continue
+            _, ar = cat_map[alt_cat]
+            alt_pct = float(ar.percentile)
+            # Must be reachable or realistic Target (within 1.5 %ile)
+            if alt_pct > student_pct + 1.5:
+                continue
+            is_womens_unlock = is_female and code in WOMENS_ONLY_COLLEGES
+            gain = round((base_pct - alt_pct), 2) if base_pct is not None else 0.0
+            if gain >= 0.25 or (base_pct is None and is_womens_unlock) or (base_pct is None and alt_cat == "MI"):
+                cand = (alt_pct, -gain, alt_cat, pool_label, ar, gain)
+                if best_alt is None or cand[1] < best_alt[1]:
+                    best_alt = cand
+
+        if best_alt is not None:
+            alt_pct, _, alt_cat, pool_label, ar, gain = best_alt
+            _, alt_rnk = _cutoff_ranks(scale, ar.year, alt_pct, ar.percentile, ar.merit_rank, False)
+            newly_unlocked = (
+                (base_pct is None)
+                or (base_pct > student_pct and alt_pct <= student_pct)
+            )
+            pool_family = (
+                "ladies"
+                if alt_cat.startswith("L") or code in WOMENS_ONLY_COLLEGES
+                else ("home_univ" if alt_cat.endswith("H") else ("ews_mi" if alt_cat in ("EWS", "MI") else "other_univ"))
+            )
+            ins_raw = VERIFIED_COLLEGE_INSIGHTS.get(code)
+            net_yr, scheme_lbl = (
+                _compute_maharashtra_net_fee(
+                    ins_raw["annual_open_inr"], alt_cat, req.gender, req.income_below_8l
+                )
+                if ins_raw
+                else (None, None)
+            )
+            four_yr_saved = (
+                max(0, (ins_raw["annual_open_inr"] - net_yr) * 4)
+                if (ins_raw and net_yr is not None)
+                else None
+            )
+            opportunities.append(
+                {
+                    **meta,
+                    "opportunity_type": "quota_upgrade",
+                    "pool_family": pool_family,
+                    "unlocked_category": alt_cat,
+                    "pool_label": pool_label,
+                    "choice_code": ar.choice_code,
+                    "baseline_category": baseline_state_cat,
+                    "baseline_percentile": round(base_pct, 2) if base_pct is not None else None,
+                    "unlocked_percentile": round(alt_pct, 2),
+                    "unlocked_rank": int(round(alt_rnk)),
+                    "cutoff_gain_pct": gain,
+                    "margin_percentile": round(student_pct - alt_pct, 2),
+                    "is_newly_unlocked": newly_unlocked,
+                    "year": ar.year,
+                    "round_number": ar.round_number,
+                    "four_year_fee_saved_inr": four_yr_saved,
+                    "scheme_applied": scheme_lbl,
+                    **get_college_links(code),
+                    **get_college_insights_summary(code),
+                }
+            )
+
+        # 2. Check official TFWS Zero-Tuition Seat Pool (100% Tuition Waiver!)
+        if req.income_below_8l and "TFWS" in cat_map:
+            _, tr = cat_map["TFWS"]
+            tfws_pct = float(tr.percentile)
+            if tfws_pct <= student_pct + 1.2:
+                _, tfws_rnk = _cutoff_ranks(
+                    scale, tr.year, tfws_pct, tr.percentile, tr.merit_rank, False
+                )
+                ins_raw = VERIFIED_COLLEGE_INSIGHTS.get(code)
+                four_yr_tuition_saved = (
+                    int(round(ins_raw["annual_open_inr"] * 0.87 * 4)) if ins_raw else None
+                )
+                opportunities.append(
+                    {
+                        **meta,
+                        "opportunity_type": "tfws_waiver",
+                        "pool_family": "tfws",
+                        "unlocked_category": "TFWS",
+                        "pool_label": "TFWS 100% Tuition Fee Waiver",
+                        "choice_code": tr.choice_code,
+                        "baseline_category": baseline_state_cat,
+                        "baseline_percentile": round(base_pct, 2) if base_pct is not None else None,
+                        "unlocked_percentile": round(tfws_pct, 2),
+                        "unlocked_rank": int(round(tfws_rnk)),
+                        "cutoff_gain_pct": round((base_pct - tfws_pct), 2) if base_pct is not None else 0.0,
+                        "margin_percentile": round(student_pct - tfws_pct, 2),
+                        "is_newly_unlocked": tfws_pct <= student_pct,
+                        "year": tr.year,
+                        "round_number": tr.round_number,
+                        "four_year_fee_saved_inr": four_yr_tuition_saved,
+                        "scheme_applied": "TFWS 100% Tuition Fee Waiver",
+                        **get_college_links(code),
+                        **get_college_insights_summary(code),
+                    }
+                )
+
+    # Prioritize newly unlocked & high-prestige colleges (lowest unlocked_rank first)
+    opportunities.sort(
+        key=lambda x: (
+            0 if x["margin_percentile"] >= 0 else 1,
+            0 if (x["is_newly_unlocked"] or x["pool_family"] == "tfws") else 1,
+            x["unlocked_rank"],
+        )
+    )
+
+    tier = _resolve_entitlement_tier(x_entitlement_token, app_db)
+    is_pro = tier in ("pro", "vip")
+    FREE_QUOTA_LIMIT = 3
+
+    newly_unlocked_cnt = sum(
+        1 for x in opportunities if x["opportunity_type"] == "quota_upgrade" and x["is_newly_unlocked"]
+    )
+    tfws_cnt = sum(1 for x in opportunities if x["pool_family"] == "tfws")
+    home_cnt = sum(1 for x in opportunities if x["pool_family"] == "home_univ")
+    ladies_cnt = sum(1 for x in opportunities if x["pool_family"] == "ladies")
+    max_gain = max((x["cutoff_gain_pct"] for x in opportunities), default=0.0)
+    max_savings = max(
+        (x["four_year_fee_saved_inr"] or 0 for x in opportunities),
+        default=0,
+    )
+
+    returned = opportunities[:80] if is_pro else opportunities[:FREE_QUOTA_LIMIT]
+    locked_count = 0 if is_pro else max(0, len(opportunities) - len(returned))
+    locked_teasers = (
+        []
+        if is_pro
+        else [
+            {
+                "city": x["city"],
+                "branch": x["branch"],
+                "pool_label": x["pool_label"],
+                "unlocked_category": x["unlocked_category"],
+                "unlocked_percentile": x["unlocked_percentile"],
+                "cutoff_gain_pct": x["cutoff_gain_pct"],
+                "is_newly_unlocked": x["is_newly_unlocked"],
+                "four_year_fee_saved_inr": x["four_year_fee_saved_inr"],
+            }
+            for x in opportunities[FREE_QUOTA_LIMIT : FREE_QUOTA_LIMIT + 3]
+        ]
+    )
+
+    return {
+        "tier": tier,
+        "is_pro": is_pro,
+        "student": {
+            "percentile": round(student_pct, 4),
+            "rank": int(round(student_rank)),
+            "base_category": baseline_state_cat,
+            "gender": "female" if is_female else "male",
+            "home_university": home_univ,
+            "rank_scale_year": latest_year,
+        },
+        "summary": {
+            "total_opportunities": len(opportunities),
+            "newly_unlocked_colleges": newly_unlocked_cnt,
+            "tfws_zero_tuition_seats": tfws_cnt,
+            "home_univ_upgrades": home_cnt,
+            "ladies_quota_upgrades": ladies_cnt,
+            "max_cutoff_advantage_pct": round(max_gain, 2),
+            "max_verified_4yr_savings_inr": max_savings,
+            "locked_count": locked_count,
+        },
+        "locked_teasers": locked_teasers,
+        "results": returned,
     }
 
 

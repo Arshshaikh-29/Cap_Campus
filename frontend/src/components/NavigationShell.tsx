@@ -21,6 +21,7 @@ import {
   CreditCard,
   GitCompare,
   Info,
+  Layers,
   LayoutGrid,
   ListOrdered,
   LogIn,
@@ -126,10 +127,18 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
       {
         href: "/option-form",
         label: "Option Form",
-        desc: "Dream → Target → Safe list",
+        desc: "Builder & mistake auditor",
         badge: "PRO",
         icon: ListOrdered,
         match: (p) => p.startsWith("/option-form"),
+      },
+      {
+        href: "/quota-optimizer",
+        label: "Quota Unlocker",
+        desc: "Home Univ, Ladies & TFWS",
+        badge: "PRO",
+        icon: Layers,
+        match: (p) => p.startsWith("/quota-optimizer"),
       },
       {
         href: "/betterment",
@@ -225,7 +234,8 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
 
 function getBreadcrumbLabel(pathname: string): { section: string; page: string } {
   if (!pathname || pathname === "/") return { section: "Admission Tools", page: "College Predictor" };
-  if (pathname.startsWith("/option-form")) return { section: "Admission Tools", page: "Smart Option Form" };
+  if (pathname.startsWith("/option-form")) return { section: "Admission Tools", page: "Option Form & Auditor" };
+  if (pathname.startsWith("/quota-optimizer")) return { section: "Admission Tools", page: "Multi-Quota & TFWS Unlocker" };
   if (pathname.startsWith("/betterment")) return { section: "Admission Tools", page: "Betterment Radar" };
   if (pathname.startsWith("/roi-finder")) return { section: "Admission Tools", page: "Scholarship & ROI Finder" };
   if (pathname.startsWith("/what-if")) return { section: "Admission Tools", page: "What-If Simulator" };

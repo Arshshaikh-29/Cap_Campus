@@ -1467,3 +1467,148 @@ def test_security_audit_rbac_revocation_pbkdf2_and_audit_logs(monkeypatch):
             db.commit()
         finally:
             db.close()
+
+
+def test_pro_option_form_auditor_and_quota_optimizer_gating(monkeypatch):
+    import uuid
+    from backend.api.database import AppSessionLocal
+    from backend.api.models import PaymentOrder
+    from backend.api.security import issue_entitlement_token
+
+    monkeypatch.setenv("CAP_DISABLE_RATE_LIMIT", "1")
+
+    # 1. Option Form Generator exposes anonymized locked_teasers on Free without leaking college_name/choice_code
+    gen_free = client.post(
+        "/api/option-form/generate",
+        json={
+            "percentile": 96.5,
+            "category": "GOPENS",
+            "branches": ["Computer Engineering", "Information Technology"],
+            "cities": ["Pune", "Mumbai"],
+            "max_choices": 25,
+        },
+    ).json()
+    assert gen_free["is_pro"] is False
+    assert len(gen_free["locked_teasers"]) == 3
+    for teaser in gen_free["locked_teasers"]:
+        assert "college_name" not in teaser
+        assert "choice_code" not in teaser
+        assert "city" in teaser and "branch" in teaser
+
+    # 2. Option Form Mistake Auditor (Free): detects ordering blunder + missing TFWS, hides full auto-fix
+    intentionally_flawed_choices = [
+        {"college_code": "6175", "branch": "Information Technology"},  # PCCOE IT placed ABOVE COEP/PICT!
+        {"college_code": "6006", "branch": "Computer Science and Engineering"},
+        {"college_code": "6271", "branch": "Computer Engineering"},
+    ]
+    aud_free = client.post(
+        "/api/option-form/audit",
+        json={
+            "percentile": 98.5,
+            "category": "GOPENS",
+            "income_below_8l": True,
+            "choices": intentionally_flawed_choices,
+        },
+    )
+    assert aud_free.status_code == 200
+    af = aud_free.json()
+    assert af["is_pro"] is False
+    assert af["summary"]["ordering_blunders"] >= 1
+    assert af["summary"]["missing_tfws_codes"] >= 1
+    assert len(af["issues"]) == 1
+    assert af["optimized_choices"] == []
+    assert af["tfws_injections"] == []
+
+    # 3. Multi-Quota & TFWS Seat Unlocker (Free): returns Top 3 + anonymized teasers
+    qo_free = client.post(
+        "/api/quota-optimizer",
+        json={
+            "percentile": 95.5,
+            "base_category": "GOBCS",
+            "gender": "female",
+            "home_university": "SPPU",
+            "income_below_8l": True,
+            "branches": ["Computer Engineering", "Information Technology"],
+            "cities": ["Pune", "Mumbai"],
+        },
+    )
+    assert qo_free.status_code == 200
+    qf = qo_free.json()
+    assert qf["is_pro"] is False
+    assert qf["summary"]["total_opportunities"] > 3
+    assert len(qf["results"]) == 3
+    assert qf["summary"]["locked_count"] == qf["summary"]["total_opportunities"] - 3
+    assert len(qf["locked_teasers"]) >= 1
+    for lt in qf["locked_teasers"]:
+        assert "college_name" not in lt and "choice_code" not in lt
+
+    # 4. Seed approved Pro PaymentOrder & verify full server unlock for both endpoints
+    db = AppSessionLocal()
+    pro_key = f"CAP-PRO-{uuid.uuid4().hex[:12].upper()}"
+    order = PaymentOrder(
+        access_key=pro_key,
+        full_name="Pro Audit Student",
+        phone="9876543210",
+        plan="pro",
+        amount_inr=199,
+        utr_number=f"AUDPRO{uuid.uuid4().hex[:8].upper()}",
+        status="approved",
+    )
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+    ord_id = order.id
+    db.close()
+
+    try:
+        pro_tok = issue_entitlement_token(pro_key, "pro")
+
+        aud_pro = client.post(
+            "/api/option-form/audit",
+            headers={"X-Entitlement-Token": pro_tok},
+            json={
+                "percentile": 98.5,
+                "category": "GOPENS",
+                "income_below_8l": True,
+                "choices": intentionally_flawed_choices,
+            },
+        ).json()
+        assert aud_pro["is_pro"] is True
+        assert aud_pro["summary"]["locked_issues_count"] == 0
+        assert len(aud_pro["tfws_injections"]) >= 1
+        assert len(aud_pro["optimized_choices"]) > len(intentionally_flawed_choices)
+        assert any(c.get("basis_category") == "TFWS" for c in aud_pro["optimized_choices"])
+
+        qo_pro = client.post(
+            "/api/quota-optimizer",
+            headers={"X-Entitlement-Token": pro_tok},
+            json={
+                "percentile": 95.5,
+                "base_category": "GOBCS",
+                "gender": "female",
+                "home_university": "SPPU",
+                "income_below_8l": True,
+                "branches": ["Computer Engineering", "Information Technology"],
+                "cities": ["Pune", "Mumbai"],
+            },
+        ).json()
+        assert qo_pro["is_pro"] is True
+        assert qo_pro["summary"]["locked_count"] == 0
+        assert qo_pro["locked_teasers"] == []
+        assert len(qo_pro["results"]) > 3
+
+        # Compare endpoint also returns NIRF median salary & FRA annual fee enrichment
+        cmp_res = client.post(
+            "/api/compare",
+            json={"college_codes": ["3012", "6006"], "category": "GOPENS", "year": 2026, "round_number": 1},
+        ).json()["comparison"]
+        vjti_cmp = next(r for r in cmp_res if r["college_code"] == "3012")
+        assert vjti_cmp["nirf_median_lpa"] >= 10.0
+        assert vjti_cmp["annual_fee_inr"] >= 80000
+    finally:
+        db = AppSessionLocal()
+        try:
+            db.query(PaymentOrder).filter(PaymentOrder.id == ord_id).delete()
+            db.commit()
+        finally:
+            db.close()

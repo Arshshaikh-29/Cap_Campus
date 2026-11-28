@@ -46,12 +46,12 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     badge: "Most Popular",
     validity: "One-time • Valid full 2026 CAP season",
     features: [
-      "Unlimited College Predictions (All 300+ matched courses)",
-      "Full Smart CAP Option Form Builder (up to 60 ordered DTE choices)",
-      "Full CAP Betterment & Spot-Round Drop Radar (All R1→R4 gems + ACAP watchlist)",
-      "Full Scholarship, Net-Fee Budget & ROI Finder (Custom Max-Budget + PDF/CSV)",
-      "Compare up to 4 Colleges Side-by-Side with NIRF Placements & FRA Fees",
-      "Unlimited CET-Ready CSV & Printable PDF Preference Exports",
+      "Unlimited College Predictions + 1-Click 9-Digit DTE Choice Codes",
+      "Full 60-Choice Option Form + Mistake Auditor & Auto-Inject TFWS Codes",
+      "Multi-Quota & TFWS Seat Unlocker (Home Univ 70%, Ladies 30%, EWS & MI)",
+      "Full CAP Betterment & Spot-Round Drop Radar (All R1→R4 gems + ACAP)",
+      "Full Scholarship & ROI Finder + 4-College Compare with NIRF & FRA Fees",
+      "Unlimited CET-Ready CSV, Live Copy Sheet & Printable PDF Exports",
     ],
   },
   vip: {

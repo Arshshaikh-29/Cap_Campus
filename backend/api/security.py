@@ -524,6 +524,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         ("/api/what-if", {"POST"}, 30, 60),
         ("/api/betterment-radar", {"POST"}, 30, 60),
         ("/api/roi-finder", {"POST"}, 30, 60),
+        ("/api/option-form/audit", {"POST"}, 30, 60),
+        ("/api/quota-optimizer", {"POST"}, 30, 60),
         ("/api/admin/", {"GET", "POST", "PUT", "DELETE"}, 60, 60),
         ("/api/", {"GET", "POST", "PUT", "DELETE"}, 180, 60),
     ]

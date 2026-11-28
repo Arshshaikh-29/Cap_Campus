@@ -43,6 +43,8 @@ import {
   ExternalLink,
   Radar,
   Wallet,
+  Copy,
+  Layers,
 } from "lucide-react";
 import axios from "axios";
 import {
@@ -271,6 +273,7 @@ export default function Home() {
   const [planSession, setPlanSession] = useState<PlanSession>({ plan: "free" });
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [copiedChoice, setCopiedChoice] = useState<string | null>(null);
 
   useEffect(() => {
     axios
@@ -798,9 +801,16 @@ export default function Home() {
                 {
                   icon: ListOrdered,
                   badge: "PRO",
-                  title: "Option Form Builder",
-                  desc: "Auto-ordered Dream → Target → Safe list.",
+                  title: "Option Form & Auditor",
+                  desc: "Dream → Safe list, blunder check & TFWS codes.",
                   href: "/option-form",
+                },
+                {
+                  icon: Layers,
+                  badge: "PRO",
+                  title: "Quota & TFWS Unlocker",
+                  desc: "Home Univ (70%), Ladies (30%) & ₹0 tuition seats.",
+                  href: "/quota-optimizer",
                 },
                 {
                   icon: Radar,
@@ -829,13 +839,6 @@ export default function Home() {
                   title: "Cutoff Analytics",
                   desc: "Multi-year 2023–2026 trend charts.",
                   href: "/analytics",
-                },
-                {
-                  icon: BookOpenCheck,
-                  badge: null,
-                  title: "CAP Guide",
-                  desc: "Category documents & CAP steps.",
-                  href: "/cap-guide",
                 },
               ].map((card) => {
                 const Icon = card.icon;
@@ -873,7 +876,7 @@ export default function Home() {
                   Unlock CAP Pro — ₹199 one-time
                 </div>
                 <p className="text-xs text-slate-300 mt-0.5">
-                  Full 60-choice Option Form, Betterment Radar, ROI Finder &amp; CSV/PDF exports.
+                  60-choice Option Form &amp; Mistake Auditor, Quota/TFWS Unlocker, Betterment Radar &amp; CSV/PDF exports.
                 </p>
               </div>
               <div className="flex items-center gap-2.5 shrink-0">
@@ -2463,6 +2466,40 @@ export default function Home() {
                           <span className="text-xs font-mono tabular-nums text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
                             DTE: {p.college_code}
                           </span>
+                          {p.choice_code &&
+                            (proActive ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard?.writeText(String(p.choice_code));
+                                  setCopiedChoice(String(p.choice_code));
+                                  setTimeout(() => setCopiedChoice(null), 1500);
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-[#4F46E5] bg-[#EEF2FF] hover:bg-[#E0E7FF] px-2 py-0.5 rounded border border-[#4F46E5]/20 cursor-pointer"
+                                title="Copy official 9-digit DTE Choice Code"
+                              >
+                                Code: {p.choice_code}
+                                {copiedChoice === String(p.choice_code) ? (
+                                  <Check size={10} className="text-emerald-600" />
+                                ) : (
+                                  <Copy size={10} />
+                                )}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openUpgradeModal(
+                                    "pro",
+                                    "Unlock official 9-digit DTE Choice Codes & all matching colleges"
+                                  )
+                                }
+                                className="inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-[#4F46E5] bg-[#EEF2FF] hover:bg-[#E0E7FF] px-2 py-0.5 rounded border border-[#4F46E5]/20 cursor-pointer"
+                                title="Unlock official DTE Choice Code with CAP Pro"
+                              >
+                                <Lock size={10} /> Code: {String(p.choice_code).slice(0, 4)}•••••
+                              </button>
+                            ))}
                           <span className="text-xs text-slate-500 flex items-center gap-1">
                             <MapPin size={12} className="text-electric-blue" />{" "}
                             {p.city}
@@ -2651,52 +2688,85 @@ export default function Home() {
               </div>
 
               {!proActive && filteredPredictions.length > FREE_PREDICTION_LIMIT && (
-                <div className="mt-8 bg-gradient-to-br from-[#172554] to-slate-900 text-white rounded-3xl p-8 border border-slate-800 shadow-xl text-center space-y-4 print:hidden">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[#C7D2FE] text-xs font-bold">
-                    <Lock size={13} />{" "}
-                    {filteredPredictions.length - FREE_PREDICTION_LIMIT} More
-                    Matching Courses Ready for Your Score
-                  </div>
-                  <h3 className="text-2xl font-extrabold tracking-tight">
-                    Unlock All {filteredPredictions.length} Category Rank &amp;
-                    Percentile Matches
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
-                    Upgrade to <strong>CAP Pro Pass</strong> for a one-time fee
-                    of <strong className="font-mono text-white">₹199</strong>{" "}
-                    via Google Pay (
-                    <strong className="font-mono text-white">
-                      {GPAY_NUMBER}
-                    </strong>
-                    ) to unlock every matching institute, build your 60-choice
-                    DTE Option Form, and export unlimited CSV/PDF sheets.
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        openUpgradeModal(
-                          "pro",
-                          `Unlock all ${filteredPredictions.length} matching courses for ${form.category}`
-                        )
-                      }
-                      className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm px-7 py-3.5 rounded-xl shadow-lg shadow-electric-blue/30 inline-flex items-center gap-2 cursor-pointer"
-                    >
-                      <Crown size={16} /> Unlock CAP Pro Pass — ₹199 (GPay{" "}
-                      {GPAY_NUMBER})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        openUpgradeModal(
-                          "vip",
-                          "Get 1-on-1 personal CAP counselling + Option Form review"
-                        )
-                      }
-                      className="bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-sm px-5 py-3.5 rounded-xl cursor-pointer"
-                    >
-                      VIP + 1-on-1 Review (₹499)
-                    </button>
+                <div className="mt-6 space-y-3 print:hidden">
+                  {/* 3 High-Converting Locked Preview Cards */}
+                  {filteredPredictions
+                    .slice(FREE_PREDICTION_LIMIT, FREE_PREDICTION_LIMIT + 3)
+                    .map((lp, lIdx) => (
+                      <div
+                        key={`locked-pred-${lIdx}`}
+                        onClick={() =>
+                          openUpgradeModal(
+                            "pro",
+                            `Unlock all ${filteredPredictions.length} matching courses for ${form.category}`
+                          )
+                        }
+                        className="bg-white/85 hover:bg-white rounded-2xl p-4 sm:p-5 border border-[#E2E8F0] hover:border-[#4F46E5]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 cursor-pointer transition-all"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-[#EEF2FF] text-[#4F46E5]">
+                              <Lock size={11} /> Match #{FREE_PREDICTION_LIMIT + lIdx + 1} •{" "}
+                              {lp.prediction_category}
+                            </span>
+                            <span className="text-xs font-semibold text-[#172554]">
+                              {lp.city} • {lp.branch}
+                            </span>
+                            {lp.nirf_median_lpa != null && (
+                              <span className="text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                                NIRF ₹{Number(lp.nirf_median_lpa).toFixed(1)}L
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm font-bold text-slate-400 select-none blur-[4px]">
+                            Locked Maharashtra Engineering Institute • Choice Code 627124510
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold text-[#4F46E5] bg-[#EEF2FF] px-3.5 py-2 rounded-xl shrink-0">
+                          Unlock Match &rarr;
+                        </span>
+                      </div>
+                    ))}
+
+                  <div className="bg-[#172554] text-white rounded-3xl p-7 sm:p-8 text-center space-y-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#C7D2FE] text-xs font-bold">
+                      <Lock size={13} /> +
+                      {filteredPredictions.length - FREE_PREDICTION_LIMIT} More
+                      Matching Courses Locked
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                      Unlock All {filteredPredictions.length} Matches &amp; Official Choice Codes
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto">
+                      One-time <strong className="font-mono text-white">₹199</strong> pass (GPay{" "}
+                      <strong className="font-mono text-white">{GPAY_NUMBER}</strong>) unlocks all matches, the 60-choice Option Form &amp; Mistake Auditor, Quota/TFWS Unlocker, and CSV/PDF exports.
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openUpgradeModal(
+                            "pro",
+                            `Unlock all ${filteredPredictions.length} matching courses for ${form.category}`
+                          )
+                        }
+                        className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm px-7 py-3.5 rounded-xl inline-flex items-center gap-2 cursor-pointer"
+                      >
+                        <Crown size={16} /> Unlock CAP Pro Pass — ₹199
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openUpgradeModal(
+                            "vip",
+                            "Get 1-on-1 personal CAP counselling + Option Form review"
+                          )
+                        }
+                        className="bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-sm px-5 py-3.5 rounded-xl cursor-pointer"
+                      >
+                        VIP + 1-on-1 Review (₹499)
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
