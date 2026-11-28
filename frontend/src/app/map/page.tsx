@@ -97,6 +97,7 @@ export default function CollegeMapPage() {
   const [bandFilter, setBandFilter] = useState<string>("All");
   const [tileStyle, setTileStyle] = useState<MapTileStyle>("osm");
   const [fetchError, setFetchError] = useState("");
+  const [mobileView, setMobileView] = useState<"map" | "list">("map");
 
   // Selection, GPS & camera
   const [selected, setSelected] = useState<MapCollegeItem | null>(null);
@@ -299,6 +300,7 @@ export default function CollegeMapPage() {
 
   const handleSelectCollege = useCallback((c: MapCollegeItem) => {
     setSelected(c);
+    setMobileView("map");
     setFocusTarget({ lat: c.lat, lng: c.lng, zoom: 14, nonce: Date.now() });
   }, []);
 
@@ -474,10 +476,10 @@ export default function CollegeMapPage() {
             </div>
           </div>
 
-          {/* Row 2: City Quick Jump Pills */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">
-              Jump to Region:
+          {/* Row 2: City Quick Jump Pills (smooth horizontal scroll on phone/tablet) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0">
+              Region:
             </span>
             {CITY_VIEWS.map((v) => {
               const active = city === v.city;
@@ -486,7 +488,7 @@ export default function CollegeMapPage() {
                   key={v.label}
                   type="button"
                   onClick={() => handleCityQuickJump(v)}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     active
                       ? "bg-[#0B1120] text-white border-[#0B1120]"
                       : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
@@ -689,10 +691,42 @@ export default function CollegeMapPage() {
         </div>
       </div>
 
+      {/* Mobile & Tablet Map/List View Switcher */}
+      <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between gap-2">
+        <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 flex-1 text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setMobileView("map")}
+            className={`py-2 rounded-lg transition-all cursor-pointer ${
+              mobileView === "map"
+                ? "bg-white text-slate-900 shadow-2xs"
+                : "text-slate-500"
+            }`}
+          >
+            Map View ({enrichedColleges.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileView("list")}
+            className={`py-2 rounded-lg transition-all cursor-pointer ${
+              mobileView === "list"
+                ? "bg-white text-slate-900 shadow-2xs"
+                : "text-slate-500"
+            }`}
+          >
+            College List
+          </button>
+        </div>
+      </div>
+
       {/* Main Split Map Workspace */}
-      <div className="flex-1 max-w-[1600px] w-full mx-auto grid grid-cols-1 lg:grid-cols-12 min-h-[600px]">
+      <div className="flex-1 max-w-[1600px] w-full mx-auto grid grid-cols-1 lg:grid-cols-12 min-h-[540px]">
         {/* Left Sidebar List */}
-        <div className="lg:col-span-4 xl:col-span-3 bg-white border-r border-slate-200/90 flex flex-col max-h-[380px] lg:max-h-[calc(100vh-220px)] overflow-hidden">
+        <div
+          className={`${
+            mobileView === "list" ? "flex" : "hidden lg:flex"
+          } lg:col-span-4 xl:col-span-3 bg-white border-r border-slate-200/90 flex-col max-h-[72vh] lg:max-h-[calc(100vh-220px)] overflow-hidden`}
+        >
           <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between text-xs">
             <span className="font-bold text-slate-700">
               {loading ? "Loading campuses..." : `${enrichedColleges.length} Institutes`}
@@ -777,7 +811,11 @@ export default function CollegeMapPage() {
         </div>
 
         {/* Right Interactive Leaflet Map + Floating Overlay Card */}
-        <div className="lg:col-span-8 xl:col-span-9 relative min-h-[520px] lg:min-h-[calc(100vh-220px)]">
+        <div
+          className={`${
+            mobileView === "map" ? "block" : "hidden lg:block"
+          } lg:col-span-8 xl:col-span-9 relative h-[68vh] min-h-[460px] lg:h-auto lg:min-h-[calc(100vh-220px)]`}
+        >
           <MaharashtraCollegeMap
             colleges={enrichedColleges}
             selectedCode={selected?.college_code || null}

@@ -16,6 +16,7 @@ import {
   MessageCircle,
   ShieldCheck,
   Sparkles,
+  Database,
 } from "lucide-react";
 import { GPAY_NUMBER } from "@/lib/plan";
 
@@ -28,7 +29,7 @@ export default function AdminRevenuePage() {
   const [loading, setLoading] = useState(false);
 
   const [overview, setOverview] = useState<any>(null);
-  const [tab, setTab] = useState<"orders" | "leads">("orders");
+  const [tab, setTab] = useState<"orders" | "leads" | "users">("orders");
 
   // Direct manual key generator
   const [genName, setGenName] = useState("");
@@ -248,11 +249,25 @@ export default function AdminRevenuePage() {
         {/* Top Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md mb-2">
-              <ShieldCheck size={14} /> Connected GPay Account: {overview.gpay_number}
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
+                <ShieldCheck size={14} /> Connected GPay: {overview.gpay_number}
+              </div>
+              {overview.database && (
+                <div
+                  className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-md border ${
+                    overview.database.persistent_cloud_db
+                      ? "bg-blue-50 text-electric-blue border-blue-200"
+                      : "bg-amber-50 text-amber-800 border-amber-200"
+                  }`}
+                >
+                  <Database size={13} />
+                  {overview.database.label}
+                </div>
+              )}
             </div>
-            <h1 className="text-3xl font-extrabold text-slate-900">
-              CAP Compass Revenue &amp; GPay Admin
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+              CAP Compass Revenue &amp; Database Admin
             </h1>
           </div>
           <div className="flex items-center gap-2.5">
@@ -404,28 +419,39 @@ export default function AdminRevenuePage() {
 
         {/* Tabs: GPay Orders vs Counselling Leads */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-          <div className="px-6 pt-4 border-b border-slate-200 flex items-center gap-4">
+          <div className="px-6 pt-4 border-b border-slate-200 flex items-center gap-4 overflow-x-auto no-scrollbar">
             <button
               type="button"
               onClick={() => setTab("orders")}
-              className={`pb-3 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+              className={`pb-3 text-sm font-bold border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
                 tab === "orders"
                   ? "border-electric-blue text-electric-blue"
                   : "border-transparent text-slate-500 hover:text-slate-900"
               }`}
             >
-              GPay Payment Orders ({overview.orders.length})
+              Payment Orders ({overview.orders.length})
             </button>
             <button
               type="button"
               onClick={() => setTab("leads")}
-              className={`pb-3 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+              className={`pb-3 text-sm font-bold border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
                 tab === "leads"
                   ? "border-electric-blue text-electric-blue"
                   : "border-transparent text-slate-500 hover:text-slate-900"
               }`}
             >
-              Counselling Callback Leads ({overview.leads.length})
+              Counselling Leads ({overview.leads.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("users")}
+              className={`pb-3 text-sm font-bold border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
+                tab === "users"
+                  ? "border-electric-blue text-electric-blue"
+                  : "border-transparent text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              Google Students ({overview.users?.length || 0})
             </button>
           </div>
 
@@ -533,7 +559,7 @@ export default function AdminRevenuePage() {
                 </tbody>
               </table>
             </div>
-          ) : (
+          ) : tab === "leads" ? (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[780px]">
                 <thead>
@@ -615,6 +641,59 @@ export default function AdminRevenuePage() {
                           >
                             Resolved
                           </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <th className="py-3 px-4">Student Name &amp; Gmail</th>
+                    <th className="py-3 px-4">Saved Category</th>
+                    <th className="py-3 px-4">Saved Score</th>
+                    <th className="py-3 px-4">Shortlisted</th>
+                    <th className="py-3 px-4">Last Sign-In</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {(!overview.users || overview.users.length === 0) ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="py-10 text-center text-slate-400"
+                      >
+                        No students have signed in with Google yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    overview.users.map((u: any) => (
+                      <tr key={u.id} className="hover:bg-slate-50/70">
+                        <td className="py-3.5 px-4">
+                          <div className="font-bold text-slate-900">
+                            {u.full_name}
+                          </div>
+                          <div className="text-[11px] font-mono text-slate-500">
+                            {u.email}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 font-mono font-semibold text-electric-blue">
+                          {u.saved_category || "GOPENS"}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono">
+                          {u.saved_score != null ? u.saved_score : "-"}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono font-bold">
+                          {u.bookmarks_count || 0} colleges
+                        </td>
+                        <td className="py-3.5 px-4 font-mono text-slate-500 text-[11px]">
+                          {u.last_login_at
+                            ? new Date(u.last_login_at).toLocaleString()
+                            : "-"}
                         </td>
                       </tr>
                     ))

@@ -15,8 +15,22 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.orm import Session
-from .database import Base, engine, get_db
-from .models import CollegeRecord, PaymentOrder, CounsellingLead, UserAccount
+from .database import (
+    AppDataBase,
+    Base,
+    app_engine,
+    engine,
+    get_app_db,
+    get_db,
+    get_storage_info,
+)
+from .models import (
+    CollegeRecord,
+    CounsellingLead,
+    PaymentOrder,
+    SavedOptionForm,
+    UserAccount,
+)
 from .rank_scale import get_rank_scale
 from .college_websites import get_college_links
 from .college_locations import get_college_location
@@ -52,6 +66,7 @@ from .security import (
 )
 
 Base.metadata.create_all(bind=engine)
+AppDataBase.metadata.create_all(bind=app_engine)
 
 app = FastAPI(
     title="CAP Compass API",
@@ -137,7 +152,11 @@ class ComparisonRequest(BaseModel):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "CAP Compass API"}
+    return {
+        "status": "ok",
+        "service": "CAP Compass API",
+        "database": get_storage_info(),
+    }
 
 
 @app.get("/api/filters")
@@ -967,6 +986,7 @@ def betterment_radar(
     req: BettermentRadarRequest,
     x_entitlement_token: Optional[str] = Header(default=None, alias="X-Entitlement-Token"),
     db: Session = Depends(get_db),
+    app_db: Session = Depends(get_app_db),
 ):
     """
     CAP Round 1 -> Round 2 -> Round 3 Betterment & Spot-Round Drop Radar.
@@ -1148,7 +1168,7 @@ def betterment_radar(
     spot_watchlist.sort(key=lambda x: (abs(x["margin_after_r3"]), x["final_rank"]))
     biggest_drops.sort(key=lambda x: (-x["drop_percentile"], x["final_rank"]))
 
-    tier = _resolve_entitlement_tier(x_entitlement_token, db)
+    tier = _resolve_entitlement_tier(x_entitlement_token, app_db)
     is_pro = tier in ("pro", "vip")
     FREE_GEMS = 5
     FREE_SPOT = 3
@@ -1239,6 +1259,7 @@ def roi_budget_finder(
     req: ROIFinderRequest,
     x_entitlement_token: Optional[str] = Header(default=None, alias="X-Entitlement-Token"),
     db: Session = Depends(get_db),
+    app_db: Session = Depends(get_app_db),
 ):
     """
     Smart Scholarship, Net-Fee Budget & ROI Finder.
@@ -1260,7 +1281,7 @@ def roi_budget_finder(
         db,
     )
     preds = pred_res["predictions"] if not pred_res.get("fallback_used") else []
-    tier = _resolve_entitlement_tier(x_entitlement_token, db)
+    tier = _resolve_entitlement_tier(x_entitlement_token, app_db)
     is_pro = tier in ("pro", "vip")
 
     # Deduplicate to best reachable branch per college (or keep top matching college+branch combos)
@@ -2191,7 +2212,7 @@ class RazorpayVerifyRequest(BaseModel):
 
 
 @app.post("/api/payments/razorpay/create-order")
-def create_razorpay_order(req: RazorpayCreateOrderRequest, db: Session = Depends(get_db)):
+def create_razorpay_order(req: RazorpayCreateOrderRequest, db: Session = Depends(get_app_db)):
     rzp_id, rzp_secret = get_razorpay_credentials()
     if not (rzp_id and rzp_secret):
         raise HTTPException(
@@ -2294,7 +2315,7 @@ def create_razorpay_order(req: RazorpayCreateOrderRequest, db: Session = Depends
 
 
 @app.post("/api/payments/razorpay/verify")
-def verify_razorpay_payment(req: RazorpayVerifyRequest, db: Session = Depends(get_db)):
+def verify_razorpay_payment(req: RazorpayVerifyRequest, db: Session = Depends(get_app_db)):
     rzp_order_id = sanitize_text(req.razorpay_order_id, max_len=80) or ""
     rzp_payment_id = sanitize_text(req.razorpay_payment_id, max_len=80) or ""
     rzp_sig = (req.razorpay_signature or "").strip()
@@ -2352,7 +2373,7 @@ def verify_razorpay_payment(req: RazorpayVerifyRequest, db: Session = Depends(ge
 async def razorpay_webhook(
     request: Request,
     x_razorpay_signature: Optional[str] = Header(default=None, alias="X-Razorpay-Signature"),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_app_db),
 ):
     """Server-to-server Razorpay webhook failsafe (auto-approves even if student closes browser)."""
     raw_body = await request.body()
@@ -2392,7 +2413,7 @@ async def razorpay_webhook(
 
 
 @app.post("/api/payments/submit")
-def submit_gpay_payment(req: PaymentSubmitRequest, db: Session = Depends(get_db)):
+def submit_gpay_payment(req: PaymentSubmitRequest, db: Session = Depends(get_app_db)):
     plan_id = (req.plan or "").strip().lower()
     if plan_id not in PLAN_CATALOG:
         raise HTTPException(status_code=400, detail="Plan must be 'pro' or 'vip'")
@@ -2475,7 +2496,7 @@ def submit_gpay_payment(req: PaymentSubmitRequest, db: Session = Depends(get_db)
 
 
 @app.get("/api/payments/verify")
-def verify_access_key(access_key: str, db: Session = Depends(get_db)):
+def verify_access_key(access_key: str, db: Session = Depends(get_app_db)):
     key = re.sub(r"[^A-Za-z0-9\-]", "", (access_key or "").strip().upper())
     if not key or len(key) > 40:
         raise HTTPException(status_code=400, detail="Valid access key is required")
@@ -2518,7 +2539,7 @@ def verify_access_key(access_key: str, db: Session = Depends(get_db)):
 
 
 @app.post("/api/payments/verify-token")
-def verify_entitlement(req: EntitlementVerifyRequest, db: Session = Depends(get_db)):
+def verify_entitlement(req: EntitlementVerifyRequest, db: Session = Depends(get_app_db)):
     payload = verify_entitlement_token(req.entitlement_token)
     if not payload:
         return {"valid": False, "plan": "free"}
@@ -2538,7 +2559,7 @@ def verify_entitlement(req: EntitlementVerifyRequest, db: Session = Depends(get_
 
 
 @app.post("/api/leads")
-def submit_counselling_lead(req: LeadSubmitRequest, db: Session = Depends(get_db)):
+def submit_counselling_lead(req: LeadSubmitRequest, db: Session = Depends(get_app_db)):
     full_name = sanitize_text(req.full_name, max_len=100) or ""
     phone = re.sub(r"\D+", "", req.phone or "")
     if len(full_name) < 2:
@@ -2568,7 +2589,7 @@ def submit_counselling_lead(req: LeadSubmitRequest, db: Session = Depends(get_db
 
 @app.get("/api/admin/overview")
 def admin_overview(
-    _: bool = Depends(_require_admin), db: Session = Depends(get_db)
+    _: bool = Depends(_require_admin), db: Session = Depends(get_app_db)
 ):
     orders = (
         db.query(PaymentOrder).order_by(desc(PaymentOrder.created_at)).limit(200).all()
@@ -2579,12 +2600,20 @@ def admin_overview(
         .limit(200)
         .all()
     )
+    users = (
+        db.query(UserAccount)
+        .order_by(desc(UserAccount.last_login_at))
+        .limit(200)
+        .all()
+    )
+    saved_forms_count = db.query(func.count(SavedOptionForm.id)).scalar() or 0
 
     approved_revenue = sum(o.amount_inr for o in orders if o.status == "approved")
     pending_revenue = sum(o.amount_inr for o in orders if o.status == "pending")
 
     return {
         "gpay_number": GPAY_NUMBER,
+        "database": get_storage_info(),
         "metrics": {
             "total_revenue_inr": approved_revenue,
             "pending_revenue_inr": pending_revenue,
@@ -2593,7 +2622,21 @@ def admin_overview(
             "total_orders": len(orders),
             "total_leads": len(leads),
             "new_leads": sum(1 for l in leads if l.status == "new"),
+            "total_users": len(users),
+            "saved_forms": saved_forms_count,
         },
+        "users": [
+            {
+                "id": u.id,
+                "full_name": u.full_name,
+                "email": u.email,
+                "saved_category": u.saved_category,
+                "saved_score": u.saved_score,
+                "bookmarks_count": len(json.loads(u.bookmarks_json)) if u.bookmarks_json else 0,
+                "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
+            }
+            for u in users
+        ],
         "orders": [
             {
                 "id": o.id,
@@ -2633,7 +2676,7 @@ def admin_update_payment_status(
     order_id: int,
     req: AdminStatusUpdateRequest,
     _: bool = Depends(_require_admin),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_app_db),
 ):
     new_status = (req.status or "").strip().lower()
     if new_status not in ("pending", "approved", "rejected"):
@@ -2663,7 +2706,7 @@ def admin_update_payment_status(
 def admin_generate_direct_key(
     req: AdminKeyGenerateRequest,
     _: bool = Depends(_require_admin),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_app_db),
 ):
     plan_id = (req.plan or "pro").strip().lower()
     if plan_id not in PLAN_CATALOG:
@@ -2704,7 +2747,7 @@ def admin_update_lead_status(
     lead_id: int,
     req: AdminStatusUpdateRequest,
     _: bool = Depends(_require_admin),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_app_db),
 ):
     new_status = (req.status or "").strip().lower()
     if new_status not in ("new", "contacted", "resolved"):
@@ -2813,7 +2856,7 @@ def _lookup_email_entitlement(email: str, db: Session) -> Optional[dict]:
 
 def _require_user(
     authorization: Optional[str] = Header(default=None, alias="Authorization"),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_app_db),
 ) -> UserAccount:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Sign in with Google required.")
@@ -2836,7 +2879,7 @@ def get_auth_config():
 
 
 @app.post("/api/auth/google")
-def login_with_google(req: GoogleAuthRequest, db: Session = Depends(get_db)):
+def login_with_google(req: GoogleAuthRequest, db: Session = Depends(get_app_db)):
     cid = get_google_client_id()
     if not cid:
         raise HTTPException(
@@ -2893,7 +2936,7 @@ def login_with_google(req: GoogleAuthRequest, db: Session = Depends(get_db)):
 @app.get("/api/auth/me")
 def get_current_user_profile(
     user: UserAccount = Depends(_require_user),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_app_db),
 ):
     return {
         "user": _serialize_user(user),
@@ -2905,7 +2948,7 @@ def get_current_user_profile(
 def sync_user_profile(
     req: ProfileSyncRequest,
     user: UserAccount = Depends(_require_user),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_app_db),
 ):
     if req.saved_input_type in ("percentile", "rank"):
         user.saved_input_type = req.saved_input_type
@@ -2935,6 +2978,102 @@ def sync_user_profile(
     db.commit()
     db.refresh(user)
     return {"synced": True, "user": _serialize_user(user)}
+
+
+class SaveOptionFormRequest(BaseModel):
+    title: Optional[str] = Field(default="My 2026 CAP Option Form", max_length=120)
+    category: str = Field(default="GOPENS", max_length=24)
+    score_label: Optional[str] = Field(default=None, max_length=60)
+    choices: List[dict] = Field(default_factory=list, max_length=120)
+
+
+@app.post("/api/option-form/save")
+def save_option_form_to_db(
+    req: SaveOptionFormRequest,
+    user: UserAccount = Depends(_require_user),
+    db: Session = Depends(get_app_db),
+):
+    """Persist a signed-in student's custom DTE Option Form in the database."""
+    cleaned_choices = []
+    for item in (req.choices or [])[:120]:
+        if not isinstance(item, dict):
+            continue
+        cleaned_choices.append(
+            {
+                "preference_no": item.get("preference_no"),
+                "college_code": sanitize_text(item.get("college_code"), max_len=16) or "",
+                "choice_code": sanitize_text(item.get("choice_code"), max_len=20) or "",
+                "college_name": sanitize_text(item.get("college_name"), max_len=180) or "",
+                "city": sanitize_text(item.get("city"), max_len=60) or "",
+                "branch": sanitize_text(item.get("branch"), max_len=120) or "",
+                "band": sanitize_text(item.get("band"), max_len=30) or "",
+                "historical_percentile": item.get("historical_percentile"),
+                "historical_rank": item.get("historical_rank"),
+            }
+        )
+
+    existing = (
+        db.query(SavedOptionForm)
+        .filter(SavedOptionForm.user_id == user.id)
+        .order_by(desc(SavedOptionForm.updated_at))
+        .first()
+    )
+    now = datetime.now(timezone.utc)
+    if existing:
+        existing.title = sanitize_text(req.title, max_len=120) or "My 2026 CAP Option Form"
+        existing.category = sanitize_text(req.category.upper(), max_len=24) or "GOPENS"
+        existing.score_label = sanitize_text(req.score_label, max_len=60)
+        existing.choices_json = json.dumps(cleaned_choices)
+        existing.updated_at = now
+        form_row = existing
+    else:
+        form_row = SavedOptionForm(
+            user_id=user.id,
+            title=sanitize_text(req.title, max_len=120) or "My 2026 CAP Option Form",
+            category=sanitize_text(req.category.upper(), max_len=24) or "GOPENS",
+            score_label=sanitize_text(req.score_label, max_len=60),
+            choices_json=json.dumps(cleaned_choices),
+            updated_at=now,
+        )
+        db.add(form_row)
+    db.commit()
+    db.refresh(form_row)
+    return {
+        "saved": True,
+        "id": form_row.id,
+        "count": len(cleaned_choices),
+        "updated_at": form_row.updated_at.isoformat() if form_row.updated_at else None,
+    }
+
+
+@app.get("/api/option-form/saved")
+def get_saved_option_form(
+    user: UserAccount = Depends(_require_user),
+    db: Session = Depends(get_app_db),
+):
+    row = (
+        db.query(SavedOptionForm)
+        .filter(SavedOptionForm.user_id == user.id)
+        .order_by(desc(SavedOptionForm.updated_at))
+        .first()
+    )
+    if not row:
+        return {"found": False, "form": None}
+    try:
+        choices = json.loads(row.choices_json) if row.choices_json else []
+    except Exception:
+        choices = []
+    return {
+        "found": True,
+        "form": {
+            "id": row.id,
+            "title": row.title,
+            "category": row.category,
+            "score_label": row.score_label,
+            "choices": choices,
+            "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+        },
+    }
 
 
 # =============================================================================

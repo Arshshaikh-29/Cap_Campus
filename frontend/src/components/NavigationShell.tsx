@@ -20,6 +20,11 @@ import {
   Search,
   Code2,
   LogIn,
+  ChevronDown,
+  MapPin,
+  Building2,
+  LayoutGrid,
+  User,
 } from "lucide-react";
 import UpgradeModal from "@/components/UpgradeModal";
 import CommandPalette from "@/components/CommandPalette";
@@ -36,6 +41,7 @@ import {
   clearStoredAuth,
   getStoredAuth,
   saveStoredAuth,
+  syncProfileToCloud,
 } from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
@@ -61,11 +67,21 @@ export function getStoredBookmarks(): BookmarkedItem[] {
   }
 }
 
+let _bookmarkSyncTimer: ReturnType<typeof setTimeout> | null = null;
+
 export function saveStoredBookmarks(items: BookmarkedItem[]) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem("cap_compass_bookmarks", JSON.stringify(items));
     window.dispatchEvent(new Event("cap_bookmarks_updated"));
+
+    // Auto-sync bookmarks to persistent cloud DB whenever signed in with Google
+    if (getStoredAuth()?.token) {
+      if (_bookmarkSyncTimer) clearTimeout(_bookmarkSyncTimer);
+      _bookmarkSyncTimer = setTimeout(() => {
+        syncProfileToCloud({ bookmarks: items }).catch(() => undefined);
+      }, 650);
+    }
   } catch {
     // ignore storage errors
   }
@@ -79,6 +95,7 @@ export default function NavigationShell({
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [modalType, setModalType] = useState<
     null | "how-it-works" | "shortlist" | "terms" | "privacy" | "disclaimer"
   >(null);
@@ -202,7 +219,7 @@ export default function NavigationShell({
     }
   };
 
-  const navItems = [
+  const primaryNavItems = [
     { href: "/", label: "Predictor", match: (p: string) => p === "/" },
     {
       href: "/option-form",
@@ -219,18 +236,7 @@ export default function NavigationShell({
     {
       href: "/roi-finder",
       label: "ROI & Fees",
-      badge: "NEW",
       match: (p: string) => p.startsWith("/roi-finder"),
-    },
-    {
-      href: "/what-if",
-      label: "What-If",
-      match: (p: string) => p.startsWith("/what-if"),
-    },
-    {
-      href: "/explorer",
-      label: "Explorer",
-      match: (p: string) => p.startsWith("/explorer") || p.startsWith("/college"),
     },
     {
       href: "/map",
@@ -239,22 +245,63 @@ export default function NavigationShell({
       match: (p: string) => p.startsWith("/map"),
     },
     {
-      href: "/compare",
-      label: "Compare",
-      match: (p: string) => p.startsWith("/compare"),
-    },
-    {
-      href: "/pricing",
-      label: "Pricing",
-      match: (p: string) => p.startsWith("/pricing"),
+      href: "/explorer",
+      label: "Explorer",
+      match: (p: string) => p.startsWith("/explorer") || p.startsWith("/college"),
     },
   ];
 
+  const moreNavItems = [
+    {
+      href: "/compare",
+      label: "Compare Colleges",
+      desc: "Side-by-side 2026 cutoffs & NIRF",
+      match: (p: string) => p.startsWith("/compare"),
+    },
+    {
+      href: "/what-if",
+      label: "What-If Simulator",
+      desc: "Test ±2 %ile score sensitivity",
+      match: (p: string) => p.startsWith("/what-if"),
+    },
+    {
+      href: "/analytics",
+      label: "Cutoff Analytics",
+      desc: "2023–2026 R1–R4 trend charts",
+      match: (p: string) => p.startsWith("/analytics"),
+    },
+    {
+      href: "/rank-calculator",
+      label: "Rank Calculator",
+      desc: "Marks & %ile ↔ State Merit Rank",
+      match: (p: string) => p.startsWith("/rank-calculator"),
+    },
+    {
+      href: "/cap-guide",
+      label: "CAP Guide & Checklist",
+      desc: "Category documents & counselling steps",
+      match: (p: string) => p.startsWith("/cap-guide"),
+    },
+    {
+      href: "/pricing",
+      label: "Pricing & Pro Pass",
+      desc: "Instant UPI/Card unlock & VIP",
+      match: (p: string) => p.startsWith("/pricing"),
+    },
+    {
+      href: "/about",
+      label: "About — Arsh Shaikh",
+      desc: "Creator profile & WhatsApp help",
+      match: (p: string) => p.startsWith("/about"),
+    },
+  ];
+
+  const isMoreActive = moreNavItems.some((item) => item.match(pathname || "/"));
   const proActive = isProActive(planSession);
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="fixed top-0 inset-x-0 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)] z-50 print:hidden">
+      <header className="fixed top-0 inset-x-0 bg-white/85 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04)] z-50 print:hidden">
         <div className="max-w-7xl mx-auto px-3 sm:px-5 h-16 flex items-center justify-between gap-2">
           {/* Left: Logo */}
           <Link
@@ -269,24 +316,25 @@ export default function NavigationShell({
             </span>
           </Link>
 
-          {/* Center: Navigation */}
-          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 font-medium text-[12px] xl:text-[13px] text-slate-600 h-full min-w-0">
-            {navItems.map((item) => {
+          {/* Center: Clean Spacious Desktop/PC Navigation (never wraps or clips) */}
+          <nav className="hidden lg:flex items-center gap-1 font-medium text-[13px] text-slate-600 h-full min-w-0">
+            {primaryNavItems.map((item) => {
               const active = item.match(pathname || "/");
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative px-2 xl:px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 whitespace-nowrap shrink-0 ${
+                  onClick={() => setMoreOpen(false)}
+                  className={`relative px-2.5 xl:px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                     active
-                      ? "bg-electric-blue/10 text-electric-blue font-semibold after:content-[''] after:absolute after:-bottom-[13px] after:left-2 after:right-2 after:h-[2px] after:bg-electric-blue after:rounded-full"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                      ? "bg-electric-blue/10 text-electric-blue font-semibold after:content-[''] after:absolute after:-bottom-[13px] after:left-2.5 after:right-2.5 after:h-[2px] after:bg-electric-blue after:rounded-full"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
                   }`}
                 >
                   <span>{item.label}</span>
                   {"badge" in item && item.badge && (
                     <span
-                      className={`hidden 2xl:inline-flex text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                      className={`hidden xl:inline-flex text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
                         item.badge === "NEW"
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-electric-blue/15 text-electric-blue"
@@ -298,6 +346,56 @@ export default function NavigationShell({
                 </Link>
               );
             })}
+
+            {/* More Tools Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setMoreOpen((prev) => !prev)}
+                className={`px-2.5 xl:px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 whitespace-nowrap cursor-pointer ${
+                  isMoreActive || moreOpen
+                    ? "bg-electric-blue/10 text-electric-blue font-semibold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                }`}
+              >
+                <span>More</span>
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform ${moreOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {moreOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setMoreOpen(false)}
+                  />
+                  <div className="absolute right-0 top-11 w-72 bg-white rounded-2xl border border-slate-200/90 shadow-xl p-2 z-50 space-y-0.5">
+                    {moreNavItems.map((m) => {
+                      const active = m.match(pathname || "/");
+                      return (
+                        <Link
+                          key={m.href}
+                          href={m.href}
+                          onClick={() => setMoreOpen(false)}
+                          className={`block px-3 py-2.5 rounded-xl transition-colors ${
+                            active
+                              ? "bg-electric-blue/10 text-electric-blue"
+                              : "hover:bg-slate-50 text-slate-800"
+                          }`}
+                        >
+                          <div className="text-xs font-bold">{m.label}</div>
+                          <div className="text-[11px] text-slate-500">
+                            {m.desc}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           </nav>
 
           {/* Right: Actions */}
@@ -458,97 +556,103 @@ export default function NavigationShell({
           </div>
         </div>
 
-        {/* Mobile Drawer */}
+        {/* Mobile & Tablet Categorized Drawer */}
         {mobileOpen && (
-          <div className="lg:hidden bg-white border-b border-border px-6 py-4 space-y-2.5">
-            {navItems.map((item) => {
-              const active = item.match(pathname || "/");
-              return (
+          <>
+            <div
+              className="lg:hidden fixed inset-0 top-16 bg-slate-950/40 backdrop-blur-xs z-40"
+              onClick={() => setMobileOpen(false)}
+            />
+            <div className="lg:hidden relative z-50 bg-white border-b border-slate-200 px-5 py-4 max-h-[calc(100vh-4rem)] overflow-y-auto space-y-4 shadow-xl">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                  Core Discovery &amp; Pro Tools
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {primaryNavItems.map((item) => {
+                    const active = item.match(pathname || "/");
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                          active
+                            ? "bg-electric-blue/10 text-electric-blue"
+                            : "text-slate-800 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                        {"badge" in item && item.badge && (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-electric-blue/10 text-electric-blue">
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                  Analytics, Compare &amp; Guides
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {moreNavItems.map((item) => {
+                    const active = item.match(pathname || "/");
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`block px-3.5 py-2.5 rounded-xl transition-colors ${
+                          active
+                            ? "bg-electric-blue/10 text-electric-blue"
+                            : "text-slate-800 hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="text-sm font-semibold">{item.label}</div>
+                        <div className="text-[11px] text-slate-400">
+                          {item.desc}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row gap-2.5">
                 <Link
-                  key={item.href}
-                  href={item.href}
+                  href="/login"
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center justify-between py-2 text-sm font-medium ${
-                    active ? "text-electric-blue font-bold" : "text-primary"
-                  }`}
+                  className="flex-1 text-center bg-slate-100 hover:bg-slate-200 text-slate-900 py-3 rounded-xl text-sm font-semibold"
                 >
-                  <span>{item.label}</span>
-                  {"badge" in item && item.badge && (
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-electric-blue/10 text-electric-blue">
-                      {item.badge}
-                    </span>
-                  )}
+                  {authSession
+                    ? `Account: ${authSession.user.full_name.split(" ")[0]}`
+                    : "Sign In with Google"}
                 </Link>
-              );
-            })}
-            <Link
-              href="/cap-guide"
-              onClick={() => setMobileOpen(false)}
-              className="block w-full text-left py-2 text-sm font-medium text-primary"
-            >
-              CAP Guide &amp; Document Checklist
-            </Link>
-            <Link
-              href="/analytics"
-              onClick={() => setMobileOpen(false)}
-              className="block w-full text-left py-2 text-sm font-medium text-primary"
-            >
-              Cutoff Analytics
-            </Link>
-            <Link
-              href="/rank-calculator"
-              onClick={() => setMobileOpen(false)}
-              className="block w-full text-left py-2 text-sm font-medium text-primary"
-            >
-              Rank Calculator
-            </Link>
-            <Link
-              href="/login"
-              onClick={() => setMobileOpen(false)}
-              className="block w-full text-left py-2 text-sm font-semibold text-electric-blue"
-            >
-              {authSession
-                ? `Account Portal (${authSession.user.full_name})`
-                : "Google Sign-In Portal"}
-            </Link>
-            <Link
-              href="/about"
-              onClick={() => setMobileOpen(false)}
-              className="block w-full text-left py-2 text-sm font-medium text-text-secondary"
-            >
-              About — Arsh Shaikh
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setMobileOpen(false);
-                setModalType("how-it-works");
-              }}
-              className="block w-full text-left py-2 text-sm font-medium text-text-secondary"
-            >
-              How It Works
-            </button>
-            <div className="pt-2 border-t border-border flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileOpen(false);
-                  setUpgradeOpen(true);
-                }}
-                className="w-full text-center bg-electric-blue text-white py-2.5 rounded-xl text-sm font-semibold cursor-pointer"
-              >
-                {proActive
-                  ? "Manage Pro Pass"
-                  : `Unlock CAP Pro • ₹199 (GPay ${GPAY_NUMBER})`}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setUpgradeOpen(true);
+                  }}
+                  className="flex-1 text-center bg-gradient-to-r from-electric-blue to-indigo-600 text-white py-3 rounded-xl text-sm font-bold cursor-pointer shadow-sm"
+                >
+                  {proActive
+                    ? "Manage Pro Pass"
+                    : "Unlock CAP Pro • ₹199"}
+                </button>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </header>
 
       <main className="flex-1 flex flex-col pt-16 print:pt-0">{children}</main>
 
-      <footer className="bg-white border-t border-slate-200/90 py-12 text-sm text-slate-500 print:hidden">
+      <footer className="bg-white border-t border-slate-200/90 pt-12 pb-24 md:pb-12 text-sm text-slate-500 print:hidden">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2 space-y-4">
             <div className="flex items-center gap-2">
@@ -1019,6 +1123,97 @@ export default function NavigationShell({
           </div>
         </div>
       )}
+
+      {/* App-Like Mobile Bottom Tab Navigation (Phones only: < 768px) */}
+      <nav
+        aria-label="Mobile quick navigation"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] pb-safe print:hidden"
+      >
+        <div className="grid grid-cols-5 h-16 px-1">
+          {[
+            {
+              href: "/",
+              label: "Predict",
+              icon: Compass,
+              active: pathname === "/",
+            },
+            {
+              href: "/map",
+              label: "Map",
+              icon: MapPin,
+              active: pathname?.startsWith("/map"),
+            },
+            {
+              href: "/explorer",
+              label: "Colleges",
+              icon: Building2,
+              active:
+                pathname?.startsWith("/explorer") ||
+                pathname?.startsWith("/college"),
+            },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition-colors ${
+                  tab.active ? "text-electric-blue" : "text-slate-500"
+                }`}
+              >
+                <span
+                  className={`p-1.5 rounded-xl transition-colors ${
+                    tab.active ? "bg-electric-blue/10" : ""
+                  }`}
+                >
+                  <Icon size={18} />
+                </span>
+                <span>{tab.label}</span>
+              </Link>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen((prev) => !prev)}
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition-colors cursor-pointer ${
+              mobileOpen ? "text-electric-blue" : "text-slate-500"
+            }`}
+          >
+            <span
+              className={`p-1.5 rounded-xl transition-colors ${
+                mobileOpen ? "bg-electric-blue/10" : ""
+              }`}
+            >
+              <LayoutGrid size={18} />
+            </span>
+            <span>Tools</span>
+          </button>
+
+          <Link
+            href="/login"
+            onClick={() => setMobileOpen(false)}
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition-colors ${
+              pathname?.startsWith("/login")
+                ? "text-electric-blue"
+                : "text-slate-500"
+            }`}
+          >
+            <span
+              className={`relative p-1.5 rounded-xl transition-colors ${
+                pathname?.startsWith("/login") ? "bg-electric-blue/10" : ""
+              }`}
+            >
+              <User size={18} />
+              {authSession && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+              )}
+            </span>
+            <span>{authSession ? "Profile" : "Login"}</span>
+          </Link>
+        </div>
+      </nav>
 
       <UpgradeModal
         open={upgradeOpen}

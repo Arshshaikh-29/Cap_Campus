@@ -1083,3 +1083,86 @@ def test_razorpay_instant_payment_and_auto_unlock(monkeypatch):
             db.commit()
         finally:
             db.close()
+
+
+def test_persistent_database_layer_and_saved_option_forms():
+    import uuid
+    from backend.api.database import AppSessionLocal, normalize_database_url
+    from backend.api.models import SavedOptionForm, UserAccount
+    from backend.api.security import issue_user_token
+
+    # 1. URL normalizer properly prepares Neon/Supabase/Render Postgres URLs with SSL
+    norm = normalize_database_url("postgres://u:p@ep-cool-123.neon.tech/neondb")
+    assert norm.startswith("postgresql+psycopg2://")
+    assert "sslmode=require" in norm
+
+    # 2. /api/health reports database persistence diagnostics without leaking secrets
+    h = client.get("/api/health").json()
+    assert h["status"] == "ok"
+    assert "database" in h
+    assert h["database"]["engine"] in ("postgresql", "sqlite", "sqlite_custom")
+
+    # 3. Signed-in student can save & reload Option Forms in AppDataBase
+    db = AppSessionLocal()
+    email = f"optform_{uuid.uuid4().hex[:8]}@gmail.com"
+    u = UserAccount(
+        google_sub=f"sub_{uuid.uuid4().hex[:12]}",
+        email=email,
+        full_name="Meera Joshi",
+    )
+    db.add(u)
+    db.commit()
+    db.refresh(u)
+    uid = u.id
+    db.close()
+
+    try:
+        tok = issue_user_token(uid, email)
+        save_res = client.post(
+            "/api/option-form/save",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={
+                "title": "My Pune CS Form",
+                "category": "GOPENS",
+                "score_label": "99.10 %ile",
+                "choices": [
+                    {
+                        "preference_no": 1,
+                        "college_code": "6006",
+                        "choice_code": "600624210",
+                        "college_name": "COEP Technological University",
+                        "city": "Pune",
+                        "branch": "Computer Science and Engineering",
+                        "band": "Dream",
+                        "historical_percentile": 99.98,
+                        "historical_rank": 150,
+                    }
+                ],
+            },
+        )
+        assert save_res.status_code == 200
+        assert save_res.json()["saved"] is True
+        assert save_res.json()["count"] == 1
+
+        got = client.get(
+            "/api/option-form/saved",
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert got.status_code == 200
+        gd = got.json()
+        assert gd["found"] is True
+        assert gd["form"]["title"] == "My Pune CS Form"
+        assert gd["form"]["choices"][0]["college_code"] == "6006"
+
+        # 4. Admin overview includes database status & registered Google users list
+        ov = client.get("/api/admin/overview", headers={"X-Admin-Pin": "992062"}).json()
+        assert "database" in ov
+        assert any(row["email"] == email for row in ov["users"])
+    finally:
+        db = AppSessionLocal()
+        try:
+            db.query(SavedOptionForm).filter(SavedOptionForm.user_id == uid).delete()
+            db.query(UserAccount).filter(UserAccount.id == uid).delete()
+            db.commit()
+        finally:
+            db.close()

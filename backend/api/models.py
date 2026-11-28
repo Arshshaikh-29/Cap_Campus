@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Float, Index, DateTime, Text
-from .database import Base
+from .database import Base, AppDataBase
 
 
 class CollegeRecord(Base):
@@ -25,14 +25,14 @@ class CollegeRecord(Base):
     )
 
 
-class PaymentOrder(Base):
+class PaymentOrder(AppDataBase):
     __tablename__ = "payment_orders"
 
     id = Column(Integer, primary_key=True, index=True)
     access_key = Column(String, unique=True, index=True, nullable=False)
     full_name = Column(String, nullable=False)
     phone = Column(String, nullable=False, index=True)
-    email = Column(String, nullable=True)
+    email = Column(String, nullable=True, index=True)
     plan = Column(String, nullable=False)  # "pro" or "vip"
     amount_inr = Column(Integer, nullable=False)
     utr_number = Column(String, unique=True, index=True, nullable=False)
@@ -43,7 +43,7 @@ class PaymentOrder(Base):
     approved_at = Column(DateTime, nullable=True)
 
 
-class CounsellingLead(Base):
+class CounsellingLead(AppDataBase):
     __tablename__ = "counselling_leads"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -57,7 +57,7 @@ class CounsellingLead(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
-class UserAccount(Base):
+class UserAccount(AppDataBase):
     __tablename__ = "user_accounts"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -71,3 +71,15 @@ class UserAccount(Base):
     bookmarks_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_login_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class SavedOptionForm(AppDataBase):
+    __tablename__ = "saved_option_forms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True, nullable=False)
+    title = Column(String, nullable=False, default="My 2026 CAP Option Form")
+    category = Column(String, nullable=False, default="GOPENS")
+    score_label = Column(String, nullable=True)
+    choices_json = Column(Text, nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

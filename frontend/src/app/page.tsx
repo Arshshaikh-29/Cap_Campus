@@ -641,32 +641,32 @@ export default function Home() {
   return (
     <div className="flex-1 flex flex-col justify-center bg-[#F8FAFC]">
       {step === 1 && (
-        <section className="relative overflow-hidden py-16 lg:py-24 flex-1 flex flex-col">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-electric-blue/10 via-teal-accent/5 to-transparent rounded-full blur-3xl -z-10" />
+        <section className="relative overflow-hidden py-10 sm:py-16 lg:py-24 flex-1 flex flex-col">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-electric-blue/10 via-teal-accent/5 to-transparent rounded-full blur-3xl -z-10 pointer-events-none" />
 
-          <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            <div className="lg:col-span-7 space-y-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            <div className="lg:col-span-7 space-y-6 sm:space-y-8">
               <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-xs font-semibold tracking-wide uppercase">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-electric-blue/10 border border-electric-blue/20 text-electric-blue text-[11px] sm:text-xs font-semibold tracking-wide uppercase">
                   <Sparkles size={14} /> MHT-CET Engineering Admissions 2023–2026
                 </div>
                 <Link
                   href="/about"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0B1120] hover:bg-slate-800 text-white text-xs font-semibold transition-colors shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0B1120] hover:bg-slate-800 text-white text-[11px] sm:text-xs font-semibold transition-colors shadow-xs"
                 >
                   <Code2 size={13} className="text-blue-400" />
                   Made by Arsh Shaikh
                 </Link>
               </div>
 
-              <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.08]">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.08]">
                 Navigate CAP Admissions with{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-electric-blue to-teal-accent">
                   Clarity.
                 </span>
               </h1>
 
-              <p className="text-lg text-slate-600 max-w-2xl leading-relaxed">
+              <p className="text-base sm:text-lg text-slate-600 max-w-2xl leading-relaxed">
                 Explore 400 Maharashtra engineering colleges with{" "}
                 <strong className="text-slate-900 font-semibold">
                   category-wise rank & percentile cutoffs
@@ -675,10 +675,10 @@ export default function Home() {
                 Rank conversion, and calibrated seat-pool insights.
               </p>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-1">
                 <button
                   onClick={() => setStep(2)}
-                  className="bg-electric-blue hover:bg-blue-600 text-white font-semibold px-8 py-4 rounded-xl shadow-lg shadow-electric-blue/25 hover:shadow-electric-blue/35 transition-all flex items-center justify-center gap-2 text-base group cursor-pointer"
+                  className="bg-electric-blue hover:bg-blue-600 text-white font-semibold px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl shadow-lg shadow-electric-blue/25 hover:shadow-electric-blue/35 transition-all flex items-center justify-center gap-2 text-sm sm:text-base group cursor-pointer"
                 >
                   Predict My Colleges
                   <ArrowRight
@@ -687,36 +687,37 @@ export default function Home() {
                   />
                 </button>
                 <Link
-                  href="/explorer"
-                  className="bg-white hover:bg-slate-50 text-slate-900 border border-slate-200/90 font-semibold px-8 py-4 rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 text-base"
+                  href="/map"
+                  className="bg-white hover:bg-slate-50 text-slate-900 border border-slate-200/90 font-semibold px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
-                  Explore Cutoff Trends
+                  <MapPin size={17} className="text-electric-blue" />
+                  Explore College Map
                 </Link>
               </div>
 
-              <div className="grid grid-cols-3 gap-6 pt-8 border-t border-slate-200/80">
+              <div className="grid grid-cols-3 gap-3 sm:gap-6 pt-6 sm:pt-8 border-t border-slate-200/80">
                 <div>
-                  <div className="text-2xl font-bold font-mono tabular-nums text-slate-900">
+                  <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-slate-900">
                     198,300+
                   </div>
-                  <div className="text-xs text-slate-500 mt-1">
+                  <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
                     Verified Cutoff Records
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold font-mono tabular-nums text-slate-900">
+                  <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-slate-900">
                     400
                   </div>
-                  <div className="text-xs text-slate-500 mt-1">
+                  <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
                     Engineering Institutes
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold font-mono tabular-nums text-slate-900">
+                  <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums text-slate-900">
                     Rounds 1–4
                   </div>
-                  <div className="text-xs text-slate-500 mt-1">
-                    Official 2023–2026 CAP Data
+                  <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
+                    2023–2026 CAP Data
                   </div>
                 </div>
               </div>
@@ -2775,13 +2776,13 @@ export default function Home() {
                       {/* Right Column: Dual Category Cutoffs (Percentile + Rankwise) & Actions */}
                       <div className="flex flex-col sm:flex-row lg:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-200/80">
                         {/* Side-by-Side Category Percentile & Rankwise Cutoff Boxes */}
-                        <div className="grid grid-cols-2 gap-3 flex-1 sm:flex-initial">
+                        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 flex-1 sm:flex-initial">
                           {/* Box 1: Category Percentile Cutoff */}
-                          <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl px-4 py-2.5 text-left sm:text-right min-w-[148px]">
-                            <div className="text-[10px] font-mono tabular-nums font-bold uppercase tracking-wider text-slate-500">
+                          <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl px-3 sm:px-4 py-2.5 text-left sm:text-right min-w-0 sm:min-w-[148px]">
+                            <div className="text-[10px] font-mono tabular-nums font-bold uppercase tracking-wider text-slate-500 truncate">
                               {form.category} %ile ({p.year} R{p.round})
                             </div>
-                            <div className="text-lg font-extrabold font-mono tabular-nums text-slate-900 mt-0.5">
+                            <div className="text-base sm:text-lg font-extrabold font-mono tabular-nums text-slate-900 mt-0.5">
                               {p.historical_percentile != null
                                 ? `${p.historical_percentile.toFixed(2)} %`
                                 : "N/A"}
@@ -2799,11 +2800,11 @@ export default function Home() {
                           </div>
 
                           {/* Box 2: Category Rankwise Cutoff */}
-                          <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl px-4 py-2.5 text-left sm:text-right min-w-[155px]">
-                            <div className="text-[10px] font-mono tabular-nums font-bold uppercase tracking-wider text-slate-500">
+                          <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl px-3 sm:px-4 py-2.5 text-left sm:text-right min-w-0 sm:min-w-[155px]">
+                            <div className="text-[10px] font-mono tabular-nums font-bold uppercase tracking-wider text-slate-500 truncate">
                               {form.category} Merit Rank
                             </div>
-                            <div className="text-lg font-extrabold font-mono tabular-nums text-electric-blue mt-0.5">
+                            <div className="text-base sm:text-lg font-extrabold font-mono tabular-nums text-electric-blue mt-0.5">
                               #
                               {Math.round(
                                 p.historical_rank || 0
